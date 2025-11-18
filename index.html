@@ -255,10 +255,7 @@
 
     <div class="ano-select">
       <label for="selectAno">Ano</label>
-      <div class="ano-row">
-        <select id="selectAno"></select>
-        <button class="btn-icon" title="Adicionar ano" onclick="adicionarAno()">+</button>
-      </div>
+      <select id="selectAno"></select>
     </div>
 
     <div class="ano-select">
@@ -448,12 +445,6 @@
         mesAtual = "";
         renderizarMeses();
       }
-    }
-
-    async function adicionarAno() {
-      const ano = prompt("Digite o ano (ex: 2025)");
-      if (!ano) return;
-      await criarAno(ano);
     }
 
     function renderizarMeses() {
