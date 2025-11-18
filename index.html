@@ -279,6 +279,25 @@
       color: #6c7190;
     }
 
+    .actions-cell {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-icon-inline {
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 18px;
+      padding: 0;
+    }
+    .btn-icon-inline.edit {
+      color: var(--subtle);
+    }
+    .btn-icon-inline.edit:hover {
+      color: var(--accent-2);
+    }
+
     @media (max-width: 960px) {
       body { flex-direction: column; }
       .sidebar { flex-direction: row; flex-wrap: wrap; height: auto; }
@@ -343,7 +362,7 @@
             <th>Conta</th>
             <th>Valor</th>
             <th>Status</th>
-            <th>Ação</th>
+            <th>Mudar Status</th>
             <th></th>
           </tr>
         </thead>
@@ -363,7 +382,7 @@
           <tr>
             <th>Descrição</th>
             <th>Valor</th>
-            <th></th>
+            <th>Ações</th>
           </tr>
         </thead>
         <tbody id="tabelaAdicionais"></tbody>
@@ -384,7 +403,7 @@
             <th>Descrição</th>
             <th>Valor</th>
             <th>Parcelas</th>
-            <th></th>
+            <th>Ações</th>
           </tr>
         </thead>
         <tbody id="tabelaCartao"></tbody>
@@ -537,7 +556,10 @@
                 <option value="pago" ${status === "pago" ? "selected" : ""}>Pago</option>
               </select>
             </td>
-            <td><button class="btn-inline" onclick="removerItem('contas', ${index})">Excluir</button></td>
+            <td class="actions-cell">
+              <button class="btn-icon-inline edit" onclick="editarItem('contas', ${index})">✏️</button>
+              <button class="btn-inline" onclick="removerItem('contas', ${index})">🗑️</button>
+            </td>
           </tr>
         `;
       });
@@ -549,7 +571,10 @@
           <tr>
             <td>${item.nome}</td>
             <td>${formatar(item.valor)}</td>
-            <td><button class="btn-inline" onclick="removerItem('adicionais', ${index})">Excluir</button></td>
+            <td class="actions-cell">
+              <button class="btn-icon-inline edit" onclick="editarItem('adicionais', ${index})">✏️</button>
+              <button class="btn-inline" onclick="removerItem('adicionais', ${index})">🗑️</button>
+            </td>
           </tr>
         `;
       });
@@ -562,7 +587,10 @@
             <td>${item.nome}</td>
             <td>${formatar(item.valor)}</td>
             <td>${item.parcelas || "-"}</td>
-            <td><button class="btn-inline" onclick="removerItem('cartao', ${index})">Excluir</button></td>
+            <td class="actions-cell">
+              <button class="btn-icon-inline edit" onclick="editarItem('cartao', ${index})">✏️</button>
+              <button class="btn-inline" onclick="removerItem('cartao', ${index})">🗑️</button>
+            </td>
           </tr>
         `;
       });
@@ -643,6 +671,32 @@
       const dados = doc.data();
       dados.contas[indice].status = status;
       await ref.update({ contas: dados.contas });
+    }
+
+    async function editarItem(tipo, indice) {
+      const ref = getMesRef();
+      if (!ref) return;
+      const dados = await carregarDadosRef(ref);
+      const item = dados[tipo][indice];
+      if (!item) return;
+
+      const novoNome = prompt(`Editar descrição:`, item.nome);
+      if (novoNome === null) return; // Usuário cancelou
+
+      const novoValorStr = prompt(`Editar valor:`, item.valor);
+      if (novoValorStr === null) return; // Usuário cancelou
+
+      const novoValor = Number(novoValorStr);
+      if (isNaN(novoValor)) {
+        return alert("Valor inválido. Por favor, insira um número.");
+      }
+
+      dados[tipo][indice] = {
+        ...item,
+        nome: novoNome.trim(),
+        valor: novoValor
+      };
+      await ref.update({ [tipo]: dados[tipo] });
     }
 
     function atualizarResumo(data) {
