@@ -386,45 +386,27 @@
     const selectAno = document.getElementById("selectAno");
     const listaMeses = document.getElementById("listaMeses");
 
-    async function prepararAnosPadrao() {
-      const promessas = [];
+    function popularListaAnos() {
+      selectAno.innerHTML = "";
       for (let ano = ANO_BASE; ano <= ANO_LIMITE; ano++) {
-        promessas.push(criarAno(ano, false));
-      }
-      await Promise.all(promessas);
-      if (!anoAtual) {
-        anoAtual = String(ANO_BASE);
+        const option = document.createElement("option");
+        option.value = String(ano);
+        option.textContent = String(ano);
+        selectAno.appendChild(option);
       }
     }
 
     async function inicializar() {
-      await prepararAnosPadrao();
-      db.collection("anos").orderBy("ano").onSnapshot(snapshot => {
-        selectAno.innerHTML = "";
-        if (snapshot.empty) {
-          return;
-        }
-        snapshot.forEach(doc => {
-          const option = document.createElement("option");
-          option.value = doc.id;
-          option.textContent = doc.id;
-          selectAno.appendChild(option);
-        });
-        if (!anoAtual) {
-          anoAtual = selectAno.options[0]?.value || "";
-        }
-        selectAno.value = anoAtual;
-        renderizarMeses();
-        const mesParaSelecionar = mesAtual || MESES[0];
-        if (mesParaSelecionar) {
-          selecionarMes(mesParaSelecionar);
-        }
-      });
-
+      anoAtual = String(ANO_BASE);
+      popularListaAnos();
+      selectAno.value = anoAtual;
+      await garantirAno(anoAtual);
+      renderizarMeses();
+      await selecionarMes(MESES[0]);
       selectAno.addEventListener("change", trocarAno);
     }
 
-    async function criarAno(ano, selecionar = true) {
+    async function garantirAno(ano) {
       if (!/^[0-9]{4}$/.test(String(ano))) {
         alert("Informe um ano válido com quatro dígitos.");
         return;
@@ -440,11 +422,6 @@
       } else {
         await ref.set({ ano: Number(ano) }, { merge: true });
       }
-      if (selecionar) {
-        anoAtual = String(ano);
-        mesAtual = "";
-        renderizarMeses();
-      }
     }
 
     function renderizarMeses() {
@@ -458,18 +435,20 @@
       });
     }
 
-    function trocarAno() {
+    async function trocarAno() {
       anoAtual = selectAno.value;
       mesAtual = "";
       if (unsubscribeMes) unsubscribeMes();
-      selecionarMes(MESES[0]);
+      await garantirAno(anoAtual);
+      await selecionarMes(MESES[0]);
     }
 
-    function selecionarMes(mes) {
+    async function selecionarMes(mes) {
       if (!anoAtual) return;
       mesAtual = mes;
       document.getElementById("tituloMes").innerText = `${mesAtual} / ${anoAtual}`;
       renderizarMeses();
+      await garantirAno(anoAtual);
       escutarMes(anoAtual, mesAtual);
     }
 
