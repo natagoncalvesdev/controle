@@ -215,6 +215,13 @@
       font-weight: 600;
       cursor: pointer;
     }
+    .form-row .form-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      flex-basis: 100%;
+    }
 
     .form-row button:hover { opacity: 0.9; }
 
@@ -562,7 +569,16 @@
         <input id="cartaoNome" placeholder="Descrição (ex: Óculos)" />
         <input id="cartaoValor" type="number" placeholder="Valor da parcela" />
         <input id="cartaoTotalParcelas" type="number" placeholder="Total de Parcelas (ex: 10)" />
-        <button onclick="adicionarCartao()">Adicionar compra</button>
+        <div class="form-actions">
+          <button onclick="adicionarCartao()">Adicionar compra</button>
+          <button onclick="abrirModalAdiantar()" style="background-color: var(--accent-2);">
+            Adiantar Parcela
+          </button>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" id="cartaoRecorrente" style="width: auto;">
+            <label for="cartaoRecorrente">Recorrente</label>
+          </div>
+        </div>
       </div>
       <div class="table-wrapper">
         <table>
@@ -590,6 +606,20 @@
       <div class="modal-actions">
         <button class="btn-cancel" onclick="fecharModalCopia()">Cancelar</button>
         <button class="btn-confirm" onclick="confirmarCopia()">Concluir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Adiantar Parcelas -->
+  <div id="anticipateModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>Adiantar parcelas para o mês atual</h3>
+      <div id="anticipateInstallmentList" class="modal-month-list">
+        <!-- A lista de parcelas será populada via JS -->
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="fecharModalAdiantar()">Cancelar</button>
+        <button class="btn-confirm" onclick="confirmarAdiantamento()">Concluir</button>
       </div>
     </div>
   </div>
@@ -623,6 +653,7 @@
     let mesAtual = "";
     let unsubscribeMes = null;
     let itemParaCopiar = null;
+    let parcelasParaAdiantar = [];
 
     const selectAno = document.getElementById("selectAno");
     const listaMeses = document.getElementById("listaMeses");
@@ -874,33 +905,55 @@
       if (!ref) return;
       const nome = document.getElementById("cartaoNome").value.trim();
       const valor = Number(document.getElementById("cartaoValor").value);
+      const isRecorrente = document.getElementById("cartaoRecorrente").checked;
       const totalParcelas = Number(document.getElementById("cartaoTotalParcelas").value) || 1;
 
       if (!nome || !valor) {
         return alert("Preencha descrição e valor da compra.");
       }
-      if (totalParcelas < 1) {
-        return alert("O número de parcelas deve ser 1 ou maior.");
-      }
 
       const mesAtualIndex = MESES.indexOf(mesAtual);
       const batch = db.batch();
 
-      for (let i = 0; i < totalParcelas; i++) {
-        const targetMesIndex = (mesAtualIndex + i) % 12;
-        const targetAno = Number(anoAtual) + Math.floor((mesAtualIndex + i) / 12);
-        const targetMesNome = MESES[targetMesIndex];
+      if (isRecorrente) {
+        // Lógica para item recorrente
+        const novaCompra = { nome, valor, parcelas: "Recorrente", recorrente: true };
+        const anoFinal = ANO_LIMITE;
 
-        // Garante que o ano e a estrutura de meses existam antes de adicionar
-        await garantirAno(String(targetAno));
+        for (let ano = Number(anoAtual); ano <= anoFinal; ano++) {
+          await garantirAno(String(ano));
+          const mesInicial = (ano === Number(anoAtual)) ? mesAtualIndex : 0;
+          for (let mesIdx = mesInicial; mesIdx < 12; mesIdx++) {
+            const mesNome = MESES[mesIdx];
+            const parcelaRef = db.collection("anos").doc(String(ano)).collection("meses").doc(mesNome);
+            batch.update(parcelaRef, { cartao: firebase.firestore.FieldValue.arrayUnion(novaCompra) });
+          }
+        }
 
-        const parcelaRef = db.collection("anos").doc(String(targetAno)).collection("meses").doc(targetMesNome);
-        const novaCompra = {
-          nome,
-          valor,
-          parcelas: `${i + 1}/${totalParcelas}`
-        };
-        batch.update(parcelaRef, { cartao: firebase.firestore.FieldValue.arrayUnion(novaCompra) });
+      } else {
+        // Lógica para parcelamento normal
+        if (totalParcelas < 1) {
+        return alert("O número de parcelas deve ser 1 ou maior.");
+        }
+
+        for (let i = 0; i < totalParcelas; i++) {
+          const targetMesIndex = (mesAtualIndex + i) % 12;
+          const targetAno = Number(anoAtual) + Math.floor((mesAtualIndex + i) / 12);
+          const targetMesNome = MESES[targetMesIndex];
+
+          if (targetAno > ANO_LIMITE) continue; // Não adiciona além do ano limite
+
+          // Garante que o ano e a estrutura de meses existam antes de adicionar
+          await garantirAno(String(targetAno));
+
+          const parcelaRef = db.collection("anos").doc(String(targetAno)).collection("meses").doc(targetMesNome);
+          const novaCompra = {
+            nome,
+            valor,
+            parcelas: `${i + 1}/${totalParcelas}`
+          };
+          batch.update(parcelaRef, { cartao: firebase.firestore.FieldValue.arrayUnion(novaCompra) });
+        }
       }
 
       await batch.commit();
@@ -908,16 +961,44 @@
       document.getElementById("cartaoNome").value = "";
       document.getElementById("cartaoValor").value = "";
       document.getElementById("cartaoTotalParcelas").value = "";
+      document.getElementById("cartaoRecorrente").checked = false;
     }
 
-    async function removerItem(tipo, indice) {
+    async function removerItem(tipo, indice) {      
       const ref = getMesRef();
       if (!ref) return;
-      const doc = await ref.get();
-      if (!doc.exists) return;
-      const dados = doc.data();
+      const dados = await carregarDadosRef(ref);
+      const item = dados[tipo][indice];
+
+      if (!item) return;
+
+      // Lógica especial para remover itens recorrentes do cartão
+      if (tipo === 'cartao' && item.recorrente) {
+        if (!confirm("Esta é uma compra recorrente. Deseja excluir esta e TODAS as ocorrências futuras?")) {
+          return;
+        }
+
+        const batch = db.batch();
+        const mesAtualIndex = MESES.indexOf(mesAtual);
+
+        for (let ano = Number(anoAtual); ano <= ANO_LIMITE; ano++) {
+          const mesInicial = (ano === Number(anoAtual)) ? mesAtualIndex : 0;
+          for (let mesIdx = mesInicial; mesIdx < 12; mesIdx++) {
+            const mesNome = MESES[mesIdx];
+            const futureRef = db.collection("anos").doc(String(ano)).collection("meses").doc(mesNome);
+            // arrayRemove precisa do objeto exato para funcionar
+            batch.update(futureRef, { cartao: firebase.firestore.FieldValue.arrayRemove(item) });
+          }
+        }
+
+        await batch.commit();
+        alert("Compra recorrente removida de todos os meses futuros.");
+        return; // Finaliza a função aqui
+      }
+
+      // Lógica padrão para remover um único item
       dados[tipo].splice(indice, 1);
-      await ref.update({ [tipo]: dados[tipo] });
+      await ref.set(dados);
     }
 
     async function atualizarStatusConta(indice, status) {
@@ -940,8 +1021,8 @@
       const item = dados[tipo][indice];
       if (!item) return;
 
-      if (tipo === 'cartao' && item.parcelas && item.parcelas.includes('/')) {
-        alert("Não é possível editar um item parcelado. Por favor, remova a compra e adicione novamente se necessário.");
+      if (tipo === 'cartao' && ((item.parcelas && item.parcelas.includes('/')) || item.recorrente)) {
+        alert("Não é possível editar um item parcelado ou recorrente. Por favor, remova a compra e adicione novamente se necessário.");
         return;
       }
 
@@ -1049,6 +1130,97 @@
       await batch.commit();
       alert(`${checkboxes.length} cópia(s) realizada(s) com sucesso!`);
       fecharModalCopia();
+    }
+
+    async function abrirModalAdiantar() {
+      const lista = document.getElementById('anticipateInstallmentList');
+      lista.innerHTML = 'Buscando parcelas futuras...';
+      document.getElementById('anticipateModal').classList.add('visible');
+
+      parcelasParaAdiantar = [];
+      const mesAtualIndex = MESES.indexOf(mesAtual);
+      let parcelasEncontradas = [];
+
+      // Busca por parcelas nos próximos 24 meses
+      for (let i = 1; i <= 24; i++) {
+        const targetMesIndex = (mesAtualIndex + i) % 12;
+        const targetAno = Number(anoAtual) + Math.floor((mesAtualIndex + i) / 12);
+        const targetMesNome = MESES[targetMesIndex];
+
+        const ref = db.collection("anos").doc(String(targetAno)).collection("meses").doc(targetMesNome);
+        const doc = await ref.get();
+
+        if (doc.exists && doc.data().cartao && doc.data().cartao.length > 0) {
+          doc.data().cartao.forEach((item, index) => {
+            // Adiciona apenas itens parcelados e não recorrentes
+            if (item.parcelas && item.parcelas.includes('/') && !item.recorrente) {
+              parcelasEncontradas.push({
+                ...item,
+                source: { ano: String(targetAno), mes: targetMesNome, index: index }
+              });
+            }
+          });
+        }
+      }
+
+      lista.innerHTML = '';
+      if (parcelasEncontradas.length === 0) {
+        lista.innerHTML = 'Nenhuma parcela futura encontrada.';
+        return;
+      }
+
+      parcelasParaAdiantar = parcelasEncontradas;
+      parcelasEncontradas.forEach((item, index) => {
+        const id = `anticipate-check-${index}`;
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'modal-month-item';
+        itemDiv.innerHTML = `
+          <input type="checkbox" id="${id}" data-index="${index}">
+          <label for="${id}">
+            ${item.nome} (${item.parcelas}) - ${formatar(item.valor)}
+            <small style="display: block; color: var(--subtle);">Origem: ${item.source.mes}/${item.source.ano}</small>
+          </label>
+        `;
+        lista.appendChild(itemDiv);
+      });
+    }
+
+    function fecharModalAdiantar() {
+      document.getElementById('anticipateModal').classList.remove('visible');
+      parcelasParaAdiantar = [];
+    }
+
+    async function confirmarAdiantamento() {
+      const checkboxes = document.querySelectorAll('#anticipateInstallmentList input[type="checkbox"]:checked');
+      if (checkboxes.length === 0) {
+        return alert("Selecione pelo menos uma parcela para adiantar.");
+      }
+
+      const batch = db.batch();
+      const refMesAtual = getMesRef();
+
+      for (const check of checkboxes) {
+        const index = Number(check.dataset.index);
+        const parcela = parcelasParaAdiantar[index];
+        if (!parcela) continue;
+
+        const { source, ...itemParaMover } = parcela;
+        const refMesOrigem = db.collection("anos").doc(source.ano).collection("meses").doc(source.mes);
+
+        // 1. Remove do mês de origem
+        batch.update(refMesOrigem, {
+          cartao: firebase.firestore.FieldValue.arrayRemove(parcela)
+        });
+
+        // 2. Adiciona ao mês atual
+        batch.update(refMesAtual, {
+          cartao: firebase.firestore.FieldValue.arrayUnion(itemParaMover)
+        });
+      }
+
+      await batch.commit();
+      alert(`${checkboxes.length} parcela(s) adiantada(s) com sucesso!`);
+      fecharModalAdiantar();
     }
 
     function atualizarResumo(data) {
