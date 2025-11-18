@@ -380,7 +380,26 @@
     </div>
   </aside>
 
-
+  <main class="content">
+    <div class="header">
+      <h2 id="tituloMes">Selecione um ano e um mês</h2>
+      <div class="resumo">
+        <div class="card yellow">
+          <small>Total contas (inclui cartão)</small>
+          <strong id="totalContas">R$ 0,00</strong>
+          <span class="info-text">Contas manuais: <span id="totalContasSemCartao">R$ 0,00</span></span>
+          <span class="info-text">Cartão embutido: <span id="totalCartaoResumo">R$ 0,00</span></span>
+        </div>
+        <div class="card green">
+          <small>Total adicionais</small>
+          <strong id="totalAdicionais">R$ 0,00</strong>
+        </div>
+        <div class="card red">
+          <small>Saldo disponível</small>
+          <strong id="saldoFinal">R$ 0,00</strong>
+        </div>
+      </div>
+    </div>
 
     <section class="section">
       <h3>Contas do mês</h3>
@@ -411,7 +430,6 @@
         <tbody id="tabelaContas"></tbody>
         </table>
       </div>
-      </table>
     </section>
 
     <section class="section">
@@ -433,7 +451,6 @@
         <tbody id="tabelaAdicionais"></tbody>
         </table>
       </div>
-      </table>
     </section>
 
     <section class="section">
@@ -457,7 +474,6 @@
         <tbody id="tabelaCartao"></tbody>
         </table>
       </div>
-      </table>
     </section>
   </main>
 
@@ -793,19 +809,7 @@
   </style>
 </head>
 <body>
-  <aside class="sidebar">
-    <h1>Controle</h1>
-
-    <div class="ano-select">
-      <label for="selectAno">Ano</label>
-      <select id="selectAno"></select>
-    </div>
-
-    <div class="ano-select">
-      <label>Meses</label>
-      <div class="months" id="listaMeses"></div>
-    </div>
-  </aside>
+  
 
   <main class="content">
     <div class="header">
