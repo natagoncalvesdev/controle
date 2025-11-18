@@ -173,6 +173,7 @@
     .card.green strong { color: var(--accent-2); }
     .card.red strong { color: var(--accent-3); }
     .card.yellow strong { color: var(--accent); }
+    .card.blue strong { color: #007bff; } /* Cor para o total reservado */
 
     .section {
       background: #fff;
@@ -398,6 +399,10 @@
           <small>Saldo disponível</small>
           <strong id="saldoFinal">R$ 0,00</strong>
         </div>
+        <div class="card blue">
+          <small>Total reservado</small>
+          <strong id="totalReservado">R$ 0,00</strong>
+        </div>
       </div>
     </div>
 
@@ -477,6 +482,27 @@
     </section>
   </main>
 
+  <section class="section">
+    <h3>Reservados (combustível, lazer, etc.)</h3>
+    <div class="form-row">
+      <input id="reservadoNome" placeholder="Descrição" />
+      <input id="reservadoValor" type="number" placeholder="Valor em R$" />
+      <button onclick="adicionarReservado()">Adicionar reservado</button>
+    </div>
+    <div class="table-wrapper">
+      <table>
+      <thead>
+        <tr>
+          <th>Descrição</th>
+          <th>Valor</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="tabelaReservado"></tbody>
+      </table>
+    </div>
+  </section>
+
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyBVwUVoudM_IxWQgkLxlabinw4AXGgf1So",
@@ -552,7 +578,7 @@
       if (!doc.exists) {
         await ref.set({ ano: Number(ano) });
         const mesesBatch = MESES.map(nome =>
-          ref.collection("meses").doc(nome).set({ contas: [], adicionais: [], cartao: [] })
+          ref.collection("meses").doc(nome).set({ contas: [], adicionais: [], cartao: [], reservado: [] })
         );
         await Promise.all(mesesBatch);
       } else {
@@ -608,15 +634,17 @@
       document.getElementById("tabelaContas").innerHTML = "";
       document.getElementById("tabelaAdicionais").innerHTML = "";
       document.getElementById("tabelaCartao").innerHTML = "";
+      document.getElementById("tabelaReservado").innerHTML = "";
     }
 
     function renderizarDadosDoMes(data) {
       if (!data) {
-        data = { contas: [], adicionais: [], cartao: [] };
+        data = { contas: [], adicionais: [], cartao: [], reservado: [] };
       }
       data.contas = data.contas || [];
       data.adicionais = data.adicionais || [];
       data.cartao = data.cartao || [];
+      data.reservado = data.reservado || [];
       const tabelaContas = document.getElementById("tabelaContas");
       tabelaContas.innerHTML = "";
       data.contas.forEach((conta, index) => {
@@ -675,6 +703,21 @@
         `;
       });
 
+      const tabelaReservado = document.getElementById("tabelaReservado");
+      tabelaReservado.innerHTML = "";
+      data.reservado.forEach((item, index) => {
+        tabelaReservado.innerHTML += `
+          <tr>
+            <td>${item.nome}</td>
+            <td>${formatar(item.valor)}</td>
+            <td class="actions-cell">
+              <button class="btn-icon-inline edit" onclick="editarItem('reservado', ${index})">✏️</button>
+              <button class="btn-inline" onclick="removerItem('reservado', ${index})">🗑️</button>
+            </td>
+          </tr>
+        `;
+      });
+
       atualizarResumo(data);
     }
 
@@ -688,7 +731,7 @@
 
     async function carregarDadosRef(ref) {
       const doc = await ref.get();
-      return doc.exists ? doc.data() : { contas: [], adicionais: [], cartao: [] };
+      return doc.exists ? doc.data() : { contas: [], adicionais: [], cartao: [], reservado: [] };
     }
 
     async function adicionarConta() {
@@ -716,6 +759,19 @@
       });
       document.getElementById("adicionalNome").value = "";
       document.getElementById("adicionalValor").value = "";
+    }
+
+    async function adicionarReservado() {
+      const ref = getMesRef();
+      if (!ref) return;
+      const nome = document.getElementById("reservadoNome").value.trim();
+      const valor = Number(document.getElementById("reservadoValor").value);
+      if (!nome || !valor) return alert("Preencha descrição e valor.");
+      await ref.update({
+        reservado: firebase.firestore.FieldValue.arrayUnion({ nome, valor })
+      });
+      document.getElementById("reservadoNome").value = "";
+      document.getElementById("reservadoValor").value = "";
     }
 
     async function adicionarCartao() {
@@ -814,20 +870,23 @@
       let totalContasManuais = 0;
       let totalAdicionais = 0;
       let totalCartao = 0;
+      let totalReservado = 0;
 
       if (data) {
         totalContasManuais = data.contas.reduce((acc, item) => acc + Number(item.valor || 0), 0);
         totalAdicionais = data.adicionais.reduce((acc, item) => acc + Number(item.valor || 0), 0);
         totalCartao = data.cartao.reduce((acc, item) => acc + Number(item.valor || 0), 0);
+        totalReservado = data.reservado.reduce((acc, item) => acc + Number(item.valor || 0), 0);
       }
 
       const totalContas = totalContasManuais + totalCartao;
-      const saldo = totalAdicionais - totalContas;
+      const saldo = totalAdicionais - totalContas - totalReservado;
 
       document.getElementById("totalContas").innerText = formatar(totalContas);
       document.getElementById("totalContasSemCartao").innerText = formatar(totalContasManuais);
       document.getElementById("totalCartaoResumo").innerText = formatar(totalCartao);
       document.getElementById("totalAdicionais").innerText = formatar(totalAdicionais);
+      document.getElementById("totalReservado").innerText = formatar(totalReservado);
       document.getElementById("saldoFinal").innerText = formatar(saldo);
       document.getElementById("infoCartaoNasContas").innerText = formatar(totalCartao);
     }
