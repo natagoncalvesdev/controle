@@ -4,235 +4,630 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Controle Financeiro</title>
-
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
-
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <style>
-    body { margin: 0; font-family: Arial, sans-serif; display: flex; height: 100vh; }
-    .sidebar { width: 250px; background: #1e1e2f; color: white; padding: 20px; box-sizing: border-box; }
-    .sidebar h2, .sidebar h3 { text-align: center; }
-    select { width: 100%; padding: 10px; margin-bottom: 20px; border-radius: 5px; border: none; }
-    .month { padding: 10px; background:#2b2b40; border-radius: 5px; margin-bottom: 5px; cursor:pointer; }
-    .month:hover { background:#3b3b55; }
-    .content { flex:1; padding:20px; overflow-y:auto; background:#f2f2f2; }
+    :root {
+      --bg-dark: #151728;
+      --bg-dark-light: #1f2238;
+      --accent: #ffc107;
+      --accent-2: #33c27f;
+      --accent-3: #ff6b6b;
+      --text: #f9f9ff;
+      --subtle: #747b9a;
+    }
 
-    .section { background:#fff; padding:20px; margin-bottom:20px; border-radius:10px; box-shadow:0 0 8px rgba(0,0,0,0.1); }
-    .row { display:flex; gap:10px; margin-top:10px; }
-    input { flex:1; padding:10px; border-radius:5px; border:1px solid #ccc; }
-    button { padding:10px; border:none; background:#007bff; color:white; border-radius:5px; cursor:pointer; }
-    button:hover { background:#0056b3; }
+    * {
+      box-sizing: border-box;
+    }
 
-    table { width:100%; border-collapse:collapse; margin-top:20px; }
-    th, td { padding:10px; border-bottom:1px solid #ddd; }
-    th { background:#eee; }
-    .total { font-size:18px; font-weight:bold; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      display: flex;
+      height: 100vh;
+      background: #f0f2f5;
+      color: #1d1d2e;
+    }
+
+    .sidebar {
+      width: 280px;
+      background: var(--bg-dark);
+      color: var(--text);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .sidebar h1 {
+      font-size: 22px;
+      margin: 0;
+      letter-spacing: 0.05em;
+      text-align: center;
+    }
+
+    .ano-select {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .ano-select label {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--subtle);
+    }
+
+    .ano-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    select {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: var(--bg-dark-light);
+      color: var(--text);
+    }
+
+    .btn-icon {
+      width: 42px;
+      border: none;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #1d1d2e;
+      font-size: 22px;
+      cursor: pointer;
+    }
+
+    .btn-icon:hover { opacity: 0.9; }
+
+    .months {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+    }
+
+    .month {
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: var(--bg-dark-light);
+      color: var(--text);
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.2s ease;
+    }
+
+    .month:hover {
+      transform: translateX(4px);
+      background: #2b2f4a;
+    }
+
+    .month.active {
+      background: var(--accent);
+      color: #1d1d2e;
+      font-weight: 600;
+    }
+
+    .content {
+      flex: 1;
+      padding: 32px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .header {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .header h2 {
+      margin: 0;
+      font-size: 26px;
+    }
+
+    .resumo {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .card small {
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: #6c7190;
+    }
+
+    .card strong {
+      font-size: 26px;
+    }
+
+    .card.green strong { color: var(--accent-2); }
+    .card.red strong { color: var(--accent-3); }
+    .card.yellow strong { color: var(--accent); }
+
+    .section {
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .section h3 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .form-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .form-row input,
+    .form-row select {
+      flex: 1;
+      min-width: 160px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #d5d8e6;
+      background: #f9f9ff;
+    }
+
+    .form-row button {
+      flex-basis: 140px;
+      border: none;
+      border-radius: 10px;
+      background: #2563eb;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .form-row button:hover { opacity: 0.9; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 12px 10px;
+      text-align: left;
+      border-bottom: 1px solid #eef0fa;
+    }
+
+    th {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #8a8fa9;
+    }
+
+    tbody tr:hover {
+      background: #f5f6ff;
+    }
+
+    .btn-inline {
+      border: none;
+      background: none;
+      color: var(--accent-3);
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .info-text {
+      font-size: 13px;
+      color: #6c7190;
+    }
+
+    @media (max-width: 960px) {
+      body { flex-direction: column; }
+      .sidebar { flex-direction: row; flex-wrap: wrap; height: auto; }
+      .months { max-height: 180px; }
+    }
   </style>
 </head>
 <body>
+  <aside class="sidebar">
+    <h1>Controle</h1>
 
-<div class="sidebar">
-  <h2>Controle</h2>
-
-  <h3>Ano</h3>
-  <select id="selectAno" onchange="trocarAno()"></select>
-
-  <h3>Meses</h3>
-  <div id="months"></div>
-  <button onclick="criarMes()">+ Criar mês</button>
-  <button onclick="criarAno()" style="margin-top:10px; background:#28a745;">+ Criar ano</button>
-</div>
-
-<div class="content">
-  <h1 id="tituloMes">Selecione um ano e mês</h1>
-
-  <div id="conteudoMes" style="display:none;">
-    <div class="section">
-      <h2>Entradas</h2>
-      <div class="row">
-        <input id="entradaNome" placeholder="Nome da entrada">
-        <input id="entradaValor" type="number" placeholder="Valor">
-        <button onclick="addEntrada()">Adicionar</button>
+    <div class="ano-select">
+      <label for="selectAno">Ano</label>
+      <div class="ano-row">
+        <select id="selectAno"></select>
+        <button class="btn-icon" title="Adicionar ano" onclick="adicionarAno()">+</button>
       </div>
-      <table id="tabelaEntradas"></table>
-      <p class="total">Total entradas: R$ <span id="totalEntradas">0</span></p>
     </div>
 
-    <div class="section">
-      <h2>Saídas</h2>
-      <div class="row">
-        <input id="saidaNome" placeholder="Nome da saída">
-        <input id="saidaValor" type="number" placeholder="Valor">
-        <button onclick="addSaida()">Adicionar</button>
-      </div>
-      <table id="tabelaSaidas"></table>
-      <p class="total">Total saídas: R$ <span id="totalSaidas">0</span></p>
+    <div class="ano-select">
+      <label>Meses</label>
+      <div class="months" id="listaMeses"></div>
     </div>
-  </div>
-</div>
+  </aside>
 
-<script>
-const firebaseConfig = {
-  apiKey: "SUA_API_KEY",
-  authDomain: "SEU_AUTH_DOMAIN",
-  projectId: "SEU_PROJ",
-  storageBucket: "SEU_BUCKET",
-  messagingSenderId: "SENDER",
-  appId: "APPID"
+  <main class="content">
+    <div class="header">
+      <h2 id="tituloMes">Selecione um ano e um mês</h2>
+      <div class="resumo">
+        <div class="card yellow">
+          <small>Total contas (inclui cartão)</small>
+          <strong id="totalContas">R$ 0,00</strong>
+          <span class="info-text">Contas manuais: <span id="totalContasSemCartao">R$ 0,00</span></span>
+          <span class="info-text">Cartão embutido: <span id="totalCartaoResumo">R$ 0,00</span></span>
+        </div>
+        <div class="card green">
+          <small>Total adicionais</small>
+          <strong id="totalAdicionais">R$ 0,00</strong>
+        </div>
+        <div class="card red">
+          <small>Saldo disponível</small>
+          <strong id="saldoFinal">R$ 0,00</strong>
+        </div>
+      </div>
+    </div>
+
+    <section class="section">
+      <h3>Contas do mês</h3>
+      <div class="info-text">
+        O valor total do cartão de crédito é somado automaticamente às contas.
+        Total do cartão: <strong id="infoCartaoNasContas">R$ 0,00</strong>
+      </div>
+      <div class="form-row">
+        <input id="contaNome" placeholder="Descrição" />
+        <input id="contaValor" type="number" placeholder="Valor em R$" />
+        <select id="contaStatus">
+          <option value="pendente">Pendente</option>
+          <option value="pago">Pago</option>
+        </select>
+        <button onclick="adicionarConta()">Adicionar conta</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Conta</th>
+            <th>Valor</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tabelaContas"></tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <h3>Adicionais (salário, vale, extras)</h3>
+      <div class="form-row">
+        <input id="adicionalNome" placeholder="Descrição" />
+        <input id="adicionalValor" type="number" placeholder="Valor em R$" />
+        <button onclick="adicionarAdicional()">Adicionar adicional</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Descrição</th>
+            <th>Valor</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tabelaAdicionais"></tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <h3>Cartão de crédito</h3>
+      <div class="form-row">
+        <input id="cartaoNome" placeholder="Descrição (ex: Óculos)" />
+        <input id="cartaoValor" type="number" placeholder="Valor da parcela" />
+        <input id="cartaoParcelas" type="text" placeholder="Parcelas (ex: 7/10)" />
+        <button onclick="adicionarCartao()">Adicionar cartão</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Descrição</th>
+            <th>Valor</th>
+            <th>Parcelas</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tabelaCartao"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBVwUVoudM_IxWQgkLxlabinw4AXGgf1So",
+      authDomain: "controle-f1437.firebaseapp.com",
+      databaseURL: "https://controle-f1437-default-rtdb.firebaseio.com",
+      projectId: "controle-f1437",
+      storageBucket: "controle-f1437.firebasestorage.app",
+      messagingSenderId: "796244202232",
+      appId: "1:796244202232:web:4e98f9b9a3c34bd569e10d"
 };
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
 
-let anoAtual = null;
-let mesAtual = null;
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-function carregarAnos() {
-  // Criar anos automaticamente 2025 até 2040
-  for (let ano = 2025; ano <= 2040; ano++) {
-    const refAno = db.collection("anos").doc(String(ano));
-    refAno.get().then(doc => {
-      if (!doc.exists) {
-        refAno.set({});
-        // Criar meses automaticamente
-        const meses = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-        meses.forEach(m => {
-          refAno.collection("meses").doc(m).set({ entradas: [], saidas: [] });
+    const MESES = [
+      "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+      "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"
+    ];
+
+    const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+    const formatar = valor => moeda.format(Number(valor) || 0);
+
+    let anoAtual = "";
+    let mesAtual = "";
+    let unsubscribeMes = null;
+
+    const selectAno = document.getElementById("selectAno");
+    const listaMeses = document.getElementById("listaMeses");
+
+    function inicializar() {
+      db.collection("anos").orderBy("ano").onSnapshot(snapshot => {
+        selectAno.innerHTML = "";
+        if (snapshot.empty) {
+          const anoBase = new Date().getFullYear();
+          criarAno(anoBase, false);
+          return;
+        }
+        snapshot.forEach(doc => {
+          const option = document.createElement("option");
+          option.value = doc.id;
+          option.textContent = doc.id;
+          selectAno.appendChild(option);
         });
+        if (!anoAtual) {
+          anoAtual = selectAno.options[0]?.value || "";
+        }
+        selectAno.value = anoAtual;
+        renderizarMeses();
+        if (anoAtual && mesAtual) {
+          escutarMes(anoAtual, mesAtual);
+        }
+      });
+
+      selectAno.addEventListener("change", trocarAno);
+    }
+
+    async function criarAno(ano, selecionar = true) {
+      if (!/^[0-9]{4}$/.test(String(ano))) {
+        alert("Informe um ano válido com quatro dígitos.");
+        return;
       }
-    });
-  }
+      const ref = db.collection("anos").doc(String(ano));
+      const doc = await ref.get();
+      if (!doc.exists) {
+        await ref.set({ ano: Number(ano) });
+        const mesesBatch = MESES.map(nome =>
+          ref.collection("meses").doc(nome).set({ contas: [], adicionais: [], cartao: [] })
+        );
+        await Promise.all(mesesBatch);
+      }
+      if (selecionar) {
+        anoAtual = String(ano);
+        mesAtual = "";
+        renderizarMeses();
+      }
+    }
 
-  db.collection("anos").onSnapshot(snap => {
-    const sel = document.getElementById("selectAno");
-    sel.innerHTML = "";
-    snap.forEach(doc => {
-      let opt = document.createElement("option");
-      opt.value = doc.id;
-      opt.textContent = doc.id;
-      sel.appendChild(opt);
-    });
-  });
-}() {
-  db.collection("anos").onSnapshot(snap => {
-    const sel = document.getElementById("selectAno");
-    sel.innerHTML = "";
+    async function adicionarAno() {
+      const ano = prompt("Digite o ano (ex: 2025)");
+      if (!ano) return;
+      await criarAno(ano);
+    }
 
-    snap.forEach(doc => {
-      let opt = document.createElement("option");
-      opt.value = doc.id;
-      opt.textContent = doc.id;
-      sel.appendChild(opt);
-    });
-  });
-}
+    function renderizarMeses() {
+      listaMeses.innerHTML = "";
+      MESES.forEach(mes => {
+        const div = document.createElement("div");
+        div.className = `month ${mesAtual === mes ? "active" : ""}`;
+        div.textContent = mes;
+        div.onclick = () => selecionarMes(mes);
+        listaMeses.appendChild(div);
+      });
+    }
 
-function criarAno() {
-  const ano = prompt("Ano (ex: 2025)");
-  if (!ano) return;
-  db.collection("anos").doc(ano).set({});
-}
+    function trocarAno() {
+      anoAtual = selectAno.value;
+      mesAtual = "";
+      document.getElementById("tituloMes").innerText = "Selecione um mês";
+      renderizarMeses();
+      limparTabelas();
+      atualizarResumo(null);
+      if (unsubscribeMes) unsubscribeMes();
+    }
 
-function trocarAno() {
-  anoAtual = document.getElementById('selectAno').value;
-  carregarMeses();
-}
+    function selecionarMes(mes) {
+      if (!anoAtual) return;
+      mesAtual = mes;
+      document.getElementById("tituloMes").innerText = `${mesAtual} / ${anoAtual}`;
+      renderizarMeses();
+      escutarMes(anoAtual, mesAtual);
+    }
 
-function carregarMeses() {
-  if (!anoAtual) return;
+    function escutarMes(ano, mes) {
+      if (unsubscribeMes) unsubscribeMes();
+      const ref = db.collection("anos").doc(ano).collection("meses").doc(mes);
+      unsubscribeMes = ref.onSnapshot(doc => {
+        if (!doc.exists) {
+          ref.set({ contas: [], adicionais: [], cartao: [] });
+          return;
+        }
+        renderizarDadosDoMes(doc.data());
+      });
+    }
 
-  db.collection("anos").doc(anoAtual).collection("meses").onSnapshot(snap => {
-    const div = document.getElementById("months");
-    div.innerHTML = "";
+    function limparTabelas() {
+      document.getElementById("tabelaContas").innerHTML = "";
+      document.getElementById("tabelaAdicionais").innerHTML = "";
+      document.getElementById("tabelaCartao").innerHTML = "";
+    }
 
-    snap.forEach(doc => {
-      let m = document.createElement("div");
-      m.className = "month";
-      m.textContent = doc.id;
-      m.onclick = () => abrirMes(doc.id);
-      div.appendChild(m);
-    });
-  });
-}
+    function renderizarDadosDoMes(data) {
+      const tabelaContas = document.getElementById("tabelaContas");
+      tabelaContas.innerHTML = "";
+      data.contas.forEach((conta, index) => {
+        tabelaContas.innerHTML += `
+          <tr>
+            <td>${conta.nome}</td>
+            <td>${formatar(conta.valor)}</td>
+            <td>
+              <select onchange="atualizarStatusConta(${index}, this.value)">
+                <option value="pendente" ${conta.status === "pendente" ? "selected" : ""}>Pendente</option>
+                <option value="pago" ${conta.status === "pago" ? "selected" : ""}>Pago</option>
+              </select>
+            </td>
+            <td><button class="btn-inline" onclick="removerItem('contas', ${index})">Excluir</button></td>
+          </tr>
+        `;
+      });
 
-function criarMes() {
-  if (!anoAtual) return alert("Escolha um ano antes!");
-  const mes = prompt("Nome do mês (ex: Janeiro)");
-  if (!mes) return;
-  db.collection("anos").doc(anoAtual).collection("meses").doc(mes).set({ entradas: [], saidas: [] });
-}
+      const tabelaAdicionais = document.getElementById("tabelaAdicionais");
+      tabelaAdicionais.innerHTML = "";
+      data.adicionais.forEach((item, index) => {
+        tabelaAdicionais.innerHTML += `
+          <tr>
+            <td>${item.nome}</td>
+            <td>${formatar(item.valor)}</td>
+            <td><button class="btn-inline" onclick="removerItem('adicionais', ${index})">Excluir</button></td>
+          </tr>
+        `;
+      });
 
-function abrirMes(mes) {
-  mesAtual = mes;
-  document.getElementById("tituloMes").innerText = `${mes} / ${anoAtual}`;
-  document.getElementById("conteudoMes").style.display = "block";
+      const tabelaCartao = document.getElementById("tabelaCartao");
+      tabelaCartao.innerHTML = "";
+      data.cartao.forEach((item, index) => {
+        tabelaCartao.innerHTML += `
+          <tr>
+            <td>${item.nome}</td>
+            <td>${formatar(item.valor)}</td>
+            <td>${item.parcelas || "-"}</td>
+            <td><button class="btn-inline" onclick="removerItem('cartao', ${index})">Excluir</button></td>
+          </tr>
+        `;
+      });
 
-  db.collection("anos").doc(anoAtual).collection("meses").doc(mesAtual)
-    .onSnapshot(doc => montarTabela(doc.data()));
-}
+      atualizarResumo(data);
+    }
 
-function montarTabela(data) {
-  let te = document.getElementById("tabelaEntradas");
-  te.innerHTML = "<tr><th>Nome</th><th>Valor</th><th>Ações</th></tr>";
+    function getMesRef() {
+      if (!anoAtual || !mesAtual) {
+        alert("Escolha um ano e um mês.");
+        return null;
+      }
+      return db.collection("anos").doc(anoAtual).collection("meses").doc(mesAtual);
+    }
 
-  let totalE = 0;
-  data.entradas.forEach((e,i)=>{
-    totalE += e.valor;
-    te.innerHTML += `<tr><td>${e.nome}</td><td>R$ ${e.valor}</td>
-      <td><button onclick='removerEntrada(${i})'>Excluir</button></td></tr>`;
-  });
-  document.getElementById("totalEntradas").innerText = totalE.toFixed(2);
+    async function adicionarConta() {
+      const ref = getMesRef();
+      if (!ref) return;
+      const nome = document.getElementById("contaNome").value.trim();
+      const valor = Number(document.getElementById("contaValor").value);
+      const status = document.getElementById("contaStatus").value;
+      if (!nome || !valor) return alert("Preencha descrição e valor.");
+      await ref.update({
+        contas: firebase.firestore.FieldValue.arrayUnion({ nome, valor, status })
+      });
+      document.getElementById("contaNome").value = "";
+      document.getElementById("contaValor").value = "";
+    }
 
-  let ts = document.getElementById("tabelaSaidas");
-  ts.innerHTML = "<tr><th>Nome</th><th>Valor</th><th>Ações</th></tr>";
+    async function adicionarAdicional() {
+      const ref = getMesRef();
+      if (!ref) return;
+      const nome = document.getElementById("adicionalNome").value.trim();
+      const valor = Number(document.getElementById("adicionalValor").value);
+      if (!nome || !valor) return alert("Preencha descrição e valor.");
+      await ref.update({
+        adicionais: firebase.firestore.FieldValue.arrayUnion({ nome, valor })
+      });
+      document.getElementById("adicionalNome").value = "";
+      document.getElementById("adicionalValor").value = "";
+    }
 
-  let totalS = 0;
-  data.saidas.forEach((s,i)=>{
-    totalS += s.valor;
-    ts.innerHTML += `<tr><td>${s.nome}</td><td>R$ ${s.valor}</td>
-      <td><button onclick='removerSaida(${i})'>Excluir</button></td></tr>`;
-  });
-  document.getElementById("totalSaidas").innerText = totalS.toFixed(2);
-}
+    async function adicionarCartao() {
+      const ref = getMesRef();
+      if (!ref) return;
+      const nome = document.getElementById("cartaoNome").value.trim();
+      const valor = Number(document.getElementById("cartaoValor").value);
+      const parcelas = document.getElementById("cartaoParcelas").value.trim();
+      if (!nome || !valor) return alert("Preencha descrição e valor.");
+      await ref.update({
+        cartao: firebase.firestore.FieldValue.arrayUnion({ nome, valor, parcelas })
+      });
+      document.getElementById("cartaoNome").value = "";
+      document.getElementById("cartaoValor").value = "";
+      document.getElementById("cartaoParcelas").value = "";
+    }
 
-function addEntrada() {
-  const nome = entradaNome.value;
-  const valor = Number(entradaValor.value);
-  if (!nome || !valor) return;
+    async function removerItem(tipo, indice) {
+      const ref = getMesRef();
+      if (!ref) return;
+      const doc = await ref.get();
+      if (!doc.exists) return;
+      const dados = doc.data();
+      dados[tipo].splice(indice, 1);
+      await ref.update({ [tipo]: dados[tipo] });
+    }
 
-  db.collection("anos").doc(anoAtual).collection("meses").doc(mesAtual)
-    .update({ entradas: firebase.firestore.FieldValue.arrayUnion({ nome, valor }) });
-}
+    async function atualizarStatusConta(indice, status) {
+      const ref = getMesRef();
+      if (!ref) return;
+      const doc = await ref.get();
+      if (!doc.exists) return;
+      const dados = doc.data();
+      dados.contas[indice].status = status;
+      await ref.update({ contas: dados.contas });
+    }
 
-function addSaida() {
-  const nome = saidaNome.value;
-  const valor = Number(saidaValor.value);
-  if (!nome || !valor) return;
+    function atualizarResumo(data) {
+      let totalContasManuais = 0;
+      let totalAdicionais = 0;
+      let totalCartao = 0;
 
-  db.collection("anos").doc(anoAtual).collection("meses").doc(mesAtual)
-    .update({ saidas: firebase.firestore.FieldValue.arrayUnion({ nome, valor }) });
-}
+      if (data) {
+        totalContasManuais = data.contas.reduce((acc, item) => acc + Number(item.valor || 0), 0);
+        totalAdicionais = data.adicionais.reduce((acc, item) => acc + Number(item.valor || 0), 0);
+        totalCartao = data.cartao.reduce((acc, item) => acc + Number(item.valor || 0), 0);
+      }
 
-function removerEntrada(i) {
-  const ref = db.collection("anos").doc(anoAtual).collection("meses").doc(mesAtual);
-  ref.get().then(doc=>{
-    let arr = doc.data().entradas;
-    arr.splice(i,1);
-    ref.update({ entradas: arr });
-  });
-}
+      const totalContas = totalContasManuais + totalCartao;
+      const saldo = totalAdicionais - totalContas;
 
-function removerSaida(i) {
-  const ref = db.collection("anos").doc(anoAtual).collection("meses").doc(mesActual);
-  ref.get().then(doc=>{
-    let arr = doc.data().saidas;
-    arr.splice(i,1);
-    ref.update({ saidas: arr });
-  });
-}
+      document.getElementById("totalContas").innerText = formatar(totalContas);
+      document.getElementById("totalContasSemCartao").innerText = formatar(totalContasManuais);
+      document.getElementById("totalCartaoResumo").innerText = formatar(totalCartao);
+      document.getElementById("totalAdicionais").innerText = formatar(totalAdicionais);
+      document.getElementById("saldoFinal").innerText = formatar(saldo);
+      document.getElementById("infoCartaoNasContas").innerText = formatar(totalCartao);
+    }
 
-carregarAnos();
-</script>
-
+    inicializar();
+  </script>
 </body>
 </html>
