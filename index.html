@@ -1238,17 +1238,18 @@
         const parcela = parcelasParaAdiantar[index];
         if (!parcela) continue;
 
-        const { source, ...itemParaMover } = parcela;
+        const { source, ...itemOriginal } = parcela;
         const refMesOrigem = db.collection("anos").doc(source.ano).collection("meses").doc(source.mes);
 
         // 1. Remove do mês de origem
+        // O objeto para remover não deve conter a propriedade 'source'
         batch.update(refMesOrigem, {
-          cartao: firebase.firestore.FieldValue.arrayRemove(parcela)
+          cartao: firebase.firestore.FieldValue.arrayRemove(itemOriginal)
         });
 
         // 2. Adiciona ao mês atual
         batch.update(refMesAtual, {
-          cartao: firebase.firestore.FieldValue.arrayUnion(itemParaMover)
+          cartao: firebase.firestore.FieldValue.arrayUnion(itemOriginal)
         });
       }
 
