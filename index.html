@@ -298,10 +298,33 @@
       color: var(--accent-2);
     }
 
-    @media (max-width: 960px) {
+    .table-wrapper {
+      overflow-x: auto;
+    }
+
+    @media (max-width: 768px) {
       body { flex-direction: column; }
-      .sidebar { flex-direction: row; flex-wrap: wrap; height: auto; }
+      .sidebar {
+        width: 100%;
+        height: auto;
+        flex-direction: column;
+        padding: 16px;
+      }
       .months { max-height: 180px; }
+      .content { padding: 16px; }
+      .header h2 { font-size: 22px; }
+      .card strong { font-size: 22px; }
+
+      .form-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .form-row button {
+        padding: 12px;
+      }
+      th, td {
+        padding: 10px 8px;
+      }
     }
   </style>
 </head>
@@ -356,7 +379,8 @@
         </select>
         <button onclick="adicionarConta()">Adicionar conta</button>
       </div>
-      <table>
+      <div class="table-wrapper">
+        <table>
         <thead>
           <tr>
             <th>Conta</th>
@@ -367,6 +391,8 @@
           </tr>
         </thead>
         <tbody id="tabelaContas"></tbody>
+        </table>
+      </div>
       </table>
     </section>
 
@@ -377,7 +403,8 @@
         <input id="adicionalValor" type="number" placeholder="Valor em R$" />
         <button onclick="adicionarAdicional()">Adicionar adicional</button>
       </div>
-      <table>
+      <div class="table-wrapper">
+        <table>
         <thead>
           <tr>
             <th>Descrição</th>
@@ -386,6 +413,8 @@
           </tr>
         </thead>
         <tbody id="tabelaAdicionais"></tbody>
+        </table>
+      </div>
       </table>
     </section>
 
@@ -397,7 +426,8 @@
         <input id="cartaoParcelas" type="text" placeholder="Parcelas (ex: 7/10)" />
         <button onclick="adicionarCartao()">Adicionar cartão</button>
       </div>
-      <table>
+      <div class="table-wrapper">
+        <table>
         <thead>
           <tr>
             <th>Descrição</th>
@@ -407,6 +437,8 @@
           </tr>
         </thead>
         <tbody id="tabelaCartao"></tbody>
+        </table>
+      </div>
       </table>
     </section>
   </main>
