@@ -237,6 +237,43 @@
       font-weight: 600;
     }
 
+    table select {
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #d5d8e6;
+      background: #fff;
+      color: #1d1d2e;
+    }
+
+    .status-tag {
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-transform: uppercase;
+    }
+
+    .status-pendente {
+      background: rgba(255, 107, 107, 0.2);
+      color: #ba2f2f;
+    }
+
+    .status-pago {
+      background: rgba(51, 194, 127, 0.2);
+      color: #1e8558;
+    }
+
+    .row-pendente {
+      background: rgba(255, 107, 107, 0.1);
+    }
+
+    .row-pago {
+      background: rgba(51, 194, 127, 0.1);
+    }
+
     .info-text {
       font-size: 13px;
       color: #6c7190;
@@ -306,6 +343,7 @@
             <th>Conta</th>
             <th>Valor</th>
             <th>Status</th>
+            <th>Ação</th>
             <th></th>
           </tr>
         </thead>
@@ -483,14 +521,20 @@
       const tabelaContas = document.getElementById("tabelaContas");
       tabelaContas.innerHTML = "";
       data.contas.forEach((conta, index) => {
+        const status = conta.status || "pendente";
         tabelaContas.innerHTML += `
-          <tr>
+          <tr class="${status === "pago" ? "row-pago" : "row-pendente"}">
             <td>${conta.nome}</td>
             <td>${formatar(conta.valor)}</td>
             <td>
+              <div class="status-tag ${status === "pago" ? "status-pago" : "status-pendente"}">
+                ${status === "pago" ? "Pago" : "Pendente"}
+              </div>
+            </td>
+            <td>
               <select onchange="atualizarStatusConta(${index}, this.value)">
-                <option value="pendente" ${conta.status === "pendente" ? "selected" : ""}>Pendente</option>
-                <option value="pago" ${conta.status === "pago" ? "selected" : ""}>Pago</option>
+                <option value="pendente" ${status === "pendente" ? "selected" : ""}>Pendente</option>
+                <option value="pago" ${status === "pago" ? "selected" : ""}>Pago</option>
               </select>
             </td>
             <td><button class="btn-inline" onclick="removerItem('contas', ${index})">Excluir</button></td>
