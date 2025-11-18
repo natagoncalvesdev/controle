@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Controle Financeiro</title>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; display: flex; height: 100vh; }
+    .sidebar { width: 250px; background: #1e1e2f; color: white; padding: 20px; box-sizing: border-box; }
+    .sidebar h2, .sidebar h3 { text-align: center; }
+    select { width: 100%; padding: 10px; margin-bottom: 20px; border-radius: 5px; border: none; }
+    .month { padding: 10px; background:#2b2b40; border-radius: 5px; margin-bottom: 5px; cursor:pointer; }
+    .month:hover { background:#3b3b55; }
+    .content { flex:1; padding:20px; overflow-y:auto; background:#f2f2f2; }
+
+    .section { background:#fff; padding:20px; margin-bottom:20px; border-radius:10px; box-shadow:0 0 8px rgba(0,0,0,0.1); }
+    .row { display:flex; gap:10px; margin-top:10px; }
+    input { flex:1; padding:10px; border-radius:5px; border:1px solid #ccc; }
+    button { padding:10px; border:none; background:#007bff; color:white; border-radius:5px; cursor:pointer; }
+    button:hover { background:#0056b3; }
+
+    table { width:100%; border-collapse:collapse; margin-top:20px; }
+    th, td { padding:10px; border-bottom:1px solid #ddd; }
+    th { background:#eee; }
+    .total { font-size:18px; font-weight:bold; }
+  </style>
+</head>
+<body>
+
+<div class="sidebar">
+  <h2>Controle</h2>
+
+  <h3>Ano</h3>
+  <select id="selectAno" onchange="trocarAno()"></select>
+
+  <h3>Meses</h3>
+  <div id="months"></div>
+  <button onclick="criarMes()">+ Criar mês</button>
+  <button onclick="criarAno()" style="margin-top:10px; background:#28a745;">+ Criar ano</button>
+</div>
+
+<div class="content">
+  <h1 id="tituloMes">Selecione um ano e mês</h1>
+
+  <div id="conteudoMes" style="display:none;">
+    <div class="section">
+      <h2>Entradas</h2>
+      <div class="row">
+        <input id="entradaNome" placeholder="Nome da entrada">
+        <input id="entradaValor" type="number" placeholder="Valor">
+        <button onclick="addEntrada()">Adicionar</button>
+      </div>
+      <table id="tabelaEntradas"></table>
+      <p class="total">Total entradas: R$ <span id="totalEntradas">0</span></p>
+    </div>
+
+    <div class="section">
+      <h2>Saídas</h2>
+      <div class="row">
+        <input id="saidaNome" placeholder="Nome da saída">
+        <input id="saidaValor" type="number" placeholder="Valor">
+        <button onclick="addSaida()">Adicionar</button>
+      </div>
+      <table id="tabelaSaidas"></table>
+      <p class="total">Total saídas: R$ <span id="totalSaidas">0</span></p>
+    </div>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "SUA_API_KEY",
+  authDomain: "SEU_AUTH_DOMAIN",
+  projectId: "SEU_PROJ",
+  storageBucket: "SEU_BUCKET",
+  messagingSenderId: "SENDER",
+  appId: "APPID"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+let anoAtual = null;
+let mesAtual = null;
+
+function carregarAnos() {
+  // Criar anos automaticamente 2025 até 2040
+  for (let ano = 2025; ano <= 2040; ano++) {
+    const refAno = db.collection("anos").doc(String(ano));
+    refAno.get().then(doc => {
+      if (!doc.exists) {
+        refAno.set({});
+        // Criar meses automaticamente
+        const meses = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+        meses.forEach(m => {
+          refAno.collection("meses").doc(m).set({ entradas: [], saidas: [] });
+        });
+      }
+    });
+  }
+
+  db.collection("anos").onSnapshot(snap => {
+    const sel = document.getElementById("selectAno");
+    sel.innerHTML = "";
+    snap.forEach(doc => {
+      let opt = document.createElement("option");
+      opt.value = doc.id;
+      opt.textContent = doc.id;
+      sel.appendChild(opt);
+    });
+  });
+}() {
+  db.collection("anos").onSnapshot(snap => {
+    const sel = document.getElementById("selectAno");
+    sel.innerHTML = "";
+
+    snap.forEach(doc => {
+      let opt = document.createElement("option");
+      opt.value = doc.id;
+      opt.textContent = doc.id;
+      sel.appendChild(opt);
+    });
+  });
+}
+
+function criarAno() {
+  const ano = prompt("Ano (ex: 2025)");
+  if (!ano) return;
+  db.collection("anos").doc(ano).set({});
+}
+
+function trocarAno() {
+  anoAtual = document.getElementById('selectAno').value;
+  carregarMeses();
+}
+
+function carregarMeses() {
+  if (!anoAtual) return;
+
+  db.collection("anos").doc(anoAtual).collection("meses").onSnapshot(snap => {
+    const div = document.getElementById("months");
+    div.innerHTML = "";
+
+    snap.forEach(doc => {
+      let m = document.createElement("div");
+      m.className = "month";
+      m.textContent = doc.id;
+      m.onclick = () => abrirMes(doc.id);
+      div.appendChild(m);
+    });
+  });
+}
+
+function criarMes() {
+  if (!anoAtual) return alert("Escolha um ano antes!");
+  const mes = prompt("Nome do mês (ex: Janeiro)");
+  if (!mes) return;
+  db.collection("anos").doc(anoAtual).collection("meses").doc(mes).set({ entradas: [], saidas: [] });
+}
+
+function abrirMes(mes) {
+  mesAtual = mes;
+  document.getElementById("tituloMes").innerText = `${mes} / ${anoAtual}`;
+  document.getElementById("conteudoMes").style.display = "block";
+
+  db.collection("anos").doc(anoAtual).collection("meses").doc(mesAtual)
+    .onSnapshot(doc => montarTabela(doc.data()));
+}
+
+function montarTabela(data) {
+  let te = document.getElementById("tabelaEntradas");
+  te.innerHTML = "<tr><th>Nome</th><th>Valor</th><th>Ações</th></tr>";
+
+  let totalE = 0;
+  data.entradas.forEach((e,i)=>{
+    totalE += e.valor;
+    te.innerHTML += `<tr><td>${e.nome}</td><td>R$ ${e.valor}</td>
+      <td><button onclick='removerEntrada(${i})'>Excluir</button></td></tr>`;
+  });
+  document.getElementById("totalEntradas").innerText = totalE.toFixed(2);
+
+  let ts = document.getElementById("tabelaSaidas");
+  ts.innerHTML = "<tr><th>Nome</th><th>Valor</th><th>Ações</th></tr>";
+
+  let totalS = 0;
+  data.saidas.forEach((s,i)=>{
+    totalS += s.valor;
+    ts.innerHTML += `<tr><td>${s.nome}</td><td>R$ ${s.valor}</td>
+      <td><button onclick='removerSaida(${i})'>Excluir</button></td></tr>`;
+  });
+  document.getElementById("totalSaidas").innerText = totalS.toFixed(2);
+}
+
+function addEntrada() {
+  const nome = entradaNome.value;
+  const valor = Number(entradaValor.value);
+  if (!nome || !valor) return;
+
+  db.collection("anos").doc(anoAtual).collection("meses").doc(mesAtual)
+    .update({ entradas: firebase.firestore.FieldValue.arrayUnion({ nome, valor }) });
+}
+
+function addSaida() {
+  const nome = saidaNome.value;
+  const valor = Number(saidaValor.value);
+  if (!nome || !valor) return;
+
+  db.collection("anos").doc(anoAtual).collection("meses").doc(mesAtual)
+    .update({ saidas: firebase.firestore.FieldValue.arrayUnion({ nome, valor }) });
+}
+
+function removerEntrada(i) {
+  const ref = db.collection("anos").doc(anoAtual).collection("meses").doc(mesAtual);
+  ref.get().then(doc=>{
+    let arr = doc.data().entradas;
+    arr.splice(i,1);
+    ref.update({ entradas: arr });
+  });
+}
+
+function removerSaida(i) {
+  const ref = db.collection("anos").doc(anoAtual).collection("meses").doc(mesActual);
+  ref.get().then(doc=>{
+    let arr = doc.data().saidas;
+    arr.splice(i,1);
+    ref.update({ saidas: arr });
+  });
+}
+
+carregarAnos();
+</script>
+
+</body>
+</html>
