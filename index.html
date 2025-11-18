@@ -308,6 +308,12 @@
     .btn-icon-inline.edit:hover {
       color: var(--accent-2);
     }
+    .btn-icon-inline.copy {
+      color: var(--subtle);
+    }
+    .btn-icon-inline.copy:hover {
+      color: #2563eb;
+    }
 
     td input {
       width: 100%;
@@ -318,6 +324,70 @@
 
     .table-wrapper {
       overflow-x: auto;
+    }
+
+    /* Estilos da Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: none; /* Oculto por padrão */
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: #fff;
+      padding: 24px;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .modal-content h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+    .modal-month-list {
+      max-height: 250px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border-top: 1px solid #eef0fa;
+      border-bottom: 1px solid #eef0fa;
+      padding: 12px 0;
+    }
+    .modal-month-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .modal-month-item label {
+      flex: 1;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+    .modal-actions button {
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .modal-actions .btn-confirm { background: #2563eb; color: #fff; }
+    .modal-actions .btn-cancel { background: #eef0fa; color: #6c7190; }
+    .modal-overlay.visible {
+      display: flex;
     }
 
     @media (max-width: 768px) {
@@ -510,6 +580,20 @@
     </section>
   </main>
 
+  <!-- Modal para Copiar Itens -->
+  <div id="copyModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>Copiar item para outros meses</h3>
+      <div id="copyMonthList" class="modal-month-list">
+        <!-- A lista de meses será populada via JS -->
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="fecharModalCopia()">Cancelar</button>
+        <button class="btn-confirm" onclick="confirmarCopia()">Concluir</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyBVwUVoudM_IxWQgkLxlabinw4AXGgf1So",
@@ -538,6 +622,7 @@
     let anoAtual = "";
     let mesAtual = "";
     let unsubscribeMes = null;
+    let itemParaCopiar = null;
 
     const selectAno = document.getElementById("selectAno");
     const listaMeses = document.getElementById("listaMeses");
@@ -673,6 +758,7 @@
             </td>
             <td class="actions-cell">
               <button class="btn-icon-inline edit" onclick="editarItem(this, 'contas', ${index})">✏️</button>
+              <button class="btn-icon-inline copy" onclick="abrirModalCopia('contas', ${index})">❐</button>
               <button class="btn-inline" onclick="removerItem('contas', ${index})">🗑️</button>
             </td>
           </tr>
@@ -688,6 +774,7 @@
             <td>${formatar(item.valor)}</td>
             <td class="actions-cell">
               <button class="btn-icon-inline edit" onclick="editarItem(this, 'adicionais', ${index})">✏️</button>
+              <button class="btn-icon-inline copy" onclick="abrirModalCopia('adicionais', ${index})">❐</button>
               <button class="btn-inline" onclick="removerItem('adicionais', ${index})">🗑️</button>
             </td>
           </tr>
@@ -719,6 +806,7 @@
             <td>${formatar(item.valor)}</td>
             <td class="actions-cell">
               <button class="btn-icon-inline edit" onclick="editarItem(this, 'reservado', ${index})">✏️</button>
+              <button class="btn-icon-inline copy" onclick="abrirModalCopia('reservado', ${index})">❐</button>
               <button class="btn-inline" onclick="removerItem('reservado', ${index})">🗑️</button>
             </td>
           </tr>
@@ -894,6 +982,73 @@
 
       await ref.update({ [tipo]: dados[tipo] });
       // O listener onSnapshot irá re-renderizar a linha, removendo a classe 'editing' e os inputs.
+    }
+
+    async function abrirModalCopia(tipo, indice) {
+      const ref = getMesRef();
+      if (!ref) return;
+      const dados = await carregarDadosRef(ref);
+      const item = dados[tipo][indice];
+
+      if (!item) return;
+
+      itemParaCopiar = { tipo, item };
+
+      const lista = document.getElementById('copyMonthList');
+      lista.innerHTML = '';
+      const mesAtualIndex = MESES.indexOf(mesAtual);
+
+      for (let i = 1; i <= 12; i++) {
+        const targetMesIndex = (mesAtualIndex + i) % 12;
+        const targetAno = Number(anoAtual) + Math.floor((mesAtualIndex + i) / 12);
+        const targetMesNome = MESES[targetMesIndex];
+
+        const id = `check-${targetAno}-${targetMesNome}`;
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'modal-month-item';
+        itemDiv.innerHTML = `
+          <input type="checkbox" id="${id}" data-ano="${targetAno}" data-mes="${targetMesNome}">
+          <label for="${id}">${targetMesNome} / ${targetAno}</label>
+        `;
+        lista.appendChild(itemDiv);
+      }
+
+      document.getElementById('copyModal').classList.add('visible');
+    }
+
+    function fecharModalCopia() {
+      document.getElementById('copyModal').classList.remove('visible');
+      itemParaCopiar = null;
+    }
+
+    async function confirmarCopia() {
+      if (!itemParaCopiar) return;
+
+      const checkboxes = document.querySelectorAll('#copyMonthList input[type="checkbox"]:checked');
+      if (checkboxes.length === 0) {
+        return alert("Selecione pelo menos um mês.");
+      }
+
+      const batch = db.batch();
+      const { tipo, item } = itemParaCopiar;
+
+      // Para contas, o status padrão ao copiar é 'pendente'
+      const itemCopiado = (tipo === 'contas') ? { ...item, status: 'pendente' } : { ...item };
+
+      for (const check of checkboxes) {
+        const ano = check.dataset.ano;
+        const mes = check.dataset.mes;
+
+        await garantirAno(ano);
+        const ref = db.collection("anos").doc(ano).collection("meses").doc(mes);
+        batch.update(ref, {
+          [tipo]: firebase.firestore.FieldValue.arrayUnion(itemCopiado)
+        });
+      }
+
+      await batch.commit();
+      alert(`${checkboxes.length} cópia(s) realizada(s) com sucesso!`);
+      fecharModalCopia();
     }
 
     function atualizarResumo(data) {
