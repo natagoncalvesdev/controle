@@ -458,7 +458,7 @@
       <div class="form-row">
         <input id="cartaoNome" placeholder="Descrição (ex: Óculos)" />
         <input id="cartaoValor" type="number" placeholder="Valor da parcela" />
-        <input id="cartaoParcelas" type="text" placeholder="Parcelas (ex: 7/10)" />
+        <input id="cartaoTotalParcelas" type="number" placeholder="Total de Parcelas (ex: 10)" />
         <button onclick="adicionarCartao()">Adicionar compra</button>
       </div>
       <div class="table-wrapper">
@@ -723,14 +723,40 @@
       if (!ref) return;
       const nome = document.getElementById("cartaoNome").value.trim();
       const valor = Number(document.getElementById("cartaoValor").value);
-      const parcelas = document.getElementById("cartaoParcelas").value.trim();
-      if (!nome || !valor) return alert("Preencha descrição e valor.");
-      await ref.update({
-        cartao: firebase.firestore.FieldValue.arrayUnion({ nome, valor, parcelas })
-      });
+      const totalParcelas = Number(document.getElementById("cartaoTotalParcelas").value) || 1;
+
+      if (!nome || !valor) {
+        return alert("Preencha descrição e valor da compra.");
+      }
+      if (totalParcelas < 1) {
+        return alert("O número de parcelas deve ser 1 ou maior.");
+      }
+
+      const mesAtualIndex = MESES.indexOf(mesAtual);
+      const batch = db.batch();
+
+      for (let i = 0; i < totalParcelas; i++) {
+        const targetMesIndex = (mesAtualIndex + i) % 12;
+        const targetAno = Number(anoAtual) + Math.floor((mesAtualIndex + i) / 12);
+        const targetMesNome = MESES[targetMesIndex];
+
+        // Garante que o ano e a estrutura de meses existam antes de adicionar
+        await garantirAno(String(targetAno));
+
+        const parcelaRef = db.collection("anos").doc(String(targetAno)).collection("meses").doc(targetMesNome);
+        const novaCompra = {
+          nome,
+          valor,
+          parcelas: `${i + 1}/${totalParcelas}`
+        };
+        batch.update(parcelaRef, { cartao: firebase.firestore.FieldValue.arrayUnion(novaCompra) });
+      }
+
+      await batch.commit();
+
       document.getElementById("cartaoNome").value = "";
       document.getElementById("cartaoValor").value = "";
-      document.getElementById("cartaoParcelas").value = "";
+      document.getElementById("cartaoTotalParcelas").value = "";
     }
 
     async function removerItem(tipo, indice) {
@@ -759,6 +785,11 @@
       const dados = await carregarDadosRef(ref);
       const item = dados[tipo][indice];
       if (!item) return;
+
+      if (tipo === 'cartao' && item.parcelas && item.parcelas.includes('/')) {
+        alert("Não é possível editar um item parcelado. Por favor, remova a compra e adicione novamente se necessário.");
+        return;
+      }
 
       const novoNome = prompt(`Editar descrição:`, item.nome);
       if (novoNome === null) return; // Usuário cancelou
