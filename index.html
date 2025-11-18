@@ -376,8 +376,8 @@
       "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
       "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"
     ];
-    const ANO_BASE = new Date().getFullYear();
-    const ANO_LIMITE = ANO_BASE + 5;
+    const ANO_BASE = 2025;
+    const ANO_LIMITE = ANO_BASE + 10;
 
     const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
     const formatar = valor => moeda.format(Number(valor) || 0);
