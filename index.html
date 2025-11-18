@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Controle Financeiro</title>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <style>
     :root {
       --bg-dark: #151728;
@@ -367,7 +367,7 @@
 
 
     firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    const db = firebase.firestore();
 
     const MESES = [
       "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
@@ -396,26 +396,11 @@
       }
     }
 
-    async function prepararEstruturaInicial() {
-      for (let ano = ANO_BASE; ano <= ANO_LIMITE; ano++) {
-        try {
-          await garantirAno(ano);
-        } catch (erro) {
-          console.error("Falha ao criar ano inicial", ano, erro);
-          throw erro;
-        }
-      }
-    }
-
     async function inicializar() {
       anoAtual = String(ANO_BASE);
       popularListaAnos();
       selectAno.value = anoAtual;
-      try {
-        await prepararEstruturaInicial();
-      } catch (erro) {
-        alert("Não foi possível conectar ao Firebase. Verifique a configuração das regras e recarregue a página.");
-      }
+      await garantirAno(anoAtual);
       renderizarMeses();
       await selecionarMes(MESES[0]);
       selectAno.addEventListener("change", trocarAno);
@@ -426,25 +411,16 @@
         alert("Informe um ano válido com quatro dígitos.");
         return;
       }
-      const refAno = db.ref(`anos/${ano}`);
-      const snap = await refAno.once("value");
-      if (!snap.exists()) {
-        const meses = {};
-        MESES.forEach(nome => {
-          meses[nome] = { contas: [], adicionais: [], cartao: [] };
-        });
-        await refAno.set({ ano: Number(ano), meses });
+      const ref = db.collection("anos").doc(String(ano));
+      const doc = await ref.get();
+      if (!doc.exists) {
+        await ref.set({ ano: Number(ano) });
+        const mesesBatch = MESES.map(nome =>
+          ref.collection("meses").doc(nome).set({ contas: [], adicionais: [], cartao: [] })
+        );
+        await Promise.all(mesesBatch);
       } else {
-        const data = snap.val();
-        const atualizacoes = {};
-        MESES.forEach(nome => {
-          if (!(data.meses && data.meses[nome])) {
-            atualizacoes[`meses/${nome}`] = { contas: [], adicionais: [], cartao: [] };
-          }
-        });
-        if (Object.keys(atualizacoes).length) {
-          await refAno.update(atualizacoes);
-        }
+        await ref.set({ ano: Number(ano) }, { merge: true });
       }
     }
 
@@ -463,13 +439,7 @@
       anoAtual = selectAno.value;
       mesAtual = "";
       if (unsubscribeMes) unsubscribeMes();
-      try {
-        await garantirAno(anoAtual);
-      } catch (erro) {
-        alert("Erro ao acessar o ano selecionado. Verifique o Firebase.");
-        console.error(erro);
-        return;
-      }
+      await garantirAno(anoAtual);
       await selecionarMes(MESES[0]);
     }
 
@@ -478,30 +448,23 @@
       mesAtual = mes;
       document.getElementById("tituloMes").innerText = `${mesAtual} / ${anoAtual}`;
       renderizarMeses();
-      try {
-        await garantirAno(anoAtual);
-        escutarMes(anoAtual, mesAtual);
-      } catch (erro) {
-        console.error("Erro ao carregar mês", erro);
-        alert("Não foi possível carregar os dados do mês no Firebase.");
-      }
+      await garantirAno(anoAtual);
+      escutarMes(anoAtual, mesAtual);
     }
 
     function escutarMes(ano, mes) {
       if (unsubscribeMes) unsubscribeMes();
-      const ref = db.ref(`anos/${ano}/meses/${mes}`);
-      const handler = snapshot => {
-        if (!snapshot.exists()) {
+      const ref = db.collection("anos").doc(ano).collection("meses").doc(mes);
+      unsubscribeMes = ref.onSnapshot(doc => {
+        if (!doc.exists) {
           ref.set({ contas: [], adicionais: [], cartao: [] });
           return;
         }
-        renderizarDadosDoMes(snapshot.val());
-      };
-      ref.on("value", handler, error => {
+        renderizarDadosDoMes(doc.data());
+      }, error => {
         console.error("Erro no listener do mês", error);
         alert("Não foi possível ouvir atualizações do mês. Verifique sua conexão.");
       });
-      unsubscribeMes = () => ref.off("value", handler);
     }
 
     function limparTabelas() {
@@ -568,12 +531,12 @@
         alert("Escolha um ano e um mês.");
         return null;
       }
-      return db.ref(`anos/${anoAtual}/meses/${mesAtual}`);
+      return db.collection("anos").doc(anoAtual).collection("meses").doc(mesAtual);
     }
 
     async function carregarDadosRef(ref) {
-      const snap = await ref.once("value");
-      return snap.val() || { contas: [], adicionais: [], cartao: [] };
+      const doc = await ref.get();
+      return doc.exists ? doc.data() : { contas: [], adicionais: [], cartao: [] };
     }
 
     async function adicionarConta() {
@@ -583,10 +546,9 @@
       const valor = Number(document.getElementById("contaValor").value);
       const status = document.getElementById("contaStatus").value;
       if (!nome || !valor) return alert("Preencha descrição e valor.");
-      const dados = await carregarDadosRef(ref);
-      dados.contas = dados.contas || [];
-      dados.contas.push({ nome, valor, status });
-      await ref.update({ contas: dados.contas });
+      await ref.update({
+        contas: firebase.firestore.FieldValue.arrayUnion({ nome, valor, status })
+      });
       document.getElementById("contaNome").value = "";
       document.getElementById("contaValor").value = "";
     }
@@ -597,10 +559,9 @@
       const nome = document.getElementById("adicionalNome").value.trim();
       const valor = Number(document.getElementById("adicionalValor").value);
       if (!nome || !valor) return alert("Preencha descrição e valor.");
-      const dados = await carregarDadosRef(ref);
-      dados.adicionais = dados.adicionais || [];
-      dados.adicionais.push({ nome, valor });
-      await ref.update({ adicionais: dados.adicionais });
+      await ref.update({
+        adicionais: firebase.firestore.FieldValue.arrayUnion({ nome, valor })
+      });
       document.getElementById("adicionalNome").value = "";
       document.getElementById("adicionalValor").value = "";
     }
@@ -612,10 +573,9 @@
       const valor = Number(document.getElementById("cartaoValor").value);
       const parcelas = document.getElementById("cartaoParcelas").value.trim();
       if (!nome || !valor) return alert("Preencha descrição e valor.");
-      const dados = await carregarDadosRef(ref);
-      dados.cartao = dados.cartao || [];
-      dados.cartao.push({ nome, valor, parcelas });
-      await ref.update({ cartao: dados.cartao });
+      await ref.update({
+        cartao: firebase.firestore.FieldValue.arrayUnion({ nome, valor, parcelas })
+      });
       document.getElementById("cartaoNome").value = "";
       document.getElementById("cartaoValor").value = "";
       document.getElementById("cartaoParcelas").value = "";
@@ -624,8 +584,9 @@
     async function removerItem(tipo, indice) {
       const ref = getMesRef();
       if (!ref) return;
-      const dados = await carregarDadosRef(ref);
-      if (!dados[tipo]) return;
+      const doc = await ref.get();
+      if (!doc.exists) return;
+      const dados = doc.data();
       dados[tipo].splice(indice, 1);
       await ref.update({ [tipo]: dados[tipo] });
     }
@@ -633,8 +594,9 @@
     async function atualizarStatusConta(indice, status) {
       const ref = getMesRef();
       if (!ref) return;
-      const dados = await carregarDadosRef(ref);
-      if (!dados.contas || !dados.contas[indice]) return;
+      const doc = await ref.get();
+      if (!doc.exists) return;
+      const dados = doc.data();
       dados.contas[indice].status = status;
       await ref.update({ contas: dados.contas });
     }
