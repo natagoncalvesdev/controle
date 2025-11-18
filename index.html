@@ -396,11 +396,26 @@
       }
     }
 
+    async function prepararEstruturaInicial() {
+      for (let ano = ANO_BASE; ano <= ANO_LIMITE; ano++) {
+        try {
+          await garantirAno(ano);
+        } catch (erro) {
+          console.error("Falha ao criar ano inicial", ano, erro);
+          throw erro;
+        }
+      }
+    }
+
     async function inicializar() {
       anoAtual = String(ANO_BASE);
       popularListaAnos();
       selectAno.value = anoAtual;
-      await garantirAno(anoAtual);
+      try {
+        await prepararEstruturaInicial();
+      } catch (erro) {
+        alert("Não foi possível conectar ao Firebase. Verifique a configuração das regras e recarregue a página.");
+      }
       renderizarMeses();
       await selecionarMes(MESES[0]);
       selectAno.addEventListener("change", trocarAno);
@@ -439,7 +454,13 @@
       anoAtual = selectAno.value;
       mesAtual = "";
       if (unsubscribeMes) unsubscribeMes();
-      await garantirAno(anoAtual);
+      try {
+        await garantirAno(anoAtual);
+      } catch (erro) {
+        alert("Erro ao acessar o ano selecionado. Verifique o Firebase.");
+        console.error(erro);
+        return;
+      }
       await selecionarMes(MESES[0]);
     }
 
@@ -448,8 +469,13 @@
       mesAtual = mes;
       document.getElementById("tituloMes").innerText = `${mesAtual} / ${anoAtual}`;
       renderizarMeses();
-      await garantirAno(anoAtual);
-      escutarMes(anoAtual, mesAtual);
+      try {
+        await garantirAno(anoAtual);
+        escutarMes(anoAtual, mesAtual);
+      } catch (erro) {
+        console.error("Erro ao carregar mês", erro);
+        alert("Não foi possível carregar os dados do mês no Firebase.");
+      }
     }
 
     function escutarMes(ano, mes) {
