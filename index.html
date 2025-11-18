@@ -309,6 +309,13 @@
       color: var(--accent-2);
     }
 
+    td input {
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #aab1d3;
+    }
+
     .table-wrapper {
       overflow-x: auto;
     }
@@ -438,6 +445,27 @@
     </section>
 
     <section class="section">
+      <h3>Reservados (combustível, lazer, etc.)</h3>
+      <div class="form-row">
+        <input id="reservadoNome" placeholder="Descrição" />
+        <input id="reservadoValor" type="number" placeholder="Valor em R$" />
+        <button onclick="adicionarReservado()">Adicionar reservado</button>
+      </div>
+      <div class="table-wrapper">
+        <table>
+        <thead>
+          <tr>
+            <th>Descrição</th>
+            <th>Valor</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaReservado"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section">
       <h3>Entradas (salário, vale, extras)</h3>
       <div class="form-row">
         <input id="adicionalNome" placeholder="Descrição" />
@@ -481,27 +509,6 @@
       </div>
     </section>
   </main>
-
-  <section class="section">
-    <h3>Reservados (combustível, lazer, etc.)</h3>
-    <div class="form-row">
-      <input id="reservadoNome" placeholder="Descrição" />
-      <input id="reservadoValor" type="number" placeholder="Valor em R$" />
-      <button onclick="adicionarReservado()">Adicionar reservado</button>
-    </div>
-    <div class="table-wrapper">
-      <table>
-      <thead>
-        <tr>
-          <th>Descrição</th>
-          <th>Valor</th>
-          <th>Ações</th>
-        </tr>
-      </thead>
-      <tbody id="tabelaReservado"></tbody>
-      </table>
-    </div>
-  </section>
 
   <script>
     const firebaseConfig = {
@@ -665,7 +672,7 @@
               </select>
             </td>
             <td class="actions-cell">
-              <button class="btn-icon-inline edit" onclick="editarItem('contas', ${index})">✏️</button>
+              <button class="btn-icon-inline edit" onclick="editarItem(this, 'contas', ${index})">✏️</button>
               <button class="btn-inline" onclick="removerItem('contas', ${index})">🗑️</button>
             </td>
           </tr>
@@ -680,7 +687,7 @@
             <td>${item.nome}</td>
             <td>${formatar(item.valor)}</td>
             <td class="actions-cell">
-              <button class="btn-icon-inline edit" onclick="editarItem('adicionais', ${index})">✏️</button>
+              <button class="btn-icon-inline edit" onclick="editarItem(this, 'adicionais', ${index})">✏️</button>
               <button class="btn-inline" onclick="removerItem('adicionais', ${index})">🗑️</button>
             </td>
           </tr>
@@ -696,7 +703,7 @@
             <td>${formatar(item.valor)}</td>
             <td>${item.parcelas || "-"}</td>
             <td class="actions-cell">
-              <button class="btn-icon-inline edit" onclick="editarItem('cartao', ${index})">✏️</button>
+              <button class="btn-icon-inline edit" onclick="editarItem(this, 'cartao', ${index})">✏️</button>
               <button class="btn-inline" onclick="removerItem('cartao', ${index})">🗑️</button>
             </td>
           </tr>
@@ -711,7 +718,7 @@
             <td>${item.nome}</td>
             <td>${formatar(item.valor)}</td>
             <td class="actions-cell">
-              <button class="btn-icon-inline edit" onclick="editarItem('reservado', ${index})">✏️</button>
+              <button class="btn-icon-inline edit" onclick="editarItem(this, 'reservado', ${index})">✏️</button>
               <button class="btn-inline" onclick="removerItem('reservado', ${index})">🗑️</button>
             </td>
           </tr>
@@ -835,7 +842,10 @@
       await ref.update({ contas: dados.contas });
     }
 
-    async function editarItem(tipo, indice) {
+    async function editarItem(button, tipo, indice) {
+      const tr = button.closest('tr');
+      if (tr.classList.contains('editing')) return; // Já está em modo de edição
+
       const ref = getMesRef();
       if (!ref) return;
       const dados = await carregarDadosRef(ref);
@@ -847,23 +857,43 @@
         return;
       }
 
-      const novoNome = prompt(`Editar descrição:`, item.nome);
-      if (novoNome === null) return; // Usuário cancelou
+      tr.classList.add('editing');
 
-      const novoValorStr = prompt(`Editar valor:`, item.valor);
-      if (novoValorStr === null) return; // Usuário cancelou
+      const nomeTd = tr.children[0];
+      const valorTd = tr.children[1];
 
-      const novoValor = Number(novoValorStr);
-      if (isNaN(novoValor)) {
-        return alert("Valor inválido. Por favor, insira um número.");
+      nomeTd.innerHTML = `<input type="text" value="${item.nome}" />`;
+      valorTd.innerHTML = `<input type="number" step="0.01" value="${item.valor}" />`;
+
+      button.textContent = '✔️';
+      button.onclick = () => salvarEdicao(button, tipo, indice);
+    }
+
+    async function salvarEdicao(button, tipo, indice) {
+      const tr = button.closest('tr');
+      const nomeInput = tr.querySelector('td:nth-child(1) input');
+      const valorInput = tr.querySelector('td:nth-child(2) input');
+
+      const novoNome = nomeInput.value.trim();
+      const novoValor = Number(valorInput.value);
+
+      if (!novoNome || isNaN(novoValor)) {
+        return alert("Descrição e valor são obrigatórios e o valor deve ser um número.");
       }
+
+      const ref = getMesRef();
+      if (!ref) return;
+      const dados = await carregarDadosRef(ref);
+      const item = dados[tipo][indice];
 
       dados[tipo][indice] = {
         ...item,
-        nome: novoNome.trim(),
+        nome: novoNome,
         valor: novoValor
       };
+
       await ref.update({ [tipo]: dados[tipo] });
+      // O listener onSnapshot irá re-renderizar a linha, removendo a classe 'editing' e os inputs.
     }
 
     function atualizarResumo(data) {
