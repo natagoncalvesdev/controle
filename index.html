@@ -1193,7 +1193,7 @@
         if (doc.exists && doc.data().cartao && doc.data().cartao.length > 0) {
           doc.data().cartao.forEach((item, index) => {
             // Adiciona apenas itens parcelados e não recorrentes
-            if (item.parcelas && item.parcelas.includes('/') && !item.recorrente) {
+            if (item.parcelas && item.parcelas.includes('/') && item.parcelas !== '1/1' && !item.recorrente) {
               parcelasEncontradas.push({
                 ...item,
                 source: { ano: String(targetAno), mes: targetMesNome, index: index }
