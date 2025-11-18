@@ -351,7 +351,7 @@
         align-items: stretch;
       }
       .form-row button {
-        padding: 12px;
+        padding: 10px 12px;
       }
       th, td {
         padding: 10px 8px;
@@ -391,7 +391,7 @@
           <span class="info-text">Cartão embutido: <span id="totalCartaoResumo">R$ 0,00</span></span>
         </div>
         <div class="card green">
-          <small>Total adicionais</small>
+          <small>Total entradas</small>
           <strong id="totalAdicionais">R$ 0,00</strong>
         </div>
         <div class="card red">
@@ -433,11 +433,11 @@
     </section>
 
     <section class="section">
-      <h3>Adicionais (salário, vale, extras)</h3>
+      <h3>Entradas (salário, vale, extras)</h3>
       <div class="form-row">
         <input id="adicionalNome" placeholder="Descrição" />
         <input id="adicionalValor" type="number" placeholder="Valor em R$" />
-        <button onclick="adicionarAdicional()">Adicionar adicional</button>
+        <button onclick="adicionarAdicional()">Adicionar entrada</button>
       </div>
       <div class="table-wrapper">
         <table>
@@ -459,7 +459,7 @@
         <input id="cartaoNome" placeholder="Descrição (ex: Óculos)" />
         <input id="cartaoValor" type="number" placeholder="Valor da parcela" />
         <input id="cartaoParcelas" type="text" placeholder="Parcelas (ex: 7/10)" />
-        <button onclick="adicionarCartao()">Adicionar cartão</button>
+        <button onclick="adicionarCartao()">Adicionar compra</button>
       </div>
       <div class="table-wrapper">
         <table>
