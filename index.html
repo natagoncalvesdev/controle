@@ -956,21 +956,19 @@
         currentUser = user;
         // Busca o nome do usuário no Firestore
         db.collection('users').doc(currentUser.uid).get().then(doc => {
-          if (doc.exists && doc.data().name) {
-            displayUserName(doc.data().name);
-          } else {
-            displayUserName(currentUser.email); // Fallback para o email se o nome não for encontrado
           if (doc.exists) {
             const userData = doc.data();
             displayUserName(userData.name || currentUser.email);
 
             // Verifica se o usuário é administrador
+            // Se userData.adm for true, mostra os botões de admin
             if (userData.adm === true) {
               const adminActions = document.getElementById('admin-actions');
-              adminActions.style.display = 'flex'; // Mostra os botões para admins
+              adminActions.style.display = 'flex';
             }
+          } else {
+            displayUserName(currentUser.email); // Fallback se o documento do usuário não for encontrado
           }
-        } 
         }).catch(error => {
           // Em caso de erro, os botões de admin permanecem ocultos
           console.error("Erro ao buscar dados do usuário:", error);
