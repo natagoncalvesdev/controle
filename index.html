@@ -488,6 +488,7 @@
         height: auto;
         flex-direction: column;
         padding: 16px;
+        transition: transform 0.3s ease-in-out;
       }
       .sidebar-controls {
         flex-direction: row;
@@ -500,6 +501,10 @@
         padding-top: 12px;
         padding-bottom: 12px;
         z-index: 10;
+      }
+      .sidebar.scrolled-down {
+        /* Esconde a barra movendo-a para cima */
+        transform: translateY(-100%);
       }
       .sidebar-controls .ano-select, .sidebar-controls .mes-select-mobile {
         flex: 1;
@@ -830,6 +835,22 @@
 
       await garantirAno(anoAtual); // Garante que a estrutura do ano exista no DB
       await selecionarMes(mesCorrente); // Seleciona o mês e ano atuais
+
+      // Lógica para esconder/mostrar header no scroll (mobile)
+      const sidebar = document.querySelector('.sidebar');
+      const content = document.querySelector('.content');
+      let lastScrollTop = 0;
+
+      content.addEventListener('scroll', () => {
+        let scrollTop = content.scrollTop;
+        if (scrollTop > lastScrollTop && scrollTop > 100) { // Scroll para baixo
+          sidebar.classList.add('scrolled-down');
+        } else { // Scroll para cima
+          sidebar.classList.remove('scrolled-down');
+        }
+        lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+      });
+
 
       selectAno.addEventListener("change", trocarAno);
       selectMesMobile.addEventListener("change", (e) => selecionarMes(e.target.value));
