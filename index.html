@@ -179,6 +179,14 @@
     }
     .card.expanded .toggle-icon { transform: rotate(180deg); }
 
+    .modal-open-icon {
+      display: inline-block;
+      margin-left: 5px;
+      font-weight: bold;
+      color: var(--subtle);
+      transition: transform 0.2s ease;
+    }
+
     .card.green strong { color: var(--accent-2); }
     .card.red strong { color: var(--accent-3); }
     .card.yellow strong { color: var(--accent); }
@@ -532,7 +540,7 @@
           <span class="info-text">Cartão embutido: <span id="totalCartaoResumo">R$ 0,00</span></span>
         </div>
         <div class="card green">
-          <small style="cursor: pointer;" onclick="abrirModalEntradas()">Total entradas</small>
+          <small style="cursor: pointer;" onclick="abrirModalEntradas()">Total entradas <span class="modal-open-icon">↗</span></small>
           <strong id="totalAdicionais">R$ 0,00</strong>
         </div>
         <div class="card red">
