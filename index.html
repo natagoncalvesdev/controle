@@ -7,7 +7,6 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <style>
     :root {
       /* Tema Claro (Padrão) */
@@ -637,13 +636,14 @@
 <body>
   <aside class="sidebar">
     <div class="sidebar-controls">
-      <div class="theme-switch-wrapper">
-        <label class="theme-switch" for="theme-toggle">
-          <input type="checkbox" id="theme-toggle" />
-          <span class="slider"></span>
-        </label>
-      </div>
       <div class="ano-select">
+        <div class="theme-switch-wrapper mobile-theme-switch" style="display: flex; align-items: center; justify-content: flex-start; width: 100%;">
+          <label class="theme-switch" for="theme-toggle-mobile">
+            <input type="checkbox" id="theme-toggle-mobile" />
+            <span class="slider"></span>
+          </label>
+          <span id="user-name-mobile" style="margin-left: 10px; color: var(--sidebar-text); font-weight: 600;"></span>
+        </div>
         <label for="selectAno">Ano</label>
         <select id="selectAno"></select>
       </div>
@@ -658,7 +658,12 @@
       <div class="months" id="listaMeses"></div>
     </div>
 
-    <button id="logout-button" class="btn-add" style="margin-top: auto; background-color: var(--accent-3);">Sair</button>
+    <div class="theme-switch-wrapper desktop-theme-switch">
+      <label class="theme-switch" for="theme-toggle">
+        <input type="checkbox" id="theme-toggle" />
+        <span class="slider"></span>
+      </label>
+    </div>
   </aside>
 
   <main class="content">
@@ -693,7 +698,6 @@
       </div>
       <div class="table-wrapper">
         <table>
-        <thead style="position: sticky; top: 0; background: white;">
         <thead>
           <tr>
             <th>Conta</th>
@@ -717,7 +721,6 @@
       </div>
       <div class="table-wrapper">
         <table>
-        <thead style="position: sticky; top: 0; background: white;">
         <thead>
           <tr>
             <th>Descrição</th>
@@ -739,7 +742,6 @@
       </div>
       <div class="table-wrapper">
         <table>
-        <thead style="position: sticky; top: 0; background: white;">
         <thead>
           <tr>
             <th>Descrição</th>
@@ -941,33 +943,41 @@
       selectMesMobile.addEventListener("change", (e) => selecionarMes(e.target.value));
     }
 
-    // Lógica de Autenticação e Proteção de Rota
-    const auth = firebase.auth();
-    let currentUser = null;
-
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        currentUser = user;
-        inicializar();
-      } else {
-        // Se não houver usuário, redireciona para o login
-        window.location.href = 'login.html';
-      }
-    });
-
     // Lógica do Dark Mode
-    const themeToggle = document.getElementById('theme-toggle');
+    const desktopToggle = document.getElementById('theme-toggle');
+    const mobileToggle = document.getElementById('theme-toggle-mobile');
     const currentTheme = localStorage.getItem('theme');
 
     if (currentTheme === 'dark') {
       document.body.classList.add('dark-mode');
-      themeToggle.checked = true;
+      desktopToggle.checked = true;
+      mobileToggle.checked = true;
     }
 
-    themeToggle.addEventListener('change', () => {
+    // Elementos para exibir o nome do usuário
+    const userNameDesktop = document.getElementById('user-name-desktop');
+    const userNameMobile = document.getElementById('user-name-mobile');
+
+    function displayUserName(name) {
+      if (userNameDesktop) userNameDesktop.textContent = name;
+      if (userNameMobile) userNameMobile.textContent = name;
+      // Se desejar, pode também atualizar o texto do botão de sair, por exemplo:
+      // document.getElementById('logout-button').textContent = `Sair (${name})`;
+    }
+
+    function handleThemeChange(isDarkMode) {
       document.body.classList.toggle('dark-mode');
-      const theme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
+      const theme = isDarkMode ? 'dark' : 'light';
       localStorage.setItem('theme', theme);
+      desktopToggle.checked = isDarkMode;
+      mobileToggle.checked = isDarkMode;
+    }
+
+    desktopToggle.addEventListener('change', (e) => {
+      handleThemeChange(e.target.checked);
+    });
+    mobileToggle.addEventListener('change', (e) => {
+      handleThemeChange(e.target.checked);
     });
 
     async function garantirAno(ano) {
@@ -977,7 +987,7 @@
       }
       const ref = db.collection("anos").doc(String(ano));
       const doc = await ref.get();
-      if (!doc.exists) { // Esta lógica precisa ser ajustada para o novo modelo de dados
+      if (!doc.exists) {
         await ref.set({ ano: Number(ano) });
         const mesesBatch = MESES.map(nome =>
           ref.collection("meses").doc(nome).set({ contas: [], adicionais: [], cartao: [], reservado: [], cartaoStatus: 'pendente' })
@@ -985,23 +995,6 @@
         await Promise.all(mesesBatch);
       } else {
         await ref.set({ ano: Number(ano) }, { merge: true });
-      }
-    }
-
-    // NOVA FUNÇÃO para garantir a estrutura de dados do usuário
-    async function garantirEstruturaUsuario(ano) {
-      if (!currentUser) return;
-      const anoRef = db.collection('users').doc(currentUser.uid).collection('anos').doc(String(ano));
-      const anoDoc = await anoRef.get();
-
-      if (!anoDoc.exists) {
-        const batch = db.batch();
-        batch.set(anoRef, { ano: Number(ano) });
-        MESES.forEach(mesNome => {
-          const mesRef = anoRef.collection('meses').doc(mesNome);
-          batch.set(mesRef, { contas: [], adicionais: [], cartao: [], reservado: [], cartaoStatus: 'pendente' });
-        });
-        await batch.commit();
       }
     }
 
@@ -1021,7 +1014,7 @@
       anoAtual = selectAno.value;
       mesAtual = "";
       if (unsubscribeMes) unsubscribeMes();
-      await garantirEstruturaUsuario(anoAtual);
+      await garantirAno(anoAtual);
       await selecionarMes(MESES[0]);
     }
 
@@ -1030,7 +1023,7 @@
       mesAtual = mes;
       document.getElementById("tituloMes").innerText = `${mesAtual} / ${anoAtual}`;
       renderizarMeses();
-      await garantirEstruturaUsuario(anoAtual);
+      await garantirAno(anoAtual);
       escutarMes(anoAtual, mesAtual);
     }
 
@@ -1038,7 +1031,7 @@
       if (unsubscribeMes) unsubscribeMes();
       const ref = db.collection("anos").doc(ano).collection("meses").doc(mes);
       unsubscribeMes = ref.onSnapshot(doc => {
-        if (!doc.exists) { // Esta lógica também precisa ser ajustada
+        if (!doc.exists) {
           ref.set({ contas: [], adicionais: [], cartao: [], reservado: [], cartaoStatus: 'pendente' });
           return;
         }
@@ -1046,23 +1039,6 @@
       }, error => {
         console.error("Erro no listener do mês", error);
         alert("Não foi possível ouvir atualizações do mês. Verifique sua conexão.");
-      });
-    }
-
-    // NOVA FUNÇÃO para escutar o mês do usuário logado
-    function escutarMes(ano, mes) {
-      if (unsubscribeMes) unsubscribeMes();
-      if (!currentUser) return;
-
-      const ref = db.collection('users').doc(currentUser.uid).collection('anos').doc(ano).collection('meses').doc(mes);
-      unsubscribeMes = ref.onSnapshot(doc => {
-        if (!doc.exists) {
-          // A função garantirEstruturaUsuario já deve ter criado isso.
-          return;
-        }
-        renderizarDadosDoMes(doc.data());
-      }, error => {
-        console.error("Erro no listener do mês", error);
       });
     }
 
@@ -1198,10 +1174,10 @@
 
     function getMesRef() {
       if (!anoAtual || !mesAtual) {
+        alert("Escolha um ano e um mês.");
         return null;
       }
-      if (!currentUser) return null;
-      return db.collection('users').doc(currentUser.uid).collection('anos').doc(anoAtual).collection('meses').doc(mesAtual);
+      return db.collection("anos").doc(anoAtual).collection("meses").doc(mesAtual);
     }
 
     async function carregarDadosRef(ref) {
@@ -1306,8 +1282,8 @@
 
           if (targetAno > ANO_LIMITE) continue; // Não adiciona além do ano limite
 
-          // Garante que a estrutura de dados do usuário exista
-          await garantirEstruturaUsuario(String(targetAno));
+          // Garante que o ano e a estrutura de meses existam antes de adicionar
+          await garantirAno(String(targetAno));
 
           const parcelaRef = db.collection("anos").doc(String(targetAno)).collection("meses").doc(targetMesNome);
           const novaCompra = {
@@ -1316,20 +1292,6 @@
             parcelas: `${i + 1}/${totalParcelas}`
           };
           batch.update(parcelaRef, { cartao: firebase.firestore.FieldValue.arrayUnion(novaCompra) });
-        }
-      }
-
-      // NOVA LÓGICA de parcelamento para o banco de dados do usuário
-      if (!isRecorrente) {
-        for (let i = 0; i < totalParcelas; i++) {
-          const targetMesIndex = (mesAtualIndex + i) % 12;
-          const targetAno = Number(anoAtual) + Math.floor((mesAtualIndex + i) / 12);
-          const targetMesNome = MESES[targetMesIndex];
-          if (targetAno > ANO_LIMITE) continue;
-
-          await garantirEstruturaUsuario(String(targetAno));
-          const parcelaRef = db.collection('users').doc(currentUser.uid).collection('anos').doc(String(targetAno)).collection('meses').doc(targetMesNome);
-          batch.update(parcelaRef, { cartao: firebase.firestore.FieldValue.arrayUnion({ nome, valor, parcelas: `${i + 1}/${totalParcelas}` }) });
         }
       }
 
@@ -1363,7 +1325,7 @@
           const mesInicial = (ano === Number(anoAtual)) ? mesAtualIndex : 0;
           for (let mesIdx = mesInicial; mesIdx < 12; mesIdx++) {
             const mesNome = MESES[mesIdx];
-            const futureRef = db.collection('users').doc(currentUser.uid).collection('anos').doc(String(ano)).collection('meses').doc(mesNome);
+            const futureRef = db.collection("anos").doc(String(ano)).collection("meses").doc(mesNome);
             // arrayRemove precisa do objeto exato para funcionar
             batch.update(futureRef, { cartao: firebase.firestore.FieldValue.arrayRemove(item) });
           }
@@ -1546,7 +1508,7 @@
         const targetAno = Number(anoAtual) + Math.floor((mesAtualIndex + i) / 12);
         const targetMesNome = MESES[targetMesIndex];
 
-        const ref = db.collection('users').doc(currentUser.uid).collection('anos').doc(String(targetAno)).collection('meses').doc(targetMesNome);
+        const ref = db.collection("anos").doc(String(targetAno)).collection("meses").doc(targetMesNome);
         const doc = await ref.get();
 
         if (doc.exists && doc.data().cartao && doc.data().cartao.length > 0) {
@@ -1708,7 +1670,7 @@
         const { source, ...itemOriginal } = parcela;
         const refMesOrigem = db.collection("anos").doc(source.ano).collection("meses").doc(source.mes);
 
-        // 1. Remove do mês de origem (Ajuste para o novo modelo de dados)
+        // 1. Remove do mês de origem
         // O objeto para remover não deve conter a propriedade 'source'
         batch.update(refMesOrigem, {
           cartao: firebase.firestore.FieldValue.arrayRemove(itemOriginal)
@@ -1725,7 +1687,7 @@
       fecharModalAdiantar();
     }
 
-    // A inicialização agora é chamada pelo onAuthStateChanged
+    inicializar();
   </script>
 </body>
 </html>
