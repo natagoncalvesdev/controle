@@ -665,6 +665,25 @@
       }
       /* Remove a altura mínima que causava problemas de alinhamento */
       .actions-cell { min-height: unset; }
+
+      /* Esconde colunas de ações nas tabelas em mobile */
+      #tabelaContas th:nth-child(4),
+      #tabelaContas td:nth-child(4),
+      #tabelaContas th:nth-child(5),
+      #tabelaContas td:nth-child(5),
+      #tabelaCartao th:nth-child(4),
+      #tabelaCartao td:nth-child(4) {
+        display: none;
+      }
+
+      /* Adiciona cursor de ponteiro para indicar que a linha é clicável */
+      #tabelaContas > tr,
+      #tabelaCartao > tr {
+        cursor: pointer;
+      }
+      #itemActionsModalBody .form-row {
+        flex-direction: column;
+      }
     }
     
     .footer-actions {
@@ -841,6 +860,20 @@
       </div>
     </div>
   </div>
+
+  <!-- Modal para Ações do Item (Mobile) -->
+  <div id="itemActionsModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3 id="itemActionsModalTitle">Ações para o Item</h3>
+      <div id="itemActionsModalBody" style="display: flex; flex-direction: column; gap: 16px;">
+        <!-- Conteúdo dinâmico aqui -->
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="fecharModalAcoes()">Fechar</button>
+      </div>
+    </div>
+  </div>
+
 
   <!-- Modal para Entradas -->
   <div id="entradasModal" class="modal-overlay">
@@ -1209,8 +1242,9 @@
         const originalIndex = conta.isCartao ? -1 : data.contas.findIndex(c => c.nome === conta.nome && c.valor === conta.valor);
 
         const status = conta.status || "pendente";
-        let rowHTML = `
-          <tr class="${status === "pago" ? "row-pago" : "row-pendente"}">
+        const tr = document.createElement('tr');
+        tr.className = `${status === "pago" ? "row-pago" : "row-pendente"}`;
+        tr.innerHTML = `
             <td>${conta.nome}</td>
             <td>${formatar(conta.valor)}</td>
             <td>
@@ -1220,8 +1254,8 @@
             </td>
         `;
 
-        if (conta.isCartao) {
-          rowHTML += `
+        if (conta.isCartao) { // Se for o item "Cartão de Crédito"
+          tr.innerHTML += `
             <td>
               <select onchange="atualizarStatusCartao(this.value)">
                 <option value="pendente" ${status === "pendente" ? "selected" : ""}>Pendente</option>
@@ -1230,8 +1264,10 @@
             </td>
             <td class="actions-cell"></td>
           `;
-        } else {
-          rowHTML += `
+          tr.onclick = () => abrirModalAcoes('cartaoAgregado', -1, conta);
+
+        } else { // Se for uma conta normal
+          tr.innerHTML += `
             <td>
                 <select onchange="atualizarStatusConta(${originalIndex}, this.value)">
                   <option value="pendente" ${status === "pendente" ? "selected" : ""}>Pendente</option>
@@ -1244,15 +1280,15 @@
                 <button class="btn-inline" onclick="removerItem('contas', ${originalIndex})">🗑️</button>
             </td>`;
         }
-        rowHTML += `</tr>`;
-        tabelaContas.innerHTML += rowHTML;
+        tr.onclick = () => abrirModalAcoes('contas', originalIndex, conta);
+        tabelaContas.appendChild(tr);
       });
 
       const tabelaAdicionais = document.getElementById("tabelaAdicionaisModal");
       tabelaAdicionais.innerHTML = "";
       (data.adicionais || []).forEach((item, index) => {
-        tabelaAdicionais.innerHTML += `
-          <tr>
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
             <td>${item.nome}</td>
             <td>${formatar(item.valor)}</td>
             <td class="actions-cell">
@@ -1260,24 +1296,26 @@
               <button class="btn-icon-inline copy" onclick="abrirModalCopia('adicionais', ${index})">❐</button>
               <button class="btn-inline" onclick="removerItem('adicionais', ${index})">🗑️</button>
             </td>
-          </tr>
         `;
+        tabelaAdicionais.appendChild(tr);
       });
 
       const tabelaCartao = document.getElementById("tabelaCartao");
       tabelaCartao.innerHTML = "";
       data.cartao.forEach((item, index) => {
-        tabelaCartao.innerHTML += `
-          <tr>
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
             <td>${item.nome}</td>
             <td>${formatar(item.valor)}</td>
             <td>${item.parcelas || "-"}</td>
             <td class="actions-cell">
               <button class="btn-icon-inline edit" onclick="editarItem(this, 'cartao', ${index})">✏️</button>
               <button class="btn-inline" onclick="removerItem('cartao', ${index})">🗑️</button>
-            </td>
-          </tr>
+            </td>          
         `;
+        // Adiciona o evento de clique para abrir o modal de ações no mobile
+        tr.onclick = () => abrirModalAcoes('cartao', index, item);
+        tabelaCartao.appendChild(tr);
       });
 
       const tabelaReservado = document.getElementById("tabelaReservado");
@@ -1812,6 +1850,61 @@
       await batch.commit();
       alert(`${checkboxes.length} parcela(s) adiantada(s) com sucesso!`);
       fecharModalAdiantar();
+    }
+
+    function abrirModalAcoes(tipo, index, item) {
+      // Esta função só deve ser acionada em telas pequenas
+      if (window.innerWidth > 768) {
+        return;
+      }
+
+      const modal = document.getElementById('itemActionsModal');
+      const modalTitle = document.getElementById('itemActionsModalTitle');
+      const modalBody = document.getElementById('itemActionsModalBody');
+
+      modalTitle.textContent = `Ações para: ${item.nome}`;
+      modalBody.innerHTML = ''; // Limpa o corpo do modal
+
+      if (tipo === 'contas') {
+        modalBody.innerHTML = `
+          <div class="form-row">
+            <label for="modalStatusSelect">Mudar Status</label>
+            <select id="modalStatusSelect" onchange="atualizarStatusConta(${index}, this.value)">
+              <option value="pendente" ${item.status === "pendente" ? "selected" : ""}>Pendente</option>
+              <option value="pago" ${item.status === "pago" ? "selected" : ""}>Pago</option>
+            </select>
+          </div>
+          <div class="section-actions" style="justify-content: center;">
+            <button class="btn-icon-inline edit" onclick="editarItem(document.querySelector('#tabelaContas').rows[${index}].cells[4].querySelector('.edit'), 'contas', ${index}); fecharModalAcoes();">✏️ Editar</button>
+            <button class="btn-icon-inline copy" onclick="abrirModalCopia('contas', ${index}); fecharModalAcoes();">❐ Copiar</button>
+            <button class="btn-inline" onclick="removerItem('contas', ${index}); fecharModalAcoes();">🗑️ Remover</button>
+          </div>
+        `;
+      } else if (tipo === 'cartaoAgregado') { // Caso especial para o item "Cartão de Crédito" na tabela de contas
+        modalTitle.textContent = `Ações para: Cartão de Crédito`;
+        modalBody.innerHTML = `
+          <div class="form-row">
+            <label for="modalStatusSelect">Mudar Status do Cartão</label>
+            <select id="modalStatusSelect" onchange="atualizarStatusCartao(this.value)">
+              <option value="pendente" ${item.status === "pendente" ? "selected" : ""}>Pendente</option>
+              <option value="pago" ${item.status === "pago" ? "selected" : ""}>Pago</option>
+            </select>
+          </div>
+        `;
+      } else if (tipo === 'cartao') {
+        modalBody.innerHTML = `
+          <div class="section-actions" style="justify-content: center;">
+            <button class="btn-icon-inline edit" onclick="editarItem(document.querySelector('#tabelaCartao').rows[${index}].cells[3].querySelector('.edit'), 'cartao', ${index}); fecharModalAcoes();">✏️ Editar</button>
+            <button class="btn-inline" onclick="removerItem('cartao', ${index}); fecharModalAcoes();">🗑️ Remover</button>
+          </div>
+        `;
+      }
+
+      modal.classList.add('visible');
+    }
+
+    function fecharModalAcoes() {
+      document.getElementById('itemActionsModal').classList.remove('visible');
     }
 
     // A inicialização agora é chamada pelo onAuthStateChanged
