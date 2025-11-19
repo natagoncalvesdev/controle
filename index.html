@@ -959,13 +959,17 @@
           if (doc.exists) {
             const userData = doc.data();
             displayUserName(userData.name || currentUser.email);
+            const name = userData.name || currentUser.email;
+            let role = 'usuário'; // Papel padrão
 
             // Verifica se o usuário é administrador
             // Se userData.adm for true, mostra os botões de admin
             if (userData.adm === true) {
+              role = 'adm';
               const adminActions = document.getElementById('admin-actions');
               adminActions.style.display = 'flex';
             }
+            displayUserName(`${name} / ${role}`);
           } else {
             displayUserName(currentUser.email); // Fallback se o documento do usuário não for encontrado
           }
