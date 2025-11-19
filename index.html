@@ -583,6 +583,9 @@
         height: auto;
         padding: 0;
         position: fixed; /* Mantém a barra fixa no topo */
+        top: 0; /* Garante que a barra fique colada no topo */
+        left: 0; /* Garante que a barra ocupe toda a largura */
+        z-index: 100; /* Garante que a barra fique sobre todo o conteúdo */
       }
       .sidebar-controls {
         flex-direction: row;
@@ -608,7 +611,7 @@
       .months-wrapper { 
         display: none; /* Oculta a lista de meses em mobile */
       }
-      .content { padding: 16px; overflow-y: visible; margin-left: 0; margin-top: 85px; } /* Ajusta margens para mobile */
+      .content { padding: 16px; overflow-y: visible; margin-left: 0; margin-top: 100px; } /* Aumenta a margem para evitar sobreposição */
       .header h2 { font-size: 22px; }
       .card strong { font-size: 22px; }
 
