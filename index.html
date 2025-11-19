@@ -636,6 +636,12 @@
 <body>
   <aside class="sidebar">
     <div class="sidebar-controls">
+      <div class="theme-switch-wrapper">
+        <label class="theme-switch" for="theme-toggle">
+          <input type="checkbox" id="theme-toggle" />
+          <span class="slider"></span>
+        </label>
+      </div>
       <div class="ano-select">
         <label for="selectAno">Ano</label>
         <select id="selectAno"></select>
@@ -649,13 +655,6 @@
     <div class="months-wrapper">
       <label>Meses</label>
       <div class="months" id="listaMeses"></div>
-    </div>
-
-    <div class="theme-switch-wrapper">
-      <label class="theme-switch" for="theme-toggle">
-        <input type="checkbox" id="theme-toggle" />
-        <span class="slider"></span>
-      </label>
     </div>
   </aside>
 
@@ -691,6 +690,7 @@
       </div>
       <div class="table-wrapper">
         <table>
+        <thead style="position: sticky; top: 0; background: white;">
         <thead>
           <tr>
             <th>Conta</th>
@@ -714,6 +714,7 @@
       </div>
       <div class="table-wrapper">
         <table>
+        <thead style="position: sticky; top: 0; background: white;">
         <thead>
           <tr>
             <th>Descrição</th>
@@ -735,6 +736,7 @@
       </div>
       <div class="table-wrapper">
         <table>
+        <thead style="position: sticky; top: 0; background: white;">
         <thead>
           <tr>
             <th>Descrição</th>
