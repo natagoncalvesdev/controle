@@ -808,7 +808,6 @@
           <tr>
             <th>Descrição</th>
             <th>Valor</th>
-            <th>Ações</th>
           </tr>
         </thead>
         <tbody id="tabelaReservado"></tbody>
@@ -1240,7 +1239,7 @@
         tabelaContas.appendChild(tr);
       });
 
-      const tabelaAdicionais = document.getElementById("tabelaAdicionaisModal");
+      const tabelaAdicionais = document.getElementById("tabelaAdicionaisModal"); // Corrigido: Apenas uma declaração
       tabelaAdicionais.innerHTML = "";
       (data.adicionais || []).forEach((item, index) => {
         const tr = document.createElement('tr');
@@ -1248,7 +1247,7 @@
             <td>${item.nome}</td>
             <td>${formatar(item.valor)}</td>
             <td class="actions-cell">
-              <button class="btn-icon-inline edit" onclick="editarItem(this, 'adicionais', ${index})">✏️</button>
+              <button class="btn-icon-inline edit" onclick="abrirModalAcoes('adicionais', ${index}, item)">✏️</button>
               <button class="btn-icon-inline copy" onclick="abrirModalCopia('adicionais', ${index})">❐</button>
               <button class="btn-inline" onclick="removerItem('adicionais', ${index})">🗑️</button>
             </td>
@@ -1274,17 +1273,11 @@
       tabelaReservado.innerHTML = "";
       data.reservado.forEach((item, index) => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <tr>
-            <td>${item.nome}</td>
-            <td>${formatar(item.valor)}</td>
-            <td class="actions-cell">
-              <button class="btn-icon-inline edit" onclick="editarItem(this, 'reservado', ${index})">✏️</button>
-              <button class="btn-icon-inline copy" onclick="abrirModalCopia('reservado', ${index})">❐</button>
-              <button class="btn-inline" onclick="removerItem('reservado', ${index})">🗑️</button>
-            </td>
-          </tr>
+        tr.innerHTML = `          
+          <td>${item.nome}</td>
+          <td>${formatar(item.valor)}</td>
         `;
+        tr.onclick = () => abrirModalAcoes('reservado', index, item);
         tabelaReservado.appendChild(tr);
       });
 
@@ -1476,60 +1469,6 @@
       await ref.update({ cartaoStatus: status });
     }
 
-    async function editarItem(button, tipo, indice) {
-      const tr = button.closest('tr');
-      if (tr.classList.contains('editing')) return; // Já está em modo de edição
-
-      const ref = getMesRef();
-      if (!ref) return;
-      const dados = await carregarDadosRef(ref);
-      const item = dados[tipo][indice];
-      if (!item) return;
-
-      if (tipo === 'cartao' && ((item.parcelas && item.parcelas.includes('/')) || item.recorrente)) {
-        alert("Não é possível editar um item parcelado ou recorrente. Por favor, remova a compra e adicione novamente se necessário.");
-        return;
-      }
-
-      tr.classList.add('editing');
-
-      const nomeTd = tr.children[0];
-      const valorTd = tr.children[1];
-
-      nomeTd.innerHTML = `<input type="text" value="${item.nome}" />`;
-      valorTd.innerHTML = `<input type="number" step="0.01" value="${item.valor}" />`;
-
-      button.textContent = '✔️';
-      button.onclick = () => salvarEdicao(button, tipo, indice);
-    }
-
-    async function salvarEdicao(button, tipo, indice) {
-      const tr = button.closest('tr');
-      const nomeInput = tr.querySelector('td:nth-child(1) input');
-      const valorInput = tr.querySelector('td:nth-child(2) input');
-
-      const novoNome = nomeInput.value.trim();
-      const novoValor = Number(valorInput.value);
-
-      if (!novoNome || isNaN(novoValor)) {
-        return alert("Descrição e valor são obrigatórios e o valor deve ser um número.");
-      }
-
-      const ref = getMesRef();
-      if (!ref) return;
-      const dados = await carregarDadosRef(ref);
-      const item = dados[tipo][indice];
-
-      dados[tipo][indice] = {
-        ...item,
-        nome: novoNome,
-        valor: novoValor
-      };
-
-      await ref.update({ [tipo]: dados[tipo] });
-      // O listener onSnapshot irá re-renderizar a linha, removendo a classe 'editing' e os inputs.
-    }
-
     async function abrirModalCopia(tipo, indice) {
       const ref = getMesRef();
       if (!ref) return;
@@ -1705,19 +1644,21 @@
       });
     }
 
-    function abrirModalEntradas() {
-      document.getElementById('entradasModal').classList.add('visible');
+    function abrirModalAdicional() {
+      document.getElementById('adicionalModal').classList.add('visible');
     }
-
-    function fecharModalEntradas() {
-      document.getElementById('entradasModal').classList.remove('visible');
+    function fecharModalAdicional() {
+      document.getElementById('adicionalModal').classList.remove('visible');
     }
-
     function abrirModalConta() {
       document.getElementById('contaModal').classList.add('visible');
     }
     function fecharModalConta() {
       document.getElementById('contaModal').classList.remove('visible');
+    }
+
+    function abrirModalConta() {
+      document.getElementById('contaModal').classList.add('visible');
     }
 
     function abrirModalCartao() {
@@ -1732,6 +1673,10 @@
     }
     function fecharModalReservado() {
       document.getElementById('reservadoModal').classList.remove('visible');
+    }
+
+    function fecharModalEntradas() {
+      document.getElementById('entradasModal').classList.remove('visible');
     }
 
     function atualizarResumo(data) {
@@ -1787,7 +1732,7 @@
         if (!parcela) continue;
 
         const { source, ...itemOriginal } = parcela;
-        const refMesOrigem = db.collection("anos").doc(source.ano).collection("meses").doc(source.mes);
+        const refMesOrigem = db.collection('users').doc(currentUser.uid).collection("anos").doc(source.ano).collection("meses").doc(source.mes);
 
         // 1. Remove do mês de origem (Ajuste para o novo modelo de dados)
         // O objeto para remover não deve conter a propriedade 'source'
@@ -1824,7 +1769,7 @@
             </select>
           </div>
           <div class="section-actions" style="justify-content: center;">
-            <button class="btn-icon-inline edit" onclick="editarItem(document.querySelector('#tabelaContas').rows[${index}].cells[4].querySelector('.edit'), 'contas', ${index}); fecharModalAcoes();">✏️ Editar</button>
+            <button class="btn-icon-inline edit" id="modalEditButton">✏️ Editar</button>
             <button class="btn-icon-inline copy" onclick="abrirModalCopia('contas', ${index}); fecharModalAcoes();">❐ Copiar</button>
             <button class="btn-inline" onclick="removerItem('contas', ${index}); fecharModalAcoes();">🗑️ Remover</button>
           </div>
@@ -1843,15 +1788,92 @@
       } else if (tipo === 'cartao') {
         modalBody.innerHTML = `
           <div class="section-actions" style="justify-content: center;">
-            <button class="btn-icon-inline edit" onclick="editarItem(document.querySelector('#tabelaCartao').rows[${index}].cells[3].querySelector('.edit'), 'cartao', ${index}); fecharModalAcoes();">✏️ Editar</button>
+            <button class="btn-icon-inline edit" id="modalEditButton">✏️ Editar</button>
             <button class="btn-inline" onclick="removerItem('cartao', ${index}); fecharModalAcoes();">🗑️ Remover</button>
+          </div>
+        `;
+      } else if (tipo === 'adicionais' || tipo === 'reservado') {
+        // Ações para Entradas e Reservados
+        // A edição acontece no modal, e a remoção/cópia também
+        modalBody.innerHTML = `
+          <div class="section-actions" style="justify-content: center;">
+            <button class="btn-icon-inline edit" id="modalEditButton">✏️ Editar</button>
+            <button class="btn-icon-inline copy" onclick="abrirModalCopia('${tipo}', ${index}); fecharModalAcoes();">❐ Copiar</button>
+            <button class="btn-inline" onclick="removerItem('${tipo}', ${index}); fecharModalAcoes();">🗑️ Remover</button>
           </div>
         `;
       }
 
+      // Adiciona o evento de clique ao botão de editar programaticamente
+      const editButton = document.getElementById('modalEditButton');
+      if (editButton) {
+        editButton.onclick = () => mostrarEdicaoNoModal(tipo, index, item);
+      }
+
       modal.classList.add('visible');
     }
-    // A inicialização agora é chamada pelo onAuthStateChanged
+
+    function fecharModalAcoes() {
+      document.getElementById('itemActionsModal').classList.remove('visible');
+    }
+
+    function mostrarEdicaoNoModal(tipo, index, item) {
+      if (tipo === 'cartao' && ((item.parcelas && item.parcelas.includes('/')) || item.recorrente)) {
+        alert("Não é possível editar um item parcelado ou recorrente. Por favor, remova a compra e adicione novamente se necessário.");
+        return;
+      }
+
+      const modalTitle = document.getElementById('itemActionsModalTitle');
+      const modalBody = document.getElementById('itemActionsModalBody');
+
+      modalTitle.textContent = `Editando: ${item.nome}`;
+      modalBody.innerHTML = `
+        <div class="form-row">
+          <input id="editNomeInput" type="text" value="${item.nome}" placeholder="Descrição">
+        </div>
+        <div class="form-row">
+          <input id="editValorInput" type="number" step="0.01" value="${item.valor}" placeholder="Valor">
+        </div>
+        <div class="section-actions" style="justify-content: center;">
+          <button class="btn-add" style="background-color: var(--accent-2);" onclick="salvarEdicaoDoModal('${tipo}', ${index})">✔️ Salvar</button>
+        </div>
+      `;
+    }
+
+    async function salvarEdicaoDoModal(tipo, index) {
+      const novoNome = document.getElementById('editNomeInput').value.trim();
+      const novoValor = Number(document.getElementById('editValorInput').value);
+
+      if (!novoNome || isNaN(novoValor)) {
+        return alert("Descrição e valor são obrigatórios e o valor deve ser um número.");
+      }
+
+      const ref = getMesRef();
+      if (!ref) return;
+      const dados = await carregarDadosRef(ref);
+      const item = dados[tipo][index];
+
+      dados[tipo][index] = {
+        ...item,
+        nome: novoNome,
+        valor: novoValor
+      };
+
+      await ref.update({ [tipo]: dados[tipo] });
+      fecharModalAcoes(); // Fecha o modal após salvar
+    }
+
+    // Adiciona a funcionalidade de fechar modais ao clicar no overlay
+    document.addEventListener('DOMContentLoaded', () => {
+      const modalOverlays = document.querySelectorAll('.modal-overlay');
+      modalOverlays.forEach(overlay => {
+        overlay.addEventListener('click', function(event) {
+          if (event.target === this) { // 'this' é o próprio overlay
+            this.classList.remove('visible');
+          }
+        });
+      });
+    });
   </script>
 </body>
 </html>
