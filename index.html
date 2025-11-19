@@ -481,10 +481,8 @@
       th, td {
         padding: 10px 8px;
       }
-      /* Garante que a célula de ações tenha uma altura mínima consistente em mobile */
-      .actions-cell {
-        min-height: 40px;
-      }
+      /* Remove a altura mínima que causava problemas de alinhamento */
+      .actions-cell { min-height: unset; }
     }
   </style>
 </head>
