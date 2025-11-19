@@ -660,11 +660,8 @@
     </div>
 
     <div style="margin-top: auto; display: flex; flex-direction: column; gap: 12px;">
-      <div style="display: flex; gap: 10px;">
-      <div id="admin-actions" style="display: none; gap: 10px;"> <!-- Oculto por padrão -->
-        <button id="import-button" class="btn-add" style="flex: 1; background-color: var(--accent-2);" onclick="document.getElementById('file-input').click();">Importar Ano</button>
-        <input type="file" id="file-input" accept=".json" style="display: none;" onchange="importarDados(event)">
-        <button id="export-button" class="btn-add" style="flex: 1; background-color: var(--accent-blue);" onclick="exportarDados()">Exportar Ano</button>
+      <div id="admin-actions" style="display: none;"> <!-- Oculto por padrão, conterá o botão ADM -->
+        <button id="admin-button" class="btn-add" style="background-color: var(--accent-blue);" onclick="window.location.href='admin.html'">ADM</button>
       </div>
       <button id="logout-button" class="btn-add" style="background-color: var(--accent-3);">Sair</button>
     </div>
@@ -959,19 +956,12 @@
           if (doc.exists) {
             const userData = doc.data();
             displayUserName(userData.name || currentUser.email);
-            const name = userData.name || currentUser.email;
-            let role = 'usuário'; // Papel padrão
 
             // Verifica se o usuário é administrador
-            // Se userData.adm for true, mostra os botões de admin
             if (userData.adm === true) {
-              role = 'adm';
-              const adminActions = document.getElementById('admin-actions'); // Pega o contêiner do botão ADM
-              adminActions.style.display = 'flex';
+              const adminActions = document.getElementById('admin-actions');
+              adminActions.style.display = 'flex'; // Mostra os botões para admins
             }
-            displayUserName(`${name} / ${role}`);
-          } else {
-            displayUserName(currentUser.email); // Fallback se o documento do usuário não for encontrado
           }
         }).catch(error => {
           // Em caso de erro, os botões de admin permanecem ocultos
