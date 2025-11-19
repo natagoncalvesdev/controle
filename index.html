@@ -742,7 +742,7 @@
       if (!doc.exists) {
         await ref.set({ ano: Number(ano) });
         const mesesBatch = MESES.map(nome =>
-          ref.collection("meses").doc(nome).set({ contas: [], adicionais: [], cartao: [], reservado: [] })
+          ref.collection("meses").doc(nome).set({ contas: [], adicionais: [], cartao: [], reservado: [], cartaoStatus: 'pendente' })
         );
         await Promise.all(mesesBatch);
       } else {
@@ -784,7 +784,7 @@
       const ref = db.collection("anos").doc(ano).collection("meses").doc(mes);
       unsubscribeMes = ref.onSnapshot(doc => {
         if (!doc.exists) {
-          ref.set({ contas: [], adicionais: [], cartao: [] });
+          ref.set({ contas: [], adicionais: [], cartao: [], reservado: [], cartaoStatus: 'pendente' });
           return;
         }
         renderizarDadosDoMes(doc.data());
@@ -809,11 +809,32 @@
       data.adicionais = data.adicionais || [];
       data.cartao = data.cartao || [];
       data.reservado = data.reservado || [];
+      const statusCartao = data.cartaoStatus || 'pendente';
+
+      // Ordena as contas manualmente em ordem alfabética
+      const contasOrdenadas = [...data.contas].sort((a, b) => a.nome.localeCompare(b.nome));
+
+      // Calcula o total do cartão para adicioná-lo como um item na lista de contas
+      const totalCartao = data.cartao.reduce((acc, item) => acc + Number(item.valor || 0), 0);
+      if (totalCartao > 0) {
+        contasOrdenadas.push({
+          nome: "Cartão de Crédito",
+          valor: totalCartao,
+          status: statusCartao,
+          isCartao: true // Flag para identificar que este não é um item comum
+        });
+        // Reordena após adicionar o cartão para garantir a posição correta
+        contasOrdenadas.sort((a, b) => a.nome.localeCompare(b.nome));
+      }
+
       const tabelaContas = document.getElementById("tabelaContas");
       tabelaContas.innerHTML = "";
-      data.contas.forEach((conta, index) => {
+      contasOrdenadas.forEach((conta) => {
+        // Para itens que não são do cartão, encontramos o índice original para as ações funcionarem
+        const originalIndex = conta.isCartao ? -1 : data.contas.findIndex(c => c.nome === conta.nome && c.valor === conta.valor);
+
         const status = conta.status || "pendente";
-        tabelaContas.innerHTML += `
+        let rowHTML = `
           <tr class="${status === "pago" ? "row-pago" : "row-pendente"}">
             <td>${conta.nome}</td>
             <td>${formatar(conta.valor)}</td>
@@ -822,19 +843,34 @@
                 ${status === "pago" ? "Pago" : "Pendente"}
               </div>
             </td>
+        `;
+
+        if (conta.isCartao) {
+          rowHTML += `
             <td>
-              <select onchange="atualizarStatusConta(${index}, this.value)">
+              <select onchange="atualizarStatusCartao(this.value)">
                 <option value="pendente" ${status === "pendente" ? "selected" : ""}>Pendente</option>
                 <option value="pago" ${status === "pago" ? "selected" : ""}>Pago</option>
               </select>
             </td>
-            <td class="actions-cell">
-              <button class="btn-icon-inline edit" onclick="editarItem(this, 'contas', ${index})">✏️</button>
-              <button class="btn-icon-inline copy" onclick="abrirModalCopia('contas', ${index})">❐</button>
-              <button class="btn-inline" onclick="removerItem('contas', ${index})">🗑️</button>
+            <td class="actions-cell"></td>
+          `;
+        } else {
+          rowHTML += `
+            <td>
+                <select onchange="atualizarStatusConta(${originalIndex}, this.value)">
+                  <option value="pendente" ${status === "pendente" ? "selected" : ""}>Pendente</option>
+                  <option value="pago" ${status === "pago" ? "selected" : ""}>Pago</option>
+                </select>
             </td>
-          </tr>
-        `;
+            <td class="actions-cell">
+                <button class="btn-icon-inline edit" onclick="editarItem(this, 'contas', ${originalIndex})">✏️</button>
+                <button class="btn-icon-inline copy" onclick="abrirModalCopia('contas', ${originalIndex})">❐</button>
+                <button class="btn-inline" onclick="removerItem('contas', ${originalIndex})">🗑️</button>
+            </td>`;
+        }
+        rowHTML += `</tr>`;
+        tabelaContas.innerHTML += rowHTML;
       });
 
       const tabelaAdicionais = document.getElementById("tabelaAdicionais");
@@ -898,7 +934,7 @@
 
     async function carregarDadosRef(ref) {
       const doc = await ref.get();
-      return doc.exists ? doc.data() : { contas: [], adicionais: [], cartao: [], reservado: [] };
+      return doc.exists ? doc.data() : { contas: [], adicionais: [], cartao: [], reservado: [], cartaoStatus: 'pendente' };
     }
 
     async function adicionarConta() {
@@ -1050,6 +1086,12 @@
       const dados = doc.data();
       dados.contas[indice].status = status;
       await ref.update({ contas: dados.contas });
+    }
+
+    async function atualizarStatusCartao(status) {
+      const ref = getMesRef();
+      if (!ref) return;
+      await ref.update({ cartaoStatus: status });
     }
 
     async function editarItem(button, tipo, indice) {
@@ -1207,23 +1249,52 @@
       lista.innerHTML = '';
       if (parcelasEncontradas.length === 0) {
         lista.innerHTML = 'Nenhuma parcela futura encontrada.';
-        return;
-      }
+      } else {
+        parcelasParaAdiantar = parcelasEncontradas;
+        const comprasAgrupadas = parcelasEncontradas.reduce((acc, item, index) => {
+          if (!acc[item.nome]) {
+            acc[item.nome] = { valor: item.valor, parcelas: [] };
+          }
+          acc[item.nome].parcelas.push({ ...item, originalIndex: index });
+          return acc;
+        }, {});
 
-      parcelasParaAdiantar = parcelasEncontradas;
-      parcelasEncontradas.forEach((item, index) => {
-        const id = `anticipate-check-${index}`;
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'modal-month-item';
-        itemDiv.innerHTML = `
-          <input type="checkbox" id="${id}" data-index="${index}">
-          <label for="${id}">
-            ${item.nome} (${item.parcelas}) - ${formatar(item.valor)}
-            <small style="display: block; color: var(--subtle);">Origem: ${item.source.mes}/${item.source.ano}</small>
-          </label>
-        `;
-        lista.appendChild(itemDiv);
-      });
+        Object.keys(comprasAgrupadas).forEach(nomeCompra => {
+          const compra = comprasAgrupadas[nomeCompra];
+          const totalAdiantamento = compra.parcelas.length * compra.valor;
+          const idCompra = `compra-group-${nomeCompra.replace(/\s+/g, '-')}`;
+
+          const compraDiv = document.createElement('div');
+          compraDiv.style.marginBottom = '15px';
+          compraDiv.innerHTML = `
+            <div class="modal-month-item" style="background: #f5f6ff; padding: 8px; border-radius: 8px;">
+              <input type="checkbox" id="${idCompra}" onchange="toggleParcelasGrupo('${idCompra}', this.checked)">
+              <label for="${idCompra}">
+                <strong>${nomeCompra}</strong>
+                <small style="display: block; color: var(--subtle);">
+                  Adiantar ${compra.parcelas.length} parcela(s) - Total: ${formatar(totalAdiantamento)}
+                </small>
+              </label>
+            </div>
+          `;
+
+          compra.parcelas.forEach(item => {
+            const idParcela = `anticipate-check-${item.originalIndex}`;
+            const parcelaDiv = document.createElement('div');
+            parcelaDiv.className = 'modal-month-item';
+            parcelaDiv.style.paddingLeft = '25px';
+            parcelaDiv.innerHTML = `
+              <input type="checkbox" class="${idCompra}" id="${idParcela}" data-index="${item.originalIndex}">
+              <label for="${idParcela}">
+                Parcela ${item.parcelas} - ${formatar(item.valor)}
+                <small style="display: block; color: var(--subtle);">Origem: ${item.source.mes}/${item.source.ano}</small>
+              </label>
+            `;
+            compraDiv.appendChild(parcelaDiv);
+          });
+          lista.appendChild(compraDiv);
+        });
+      }
     }
 
     function fecharModalAdiantar() {
@@ -1231,8 +1302,39 @@
       parcelasParaAdiantar = [];
     }
 
+    function toggleParcelasGrupo(className, isChecked) {
+      document.querySelectorAll(`input.${className}`).forEach(checkbox => {
+        checkbox.checked = isChecked;
+      });
+    }
+
+    function atualizarResumo(data) {
+      let totalContasManuais = 0;
+      let totalAdicionais = 0;
+      let totalCartao = 0;
+      let totalReservado = 0;
+
+      if (data) {
+        totalContasManuais = data.contas.reduce((acc, item) => acc + Number(item.valor || 0), 0);
+        totalAdicionais = data.adicionais.reduce((acc, item) => acc + Number(item.valor || 0), 0);
+        totalCartao = data.cartao.reduce((acc, item) => acc + Number(item.valor || 0), 0);
+        totalReservado = data.reservado.reduce((acc, item) => acc + Number(item.valor || 0), 0);
+      }
+
+      const totalContas = totalContasManuais + totalCartao;
+      const saldo = totalAdicionais - totalContas - totalReservado;
+
+      document.getElementById("totalContas").innerText = formatar(totalContas);
+      document.getElementById("totalContasSemCartao").innerText = formatar(totalContasManuais);
+      document.getElementById("totalCartaoResumo").innerText = formatar(totalCartao);
+      document.getElementById("totalAdicionais").innerText = formatar(totalAdicionais);
+      document.getElementById("totalReservado").innerText = formatar(totalReservado);
+      document.getElementById("saldoFinal").innerText = formatar(saldo);
+      document.getElementById("infoCartaoNasContas").innerText = formatar(totalCartao);
+    }
+
     async function confirmarAdiantamento() {
-      const checkboxes = document.querySelectorAll('#anticipateInstallmentList input[type="checkbox"]:checked');
+      const checkboxes = document.querySelectorAll('#anticipateInstallmentList input[type="checkbox"]:checked:not([id^="compra-group-"])');
       if (checkboxes.length === 0) {
         return alert("Selecione pelo menos uma parcela para adiantar.");
       }
@@ -1263,31 +1365,6 @@
       await batch.commit();
       alert(`${checkboxes.length} parcela(s) adiantada(s) com sucesso!`);
       fecharModalAdiantar();
-    }
-
-    function atualizarResumo(data) {
-      let totalContasManuais = 0;
-      let totalAdicionais = 0;
-      let totalCartao = 0;
-      let totalReservado = 0;
-
-      if (data) {
-        totalContasManuais = data.contas.reduce((acc, item) => acc + Number(item.valor || 0), 0);
-        totalAdicionais = data.adicionais.reduce((acc, item) => acc + Number(item.valor || 0), 0);
-        totalCartao = data.cartao.reduce((acc, item) => acc + Number(item.valor || 0), 0);
-        totalReservado = data.reservado.reduce((acc, item) => acc + Number(item.valor || 0), 0);
-      }
-
-      const totalContas = totalContasManuais + totalCartao;
-      const saldo = totalAdicionais - totalContas - totalReservado;
-
-      document.getElementById("totalContas").innerText = formatar(totalContas);
-      document.getElementById("totalContasSemCartao").innerText = formatar(totalContasManuais);
-      document.getElementById("totalCartaoResumo").innerText = formatar(totalCartao);
-      document.getElementById("totalAdicionais").innerText = formatar(totalAdicionais);
-      document.getElementById("totalReservado").innerText = formatar(totalReservado);
-      document.getElementById("saldoFinal").innerText = formatar(saldo);
-      document.getElementById("infoCartaoNasContas").innerText = formatar(totalCartao);
     }
 
     inicializar();
