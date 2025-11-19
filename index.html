@@ -632,6 +632,14 @@
       .months-wrapper { 
         display: none; /* Oculta a lista de meses em mobile */
       }
+      /* Override desktop-specific theme switch wrapper styles for mobile */
+      .top-bar-mobile-section .theme-switch-wrapper {
+        margin-top: 0;
+        padding-top: 0;
+        border-top: none;
+        position: relative; /* Necessário para z-index funcionar em flex items */
+        z-index: 101; /* Garante que o toggle seja clicável */
+      }
       /* Ajusta a margem superior do conteúdo principal para corresponder à altura da nova barra fixa */
       /* Altura da top-bar-mobile-section: 12px (padding top) + ~24px (altura do toggle) + 12px (padding bottom) = ~48px */
       /* Altura da selection-bar-mobile-section: 12px (padding top) + ~40px (altura do select) + 12px (padding bottom) + 1px (border) = ~65px */
@@ -639,8 +647,8 @@
       .content {
         padding: 16px;
         overflow-y: visible;
-        margin-left: 0;
-        margin-top: 113px; /* Nova margem para evitar sobreposição */
+        margin-left: 0; /* Remove a margem lateral da sidebar */
+        margin-top: 125px; /* Aumenta a margem para evitar sobreposição */
       }
       .header h2 { font-size: 22px; }
       .card strong { font-size: 22px; }
@@ -1052,16 +1060,20 @@
     });
 
     // Lógica do Dark Mode
-    const desktopToggle = document.getElementById('theme-toggle');
-    const mobileToggle = document.getElementById('theme-toggle-mobile');
+    const desktopToggle = document.getElementById('theme-toggle'); // Toggle na sidebar desktop
+    const mobileToggle = document.getElementById('theme-toggle-mobile'); // Toggle na barra superior mobile
     const currentTheme = localStorage.getItem('theme');
 
     if (currentTheme === 'dark') {
       document.body.classList.add('dark-mode');
-      desktopToggle.checked = true;
-      mobileToggle.checked = true;
+      if (desktopToggle) desktopToggle.checked = true;
+      if (mobileToggle) mobileToggle.checked = true;
     }
 
+    // Elementos para exibir o nome do usuário
+    // Note: user-name-desktop está dentro do theme-switch-wrapper desktop
+    // user-name-mobile está dentro do theme-switch-wrapper mobile
+    // Ambos são atualizados pela função displayUserName
     // Elementos para exibir o nome do usuário
     const userNameDesktop = document.getElementById('user-name-desktop');
     const userNameMobile = document.getElementById('user-name-mobile');
@@ -1077,16 +1089,20 @@
       document.body.classList.toggle('dark-mode');
       const theme = isDarkMode ? 'dark' : 'light';
       localStorage.setItem('theme', theme);
-      desktopToggle.checked = isDarkMode;
-      mobileToggle.checked = isDarkMode;
+      if (desktopToggle) desktopToggle.checked = isDarkMode;
+      if (mobileToggle) mobileToggle.checked = isDarkMode;
     }
 
-    desktopToggle.addEventListener('change', (e) => {
-      handleThemeChange(e.target.checked);
-    });
-    mobileToggle.addEventListener('change', (e) => {
-      handleThemeChange(e.target.checked);
-    });
+    if (desktopToggle) {
+      desktopToggle.addEventListener('change', (e) => {
+        handleThemeChange(e.target.checked);
+      });
+    }
+    if (mobileToggle) {
+      mobileToggle.addEventListener('change', (e) => {
+        handleThemeChange(e.target.checked);
+      });
+    }
 
     // NOVA FUNÇÃO para garantir a estrutura de dados do usuário
     async function garantirEstruturaUsuario(ano) {
