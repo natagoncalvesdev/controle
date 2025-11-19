@@ -779,17 +779,18 @@
         <button class="btn-add" onclick="abrirModalAdiantar()">Adiantar Parcela</button>
         <button class="btn-add" onclick="abrirModalCartao()">Adicionar Compra</button>
       </div>
-      <div class="tab
-        <thead>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
             <th>Descrição</th>
             <th>Valor</th>
             <th>Parcelas</th>
           </tr>
-        </thead>
-        <tbody id="tabelaCartao"></tbody>
+          </thead>
+          <tbody id="tabelaCartao"></tbody>
         </table>
       </div>
-      
     </section>
 
     <section class="section">
@@ -802,13 +803,13 @@
         <thead>
           <tr>
             <th>Descrição</th>
-          </tth>Ações</th>
+            <th>Valor</th>
+            <th>Ações</th>
           </tr>
         </thead>
         <tbody id="tabelaReservado"></tbody>
         </table>
       </div>
-      
     </section>
 
     <!-- Botões movidos para cá na visualização mobile -->
@@ -1245,18 +1246,28 @@
             <td class="actions-cell">
               <button class="btn-icon-inline edit" onclick="editarItem(this, 'adicionais', ${index})">✏️</button>
               <button class="btn-icon-inline copy" onclick="abrirModalCopia('adicionais', ${index})">❐</button>
-              <button class="btn-inline" onclick="removerItemtidt tr = document.createElement('tr');
+              <button class="btn-inline" onclick="removerItem('adicionais', ${index})">🗑️</button>
+            </td>
+        `;
+        tabelaAdicionais.appendChild(tr);
+      });
+
+      const tabelaReservado = document.getElementById("tabelaReservado");
+      tabelaReservado.innerHTML = "";
+      data.reservado.forEach((item, index) => {
+        const tr = document.createElement('tr');
         tr.innerHTML = `
+          <tr>
             <td>${item.nome}</td>
             <td>${formatar(item.valor)}</td>
-            <enteetem.nome}</td>
-         
+            <td class="actions-cell">
               <button class="btn-icon-inline edit" onclick="editarItem(this, 'reservado', ${index})">✏️</button>
               <button class="btn-icon-inline copy" onclick="abrirModalCopia('reservado', ${index})">❐</button>
               <button class="btn-inline" onclick="removerItem('reservado', ${index})">🗑️</button>
             </td>
           </tr>
         `;
+        tabelaReservado.appendChild(tr);
       });
 
       atualizarResumo(data);
