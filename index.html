@@ -486,20 +486,18 @@
       .sidebar {
         width: 100%;
         height: auto;
-        flex-direction: column;
-        padding: 16px;
+        padding: 0;
+        position: fixed; /* Fixa a barra no topo */
+        top: 0;
+        left: 0;
+        z-index: 10;
       }
       .sidebar-controls {
         flex-direction: row;
         gap: 16px;
         align-items: flex-end;
-        /* Faz os controles de ano/mês grudarem no topo ao rolar */
-        position: sticky;
-        top: 0;
         background: var(--bg-dark);
-        padding-top: 12px;
-        padding-bottom: 12px;
-        z-index: 10; /* Garante que fique acima do conteúdo */
+        padding: 12px 16px;
       }
       .sidebar-controls .ano-select, .sidebar-controls .mes-select-mobile {
         flex: 1;
@@ -518,7 +516,7 @@
       .months-wrapper { 
         display: none; /* Oculta a lista de meses em mobile */
       }
-      .content { padding: 16px; overflow-y: visible; } /* Remove a rolagem interna */
+      .content { padding: 16px; overflow-y: visible; margin-top: 85px; } /* Adiciona margem para não ficar atrás da barra fixa */
       .header h2 { font-size: 22px; }
       .card strong { font-size: 22px; }
 
@@ -539,8 +537,6 @@
 </head>
 <body>
   <aside class="sidebar">
-    <h1>Controle</h1>
-
     <div class="sidebar-controls">
       <div class="ano-select">
         <label for="selectAno">Ano</label>
