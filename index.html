@@ -508,6 +508,14 @@
     .modal-overlay.visible {
       display: flex;
     }
+    /* Modal de ações deve aparecer acima de outros modais */
+    #itemActionsModal {
+      z-index: 2000;
+    }
+    /* Modal de copiar deve aparecer acima de outros modais */
+    #copyModal {
+      z-index: 2000;
+    }
     
     .collapsible-section, .hidden-section {
       display: none; /* Escondido por padrão */
@@ -1247,11 +1255,26 @@
             <td>${item.nome}</td>
             <td>${formatar(item.valor)}</td>
             <td class="actions-cell">
-              <button class="btn-icon-inline edit" onclick="abrirModalAcoes('adicionais', ${index}, item)">✏️</button>
-              <button class="btn-icon-inline copy" onclick="abrirModalCopia('adicionais', ${index})">❐</button>
+              <button class="btn-icon-inline edit">✏️</button>
+              <button class="btn-icon-inline copy">❐</button>
               <button class="btn-inline" onclick="removerItem('adicionais', ${index})">🗑️</button>
             </td>
         `;
+        // Adiciona event listener ao botão de editar - vai direto para o modal de edição
+        const editButton = tr.querySelector('.edit');
+        editButton.onclick = () => {
+          // Abre o modal de ações primeiro (necessário para ter os elementos)
+          const modal = document.getElementById('itemActionsModal');
+          modal.classList.add('visible');
+          // Chama diretamente a função de edição
+          mostrarEdicaoNoModal('adicionais', index, item);
+        };
+        // Adiciona event listener ao botão de copiar - fecha o modal de entradas antes de abrir o de copiar
+        const copyButton = tr.querySelector('.copy');
+        copyButton.onclick = () => {
+          fecharModalEntradas();
+          abrirModalCopia('adicionais', index);
+        };
         tabelaAdicionais.appendChild(tr);
       });
 
@@ -1675,6 +1698,9 @@
       document.getElementById('reservadoModal').classList.remove('visible');
     }
 
+    function abrirModalEntradas() {
+      document.getElementById('entradasModal').classList.add('visible');
+    }
     function fecharModalEntradas() {
       document.getElementById('entradasModal').classList.remove('visible');
     }
