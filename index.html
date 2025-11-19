@@ -171,6 +171,14 @@
       font-size: 26px;
     }
 
+    .card .toggle-icon {
+      display: inline-block;
+      margin-left: 8px;
+      font-size: 12px;
+      transition: transform 0.3s ease;
+    }
+    .card.expanded .toggle-icon { transform: rotate(180deg); }
+
     .card.green strong { color: var(--accent-2); }
     .card.red strong { color: var(--accent-3); }
     .card.yellow strong { color: var(--accent); }
@@ -436,6 +444,12 @@
     .modal-overlay.visible {
       display: flex;
     }
+    
+    .collapsible-section, .hidden-section {
+      display: none; /* Escondido por padrão */
+      margin-top: -8px; /* Reduz o espaço quando expandido */
+      border-top-left-radius: 0; border-top-right-radius: 0;
+    }
 
     @media (max-width: 768px) {
       body { flex-direction: column; }
@@ -518,7 +532,7 @@
           <span class="info-text">Cartão embutido: <span id="totalCartaoResumo">R$ 0,00</span></span>
         </div>
         <div class="card green">
-          <small>Total entradas</small>
+          <small style="cursor: pointer;" onclick="abrirModalEntradas()">Total entradas</small>
           <strong id="totalAdicionais">R$ 0,00</strong>
         </div>
         <div class="card red">
@@ -566,52 +580,6 @@
     </section>
 
     <section class="section">
-      <h3>Reservados (combustível, lazer, etc.)</h3>
-      <div class="form-row">
-        <input id="reservadoNome" placeholder="Descrição" />
-        <input id="reservadoValor" type="number" placeholder="Valor em R$" />
-        <div class="form-actions">
-          <button onclick="adicionarReservado()">Adicionar reservado</button>
-        </div>
-      </div>
-      <div class="table-wrapper">
-        <table>
-        <thead>
-          <tr>
-            <th>Descrição</th>
-            <th>Valor</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody id="tabelaReservado"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="section">
-      <h3>Entradas (salário, vale, extras)</h3>
-      <div class="form-row">
-        <input id="adicionalNome" placeholder="Descrição" />
-        <input id="adicionalValor" type="number" placeholder="Valor em R$" />
-        <div class="form-actions">
-          <button onclick="adicionarAdicional()">Adicionar entrada</button>
-        </div>
-      </div>
-      <div class="table-wrapper">
-        <table>
-        <thead>
-          <tr>
-            <th>Descrição</th>
-            <th>Valor</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody id="tabelaAdicionais"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="section">
       <h3>Cartão de crédito</h3>
       <div class="form-row">
         <input id="cartaoNome" placeholder="Descrição (ex: Óculos)" />
@@ -639,6 +607,30 @@
         </table>
       </div>
     </section>
+
+    <section class="section">
+      <h3>Reservados (combustível, lazer, etc.)</h3>
+      <div class="form-row">
+        <input id="reservadoNome" placeholder="Descrição" />
+        <input id="reservadoValor" type="number" placeholder="Valor em R$" />
+        <div class="form-actions">
+          <button onclick="adicionarReservado()">Adicionar reservado</button>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table>
+        <thead>
+          <tr>
+            <th>Descrição</th>
+            <th>Valor</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaReservado"></tbody>
+        </table>
+      </div>
+    </section>
+
   </main>
 
   <!-- Modal para Copiar Itens -->
@@ -652,6 +644,33 @@
         <button class="btn-cancel" onclick="fecharModalCopia()">Cancelar</button>
         <button class="btn-confirm" onclick="confirmarCopia()">Concluir</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal para Entradas -->
+  <div id="entradasModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 550px;">
+      <h3>Entradas do Mês</h3>
+      <div class="form-row">
+        <input id="adicionalNomeModal" placeholder="Descrição da entrada" />
+        <input id="adicionalValorModal" type="number" placeholder="Valor em R$" />
+        <div class="form-actions">
+          <button onclick="adicionarAdicional()">Adicionar</button>
+        </div>
+      </div>
+      <div class="table-wrapper" style="margin-top: 16px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Descrição</th>
+              <th>Valor</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaAdicionaisModal"></tbody>
+        </table>
+      </div>
+      <div class="modal-actions"><button class="btn-cancel" onclick="fecharModalEntradas()">Fechar</button></div>
     </div>
   </div>
 
@@ -811,7 +830,7 @@
 
     function limparTabelas() {
       document.getElementById("tabelaContas").innerHTML = "";
-      document.getElementById("tabelaAdicionais").innerHTML = "";
+      document.getElementById("tabelaAdicionaisModal").innerHTML = "";
       document.getElementById("tabelaCartao").innerHTML = "";
       document.getElementById("tabelaReservado").innerHTML = "";
     }
@@ -888,9 +907,9 @@
         tabelaContas.innerHTML += rowHTML;
       });
 
-      const tabelaAdicionais = document.getElementById("tabelaAdicionais");
+      const tabelaAdicionais = document.getElementById("tabelaAdicionaisModal");
       tabelaAdicionais.innerHTML = "";
-      data.adicionais.forEach((item, index) => {
+      (data.adicionais || []).forEach((item, index) => {
         tabelaAdicionais.innerHTML += `
           <tr>
             <td>${item.nome}</td>
@@ -969,14 +988,16 @@
     async function adicionarAdicional() {
       const ref = getMesRef();
       if (!ref) return;
-      const nome = document.getElementById("adicionalNome").value.trim();
-      const valor = Number(document.getElementById("adicionalValor").value);
+      const nomeInput = document.getElementById("adicionalNomeModal");
+      const valorInput = document.getElementById("adicionalValorModal");
+      const nome = nomeInput.value.trim();
+      const valor = Number(valorInput.value);
       if (!nome || !valor) return alert("Preencha descrição e valor.");
       await ref.update({
         adicionais: firebase.firestore.FieldValue.arrayUnion({ nome, valor })
       });
-      document.getElementById("adicionalNome").value = "";
-      document.getElementById("adicionalValor").value = "";
+      nomeInput.value = "";
+      valorInput.value = "";
     }
 
     async function adicionarReservado() {
@@ -1231,6 +1252,21 @@
     }
 
     async function abrirModalAdiantar() {
+      // Verifica se o mês selecionado é um mês passado
+      const hoje = new Date();
+      const anoCorrenteReal = hoje.getFullYear();
+      const mesCorrenteRealIndex = hoje.getMonth();
+
+      const anoSelecionado = Number(anoAtual);
+      const mesSelecionadoIndex = MESES.indexOf(mesAtual);
+
+      const isMesPassado = anoSelecionado < anoCorrenteReal || 
+                           (anoSelecionado === anoCorrenteReal && mesSelecionadoIndex < mesCorrenteRealIndex);
+
+      if (isMesPassado) {
+        return alert("Não é possível adiantar parcelas para um mês que já passou.");
+      }
+
       const lista = document.getElementById('anticipateInstallmentList');
       lista.innerHTML = 'Buscando parcelas futuras...';
       document.getElementById('anticipateModal').classList.add('visible');
@@ -1323,6 +1359,15 @@
       });
     }
 
+    function abrirModalEntradas() {
+      document.getElementById('entradasModal').classList.add('visible');
+    }
+
+    function fecharModalEntradas() {
+      document.getElementById('entradasModal').classList.remove('visible');
+    }
+
+
     function atualizarResumo(data) {
       let totalContasManuais = 0;
       let totalAdicionais = 0;
@@ -1386,8 +1431,4 @@
   </script>
 </body>
 </html>
-      
-  </style>
-</head>
-
-</html>
+ 
