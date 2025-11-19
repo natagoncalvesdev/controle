@@ -725,13 +725,24 @@
     }
 
     async function inicializar() {
-      anoAtual = String(ANO_BASE);
+      const hoje = new Date();
+      let anoCorrente = hoje.getFullYear();
+      const mesCorrente = MESES[hoje.getMonth()];
+
       popularListaAnos();
       popularSeletorMeses();
-      selectAno.value = anoAtual;
-      await garantirAno(anoAtual);
-      renderizarMeses();
-      await selecionarMes(MESES[0]);
+
+      // Garante que o ano atual esteja no seletor. Se não estiver, usa o ANO_BASE.
+      if (anoCorrente < ANO_BASE || anoCorrente > ANO_LIMITE) {
+        anoCorrente = ANO_BASE;
+      }
+
+      anoAtual = String(anoCorrente);
+      selectAno.value = anoAtual; // Define o valor no seletor
+
+      await garantirAno(anoAtual); // Garante que a estrutura do ano exista no DB
+      await selecionarMes(mesCorrente); // Seleciona o mês e ano atuais
+
       selectAno.addEventListener("change", trocarAno);
       selectMesMobile.addEventListener("change", (e) => selecionarMes(e.target.value));
     }
