@@ -665,7 +665,9 @@
       }
       /* Remove a altura mínima que causava problemas de alinhamento */
       .actions-cell { min-height: unset; }
-    }lay: flex;
+    }
+    .footer-actions {
+      display: flex;
       gap: 12px;
       margin-top: auto; /* Empurra para o final do container */
     }
@@ -674,6 +676,8 @@
       border: none;
       border-radius: 10px; /* Cantos arredondados */
       padding: 12px 14px; /* Espaçamento interno */
+      font-weight: 600;
+      color: #ffffff;
     }
     
     @media (max-width: 768px) {
@@ -1252,6 +1256,20 @@
         tabelaAdicionais.appendChild(tr);
       });
 
+      const tabelaCartao = document.getElementById("tabelaCartao");
+      tabelaCartao.innerHTML = "";
+      data.cartao.forEach((item, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${item.nome}</td>
+            <td>${formatar(item.valor)}</td>
+            <td>${item.parcelas || "-"}</td>
+        `;
+        // Adiciona o evento de clique para abrir o modal de ações
+        tr.onclick = () => abrirModalAcoes('cartao', index, item);
+        tabelaCartao.appendChild(tr);
+      });
+
       const tabelaReservado = document.getElementById("tabelaReservado");
       tabelaReservado.innerHTML = "";
       data.reservado.forEach((item, index) => {
@@ -1288,7 +1306,11 @@
 
     async function adicionarConta() {
       const ref = getMesRef();
-      if (!ref) return;n(nome t.value.trim();
+      if (!ref) return;
+      const nomeInput = document.getElementById("contaNomeModal");
+      const valorInput = document.getElementById("contaValorModal");
+      const statusInput = document.getElementById("contaStatusModal");
+      const nome = nomeInput.value.trim();
       const valor = Number(valorInput.value);
       const status = statusInput.value;
       if (!nome || !valor) return alert("Preencha descrição e valor.");
