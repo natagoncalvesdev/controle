@@ -197,6 +197,28 @@
     .card.yellow strong { color: var(--accent); }
     .card.blue strong { color: #007bff; } /* Cor para o total reservado */
 
+    /* Estilos dinâmicos para o card de Saldo Disponível */
+    .card-saldo-positivo {
+      background-color: rgba(51, 194, 127, 0.1) !important;
+    }
+    .card-saldo-positivo strong {
+      color: #1e8558 !important;
+    }
+
+    .card-saldo-aviso {
+      background-color: rgba(255, 193, 7, 0.1) !important;
+    }
+    .card-saldo-aviso strong {
+      color: #b38600 !important;
+    }
+
+    .card-saldo-negativo {
+      background-color: rgba(255, 107, 107, 0.1) !important;
+    }
+    .card-saldo-negativo strong {
+      color: #ba2f2f !important;
+    }
+
     .section {
       background: #fff;
       border-radius: 16px;
@@ -1491,6 +1513,19 @@
       document.getElementById("totalAdicionais").innerText = formatar(totalAdicionais);
       document.getElementById("totalReservado").innerText = formatar(totalReservado);
       document.getElementById("saldoFinal").innerText = formatar(saldo);
+
+      // Atualiza a cor do card de saldo
+      const saldoCard = document.getElementById("saldoFinal").parentElement;
+      saldoCard.classList.remove('card-saldo-positivo', 'card-saldo-aviso', 'card-saldo-negativo');
+
+      if (saldo < 0) {
+        saldoCard.classList.add('card-saldo-negativo');
+      } else if (saldo < 100) {
+        saldoCard.classList.add('card-saldo-aviso');
+      } else {
+        saldoCard.classList.add('card-saldo-positivo');
+      }
+
       document.getElementById("infoCartaoNasContas").innerText = formatar(totalCartao);
     }
 
