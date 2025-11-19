@@ -493,6 +493,13 @@
         flex-direction: row;
         gap: 16px;
         align-items: flex-end;
+        /* Faz os controles de ano/mês grudarem no topo ao rolar */
+        position: sticky;
+        top: 0;
+        background: var(--bg-dark);
+        padding-top: 12px;
+        padding-bottom: 12px;
+        z-index: 10;
       }
       .sidebar-controls .ano-select, .sidebar-controls .mes-select-mobile {
         flex: 1;
