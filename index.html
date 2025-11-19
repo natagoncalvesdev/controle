@@ -127,7 +127,6 @@
     .content {
       flex: 1;
       padding: 32px;
-      overflow-y: auto;
       display: flex;
       flex-direction: column;
       gap: 24px;
@@ -482,6 +481,7 @@
     }
 
     @media (max-width: 768px) {
+      body { overflow-y: auto; } /* Adiciona rolagem ao corpo da página */
       body { flex-direction: column; }
       .sidebar {
         width: 100%;
@@ -518,7 +518,7 @@
       .months-wrapper { 
         display: none; /* Oculta a lista de meses em mobile */
       }
-      .content { padding: 16px; }
+      .content { padding: 16px; overflow-y: visible; } /* Remove a rolagem interna */
       .header h2 { font-size: 22px; }
       .card strong { font-size: 22px; }
 
