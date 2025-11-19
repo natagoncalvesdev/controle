@@ -659,7 +659,16 @@
       <div class="months" id="listaMeses"></div>
     </div>
 
-    <button id="logout-button" class="btn-add" style="margin-top: auto; background-color: var(--accent-3);">Sair</button>
+    <div style="margin-top: auto; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; gap: 10px;">
+      <div id="admin-actions" style="display: none; gap: 10px;"> <!-- Oculto por padrão -->
+        <button id="import-button" class="btn-add" style="flex: 1; background-color: var(--accent-2);" onclick="document.getElementById('file-input').click();">Importar Ano</button>
+        <input type="file" id="file-input" accept=".json" style="display: none;" onchange="importarDados(event)">
+        <button id="export-button" class="btn-add" style="flex: 1; background-color: var(--accent-blue);" onclick="exportarDados()">Exportar Ano</button>
+      </div>
+      <button id="logout-button" class="btn-add" style="background-color: var(--accent-3);">Sair</button>
+    </div>
+
   </aside>
 
   <main class="content">
@@ -951,8 +960,19 @@
             displayUserName(doc.data().name);
           } else {
             displayUserName(currentUser.email); // Fallback para o email se o nome não for encontrado
+          if (doc.exists) {
+            const userData = doc.data();
+            displayUserName(userData.name || currentUser.email);
+
+            // Verifica se o usuário é administrador
+            if (userData.adm === true) {
+              const adminActions = document.getElementById('admin-actions');
+              adminActions.style.display = 'flex'; // Mostra os botões para admins
+            }
           }
+        } 
         }).catch(error => {
+          // Em caso de erro, os botões de admin permanecem ocultos
           console.error("Erro ao buscar dados do usuário:", error);
           displayUserName(currentUser.email); // Fallback em caso de erro
         });
@@ -1712,6 +1732,95 @@
       await batch.commit();
       alert(`${checkboxes.length} parcela(s) adiantada(s) com sucesso!`);
       fecharModalAdiantar();
+    }
+
+    async function exportarDados() {
+      if (!anoAtual || !currentUser) {
+        return alert("Selecione um ano para exportar.");
+      }
+
+      const exportButton = document.getElementById('export-button');
+      exportButton.disabled = true;
+      exportButton.textContent = 'Exportando...';
+
+      try {
+        const dadosCompletosDoAno = {
+          ano: anoAtual,
+          dadosMeses: {}
+        };
+
+        for (const mes of MESES) {
+          const mesRef = db.collection('users').doc(currentUser.uid).collection('anos').doc(anoAtual).collection('meses').doc(mes);
+          const doc = await mesRef.get();
+          if (doc.exists) {
+            dadosCompletosDoAno.dadosMeses[mes] = doc.data();
+          }
+        }
+
+        const jsonString = JSON.stringify(dadosCompletosDoAno, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `dados_financeiros_${anoAtual}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        alert(`Dados do ano ${anoAtual} exportados com sucesso!`);
+
+      } catch (error) {
+        console.error("Erro ao exportar dados:", error);
+        alert("Ocorreu um erro ao exportar os dados. Tente novamente.");
+      } finally {
+        exportButton.disabled = false;
+        exportButton.textContent = 'Exportar Ano';
+      }
+    }
+
+    function importarDados(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const dados = JSON.parse(e.target.result);
+
+          // Validação básica do arquivo
+          if (!dados.ano || !dados.dadosMeses || typeof dados.dadosMeses !== 'object') {
+            throw new Error("Formato de arquivo inválido.");
+          }
+
+          if (!confirm(`Você tem certeza que deseja importar os dados para o ano ${dados.ano}? Todos os dados existentes para este ano serão substituídos.`)) {
+            return;
+          }
+
+          await garantirEstruturaUsuario(dados.ano);
+
+          const batch = db.batch();
+          for (const mes in dados.dadosMeses) {
+            if (MESES.includes(mes)) {
+              const mesRef = db.collection('users').doc(currentUser.uid).collection('anos').doc(dados.ano).collection('meses').doc(mes);
+              batch.set(mesRef, dados.dadosMeses[mes]);
+            }
+          }
+
+          await batch.commit();
+          alert(`Dados do ano ${dados.ano} importados com sucesso! A página será atualizada.`);
+          // Recarrega a página ou seleciona o ano/mês importado para refletir as mudanças
+          window.location.reload();
+
+        } catch (error) {
+          console.error("Erro ao importar dados:", error);
+          alert("Erro ao importar arquivo: " + error.message);
+        } finally {
+          event.target.value = null; // Limpa o input de arquivo
+        }
+      };
+      reader.readAsText(file);
     }
 
     // A inicialização agora é chamada pelo onAuthStateChanged
