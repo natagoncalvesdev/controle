@@ -590,10 +590,30 @@
       .sidebar-controls {
         flex-direction: row;
         gap: 16px;
-        align-items: flex-end;
-        align-items: center; /* Centraliza os itens verticalmente */
+        /* Removendo align-items aqui, será definido nas sub-seções */
         background: var(--sidebar-bg);
-        padding: 12px 16px;
+        padding: 0; /* Removendo padding do container principal, será aplicado nas sub-seções */
+        flex-direction: column; /* Empilha as seções verticalmente */
+        gap: 0; /* Remove o gap entre as seções */
+      }
+      .top-bar-mobile-section {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        width: 100%;
+        padding: 12px 16px; /* Padding para esta seção */
+      }
+      .selection-bar-mobile-section {
+        display: flex;
+        flex-direction: row; /* Ano e mês lado a lado */
+        gap: 16px;
+        width: 100%;
+        padding: 12px 16px; /* Padding para esta seção */
+        border-top: 1px solid var(--border-color); /* Separador visual */
+      }
+      .selection-bar-mobile-section .ano-select,
+      .selection-bar-mobile-section .mes-select-mobile {
+        flex: 1; /* Faz com que o ano e o mês ocupem o mesmo espaço */
       }
       .sidebar-controls .ano-select, .sidebar-controls .mes-select-mobile {
         flex: 1;
@@ -612,7 +632,16 @@
       .months-wrapper { 
         display: none; /* Oculta a lista de meses em mobile */
       }
-      .content { padding: 16px; overflow-y: visible; margin-left: 0; margin-top: 100px; } /* Aumenta a margem para evitar sobreposição */
+      /* Ajusta a margem superior do conteúdo principal para corresponder à altura da nova barra fixa */
+      /* Altura da top-bar-mobile-section: 12px (padding top) + ~24px (altura do toggle) + 12px (padding bottom) = ~48px */
+      /* Altura da selection-bar-mobile-section: 12px (padding top) + ~40px (altura do select) + 12px (padding bottom) + 1px (border) = ~65px */
+      /* Total aproximado: 48px + 65px = 113px */
+      .content {
+        padding: 16px;
+        overflow-y: visible;
+        margin-left: 0;
+        margin-top: 113px; /* Nova margem para evitar sobreposição */
+      }
       .header h2 { font-size: 22px; }
       .card strong { font-size: 22px; }
 
@@ -656,21 +685,29 @@
 </head>
 <body>
   <aside class="sidebar">
+    <!-- Nova estrutura para a barra de controle no mobile -->
     <div class="sidebar-controls">
-      <div class="ano-select">
-        <div class="theme-switch-wrapper mobile-theme-switch" style="display: flex; align-items: center; justify-content: flex-start; width: 100%;">
+      <!-- Seção superior: Dark Mode e Nome do Usuário -->
+      <div class="top-bar-mobile-section">
+        <div class="theme-switch-wrapper mobile-theme-switch">
           <label class="theme-switch" for="theme-toggle-mobile">
             <input type="checkbox" id="theme-toggle-mobile" />
             <span class="slider"></span>
           </label>
           <span id="user-name-mobile" style="margin-left: 10px; color: var(--sidebar-text); font-weight: 600;"></span>
         </div>
+      </div>
+
+      <!-- Seção inferior: Seletores de Ano e Mês -->
+      <div class="selection-bar-mobile-section">
+        <div class="ano-select">
         <label for="selectAno">Ano</label>
         <select id="selectAno"></select>
-      </div>
-      <div class="mes-select-mobile">
+        </div>
+        <div class="mes-select-mobile">
         <label for="selectMesMobile">Mês</label>
         <select id="selectMesMobile"></select>
+        </div>
       </div>
     </div>
 
