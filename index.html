@@ -242,6 +242,23 @@
       min-width: fit-content;
     }
 
+    .section-actions {
+      display: flex;
+      justify-content: flex-start;
+      gap: 12px;
+    }
+
+    .section-actions .btn-add {
+      border: none;
+      border-radius: 10px;
+      background: #2563eb;
+      color: #fff;
+      padding: 12px 20px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .section-actions .btn-add:hover { opacity: 0.9; }
+
     .recorrente-toggle {
       display: inline-flex;
       align-items: center;
@@ -556,24 +573,12 @@
 
     <section class="section">
       <h3>Contas do mês</h3>
-      <div class="info-text">
-        O valor total do cartão de crédito é somado automaticamente às contas.
-        Total do cartão: <strong id="infoCartaoNasContas">R$ 0,00</strong>
-      </div>
-      <div class="form-row">
-        <input id="contaNome" placeholder="Descrição" />
-        <input id="contaValor" type="number" placeholder="Valor em R$" />
-        <select id="contaStatus">
-          <option value="pendente">Pendente</option>
-          <option value="pago">Pago</option>
-        </select>
-        <div class="form-actions">
-          <button onclick="adicionarConta()">Adicionar conta</button>
-        </div>
+      <div class="section-actions">
+        <button class="btn-add" onclick="abrirModalConta()">Adicionar Conta</button>
       </div>
       <div class="table-wrapper">
         <table>
-        <thead>
+        <thead style="position: sticky; top: 0; background: white;">
           <tr>
             <th>Conta</th>
             <th>Valor</th>
@@ -585,25 +590,18 @@
         <tbody id="tabelaContas"></tbody>
         </table>
       </div>
+      
     </section>
 
     <section class="section">
       <h3>Cartão de crédito</h3>
-      <div class="form-row">
-        <input id="cartaoNome" placeholder="Descrição (ex: Óculos)" />
-        <input id="cartaoValor" type="number" placeholder="Valor da parcela" />
-        <input id="cartaoTotalParcelas" type="number" placeholder="Total de Parcelas (ex: 10)" />
-        <div class="form-actions">
-          <button onclick="adicionarCartao()">Adicionar compra</button>
-          <button onclick="abrirModalAdiantar()">Adiantar Parcela</button>
-          <label class="recorrente-toggle">
-            <input type="checkbox" id="cartaoRecorrente"><span class="checkbox-box"></span><span>Recorrente</span>
-          </label>
-        </div>
+      <div class="section-actions">
+        <button class="btn-add" onclick="abrirModalAdiantar()">Adiantar Parcela</button>
+        <button class="btn-add" onclick="abrirModalCartao()">Adicionar Compra</button>
       </div>
       <div class="table-wrapper">
         <table>
-        <thead>
+        <thead style="position: sticky; top: 0; background: white;">
           <tr>
             <th>Descrição</th>
             <th>Valor</th>
@@ -614,20 +612,17 @@
         <tbody id="tabelaCartao"></tbody>
         </table>
       </div>
+      
     </section>
 
     <section class="section">
       <h3>Reservados (combustível, lazer, etc.)</h3>
-      <div class="form-row">
-        <input id="reservadoNome" placeholder="Descrição" />
-        <input id="reservadoValor" type="number" placeholder="Valor em R$" />
-        <div class="form-actions">
-          <button onclick="adicionarReservado()">Adicionar reservado</button>
-        </div>
+      <div class="section-actions">
+        <button class="btn-add" onclick="abrirModalReservado()">Adicionar Reservado</button>
       </div>
       <div class="table-wrapper">
         <table>
-        <thead>
+        <thead style="position: sticky; top: 0; background: white;">
           <tr>
             <th>Descrição</th>
             <th>Valor</th>
@@ -637,6 +632,7 @@
         <tbody id="tabelaReservado"></tbody>
         </table>
       </div>
+      
     </section>
 
   </main>
@@ -679,6 +675,59 @@
         </table>
       </div>
       <div class="modal-actions"><button class="btn-cancel" onclick="fecharModalEntradas()">Fechar</button></div>
+    </div>
+  </div>
+
+  <!-- Modal para Contas -->
+  <div id="contaModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>Adicionar Conta</h3>
+      <div class="form-row">
+        <input id="contaNomeModal" placeholder="Descrição" />
+        <input id="contaValorModal" type="number" placeholder="Valor em R$" />
+        <select id="contaStatusModal">
+          <option value="pendente">Pendente</option>
+          <option value="pago">Pago</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="fecharModalConta()">Cancelar</button>
+        <button class="btn-confirm" onclick="adicionarConta()">Adicionar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Cartão -->
+  <div id="cartaoModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 550px;">
+      <h3>Adicionar Compra no Cartão</h3>
+      <div class="form-row">
+        <input id="cartaoNomeModal" placeholder="Descrição (ex: Óculos)" />
+        <input id="cartaoValorModal" type="number" placeholder="Valor da parcela" />
+        <input id="cartaoTotalParcelasModal" type="number" placeholder="Total de Parcelas (ex: 10)" />
+        <label class="recorrente-toggle">
+          <input type="checkbox" id="cartaoRecorrenteModal"><span class="checkbox-box"></span><span>Recorrente</span>
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="fecharModalCartao()">Cancelar</button>
+        <button class="btn-confirm" onclick="adicionarCartao()">Adicionar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Reservados -->
+  <div id="reservadoModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>Adicionar Valor Reservado</h3>
+      <div class="form-row">
+        <input id="reservadoNomeModal" placeholder="Descrição" />
+        <input id="reservadoValorModal" type="number" placeholder="Valor em R$" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="fecharModalReservado()">Cancelar</button>
+        <button class="btn-confirm" onclick="adicionarReservado()">Adicionar</button>
+      </div>
     </div>
   </div>
 
@@ -982,15 +1031,19 @@
     async function adicionarConta() {
       const ref = getMesRef();
       if (!ref) return;
-      const nome = document.getElementById("contaNome").value.trim();
-      const valor = Number(document.getElementById("contaValor").value);
-      const status = document.getElementById("contaStatus").value;
+      const nomeInput = document.getElementById("contaNomeModal");
+      const valorInput = document.getElementById("contaValorModal");
+      const statusInput = document.getElementById("contaStatusModal");
+      const nome = nomeInput.value.trim();
+      const valor = Number(valorInput.value);
+      const status = statusInput.value;
       if (!nome || !valor) return alert("Preencha descrição e valor.");
       await ref.update({
         contas: firebase.firestore.FieldValue.arrayUnion({ nome, valor, status })
       });
-      document.getElementById("contaNome").value = "";
-      document.getElementById("contaValor").value = "";
+      nomeInput.value = "";
+      valorInput.value = "";
+      fecharModalConta();
     }
 
     async function adicionarAdicional() {
@@ -1006,28 +1059,36 @@
       });
       nomeInput.value = "";
       valorInput.value = "";
+      // Não fecha a modal de entradas para permitir adicionar múltiplos
     }
 
     async function adicionarReservado() {
       const ref = getMesRef();
       if (!ref) return;
-      const nome = document.getElementById("reservadoNome").value.trim();
-      const valor = Number(document.getElementById("reservadoValor").value);
+      const nomeInput = document.getElementById("reservadoNomeModal");
+      const valorInput = document.getElementById("reservadoValorModal");
+      const nome = nomeInput.value.trim();
+      const valor = Number(valorInput.value);
       if (!nome || !valor) return alert("Preencha descrição e valor.");
       await ref.update({
         reservado: firebase.firestore.FieldValue.arrayUnion({ nome, valor })
       });
-      document.getElementById("reservadoNome").value = "";
-      document.getElementById("reservadoValor").value = "";
+      nomeInput.value = "";
+      valorInput.value = "";
+      fecharModalReservado();
     }
 
     async function adicionarCartao() {
       const ref = getMesRef();
       if (!ref) return;
-      const nome = document.getElementById("cartaoNome").value.trim();
-      const valor = Number(document.getElementById("cartaoValor").value);
-      const isRecorrente = document.getElementById("cartaoRecorrente").checked;
-      const totalParcelas = Number(document.getElementById("cartaoTotalParcelas").value) || 1;
+      const nomeInput = document.getElementById("cartaoNomeModal");
+      const valorInput = document.getElementById("cartaoValorModal");
+      const parcelasInput = document.getElementById("cartaoTotalParcelasModal");
+      const recorrenteInput = document.getElementById("cartaoRecorrenteModal");
+      const nome = nomeInput.value.trim();
+      const valor = Number(valorInput.value);
+      const isRecorrente = recorrenteInput.checked;
+      const totalParcelas = Number(parcelasInput.value) || 1;
 
       if (!nome || !valor) {
         return alert("Preencha descrição e valor da compra.");
@@ -1079,10 +1140,11 @@
 
       await batch.commit();
 
-      document.getElementById("cartaoNome").value = "";
-      document.getElementById("cartaoValor").value = "";
-      document.getElementById("cartaoTotalParcelas").value = "";
-      document.getElementById("cartaoRecorrente").checked = false;
+      nomeInput.value = "";
+      valorInput.value = "";
+      parcelasInput.value = "";
+      recorrenteInput.checked = false;
+      fecharModalCartao();
     }
 
     async function removerItem(tipo, indice) {      
@@ -1375,6 +1437,26 @@
       document.getElementById('entradasModal').classList.remove('visible');
     }
 
+    function abrirModalConta() {
+      document.getElementById('contaModal').classList.add('visible');
+    }
+    function fecharModalConta() {
+      document.getElementById('contaModal').classList.remove('visible');
+    }
+
+    function abrirModalCartao() {
+      document.getElementById('cartaoModal').classList.add('visible');
+    }
+    function fecharModalCartao() {
+      document.getElementById('cartaoModal').classList.remove('visible');
+    }
+
+    function abrirModalReservado() {
+      document.getElementById('reservadoModal').classList.add('visible');
+    }
+    function fecharModalReservado() {
+      document.getElementById('reservadoModal').classList.remove('visible');
+    }
 
     function atualizarResumo(data) {
       let totalContasManuais = 0;
