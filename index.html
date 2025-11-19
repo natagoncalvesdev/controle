@@ -9,13 +9,22 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <style>
     :root {
-      --bg-dark: #151728;
-      --bg-dark-light: #1f2238;
+      /* Tema Claro (Padrão) */
+      --bg-main: #f0f2f5;
+      --bg-section: #ffffff;
+      --text-primary: #1d1d2e;
+      --text-secondary: #6c7190;
+      --border-color: #eef0fa;
+      --sidebar-bg: #151728;
+      --sidebar-text: #f9f9ff;
+      --sidebar-item-bg: #1f2238;
+      --sidebar-item-hover: #2b2f4a;
+
+      /* Cores de destaque */
       --accent: #ffc107;
       --accent-2: #33c27f;
       --accent-3: #ff6b6b;
-      --text: #f9f9ff;
-      --subtle: #747b9a;
+      --accent-blue: #2563eb;
     }
 
     * {
@@ -27,8 +36,8 @@
       font-family: "Segoe UI", Arial, sans-serif;
       display: flex;
       height: 100vh;
-      background: #f0f2f5;
-      color: #1d1d2e;
+      background: var(--bg-main);
+      color: var(--text-primary);
     }
 
     .sidebar {
@@ -37,8 +46,8 @@
       left: 0;
       height: 100%;
       width: 280px; /* Mantém a largura original */
-      background: var(--bg-dark);
-      color: var(--text);
+      background: var(--sidebar-bg);
+      color: var(--sidebar-text);
       padding: 24px;
       display: flex;
       flex-direction: column;
@@ -63,7 +72,7 @@
       font-size: 14px;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      color: var(--subtle);
+      color: var(--text-secondary);
     }
 
     .ano-row {
@@ -76,8 +85,8 @@
       padding: 10px;
       border-radius: 8px;
       border: 1px solid transparent;
-      background: var(--bg-dark-light);
-      color: var(--text);
+      background: var(--sidebar-item-bg);
+      color: var(--sidebar-text);
     }
 
     .btn-icon {
@@ -102,15 +111,15 @@
     .month {
       padding: 12px 14px;
       border-radius: 10px;
-      background: var(--bg-dark-light);
-      color: var(--text);
+      background: var(--sidebar-item-bg);
+      color: var(--sidebar-text);
       cursor: pointer;
       transition: transform 0.15s ease, background 0.2s ease;
     }
 
     .month:hover {
       transform: translateX(4px);
-      background: #2b2f4a;
+      background: var(--sidebar-item-hover);
     }
 
     .sidebar-controls {
@@ -125,7 +134,7 @@
 
     .month.active {
       background: var(--accent);
-      color: #1d1d2e;
+      color: var(--text-primary);
       font-weight: 600;
     }
 
@@ -156,7 +165,7 @@
     }
 
     .card {
-      background: #fff;
+      background: var(--bg-section);
       border-radius: 16px;
       padding: 18px;
       box-shadow: 0 10px 25px rgba(15, 23, 42, 0.1);
@@ -169,7 +178,7 @@
       text-transform: uppercase;
       font-size: 11px;
       letter-spacing: 0.1em;
-      color: #6c7190;
+      color: var(--text-secondary);
     }
 
     .card strong {
@@ -188,7 +197,7 @@
       display: inline-block;
       margin-left: 5px;
       font-weight: bold;
-      color: var(--subtle);
+      color: var(--text-secondary);
       transition: transform 0.2s ease;
     }
 
@@ -217,7 +226,7 @@
     }
 
     .section {
-      background: #fff;
+      background: var(--bg-section);
       border-radius: 16px;
       padding: 20px;
       box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
@@ -243,13 +252,13 @@
       min-width: 160px;
       padding: 10px 12px;
       border-radius: 10px;
-      border: 1px solid #d5d8e6;
-      background: #f9f9ff;
+      border: 1px solid var(--border-color);
+      background: var(--bg-main);
     }
 
     /* Garante que o select dentro das modais tenha a cor de texto correta */
     .modal-content .form-row select {
-      color: #1d1d2e;
+      color: var(--text-primary);
     }
 
     .form-row button {
@@ -257,7 +266,7 @@
       border: none;
       border-radius: 10px;
       background: #2563eb;
-      color: #fff;
+      color: #ffffff;
       padding: 12px; /* Aumenta a altura (deixa mais "gordo") */
       font-weight: 600;
       cursor: pointer;
@@ -281,7 +290,7 @@
       border: none;
       border-radius: 10px;
       background: #2563eb;
-      color: #fff;
+      color: #ffffff;
       padding: 12px 20px;
       font-weight: 600;
       cursor: pointer;
@@ -295,7 +304,7 @@
       padding: 12px 16px;
       border-radius: 10px;
       background-color: var(--accent);
-      color: #1d1d2e;
+      color: var(--text-primary);
       font-weight: 600;
       cursor: pointer;
       user-select: none; /* Impede a seleção de texto */
@@ -334,18 +343,18 @@
       padding: 12px 10px;
       text-align: left;
       vertical-align: middle; /* Garante alinhamento vertical consistente */
-      border-bottom: 1px solid #eef0fa;
+      border-bottom: 1px solid var(--border-color);
     }
 
     th {
       font-size: 13px;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      color: #8a8fa9;
+      color: var(--text-secondary);
     }
 
     tbody tr:hover {
-      background: #f5f6ff;
+      background: var(--bg-main);
     }
 
     .btn-inline {
@@ -360,8 +369,8 @@
       padding: 6px 8px;
       border-radius: 6px;
       border: 1px solid #d5d8e6;
-      background: #fff;
-      color: #1d1d2e;
+      background: var(--bg-section);
+      color: var(--text-primary);
     }
 
     .status-tag {
@@ -395,7 +404,7 @@
 
     .info-text {
       font-size: 13px;
-      color: #6c7190;
+      color: var(--text-secondary);
     }
 
     .actions-cell {
@@ -412,13 +421,13 @@
       padding: 0;
     }
     .btn-icon-inline.edit {
-      color: var(--subtle);
+      color: var(--text-secondary);
     }
     .btn-icon-inline.edit:hover {
       color: var(--accent-2);
     }
     .btn-icon-inline.copy {
-      color: var(--subtle);
+      color: var(--text-secondary);
     }
     .btn-icon-inline.copy:hover {
       color: #2563eb;
@@ -449,7 +458,7 @@
       z-index: 1000;
     }
     .modal-content {
-      background: #fff;
+      background: var(--bg-section);
       padding: 24px;
       border-radius: 16px;
       width: 90%;
@@ -469,8 +478,8 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
-      border-top: 1px solid #eef0fa;
-      border-bottom: 1px solid #eef0fa;
+      border-top: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
       padding: 12px 0;
     }
     .modal-month-item {
@@ -493,8 +502,8 @@
       cursor: pointer;
       font-weight: 600;
     }
-    .modal-actions .btn-confirm { background: #2563eb; color: #fff; }
-    .modal-actions .btn-cancel { background: #eef0fa; color: #6c7190; }
+    .modal-actions .btn-confirm { background: var(--accent-blue); color: #ffffff; }
+    .modal-actions .btn-cancel { background: var(--bg-main); color: var(--text-secondary); }
     .modal-overlay.visible {
       display: flex;
     }
@@ -503,6 +512,66 @@
       display: none; /* Escondido por padrão */
       margin-top: -8px; /* Reduz o espaço quando expandido */
       border-top-left-radius: 0; border-top-right-radius: 0;
+    }
+
+    /* Estilos do Dark Mode */
+    body.dark-mode {
+      --bg-main: #1f2238;
+      --bg-section: #151728;
+      --text-primary: #f9f9ff;
+      --text-secondary: #747b9a;
+      --border-color: #2b2f4a;
+    }
+
+    /* Estilos do Toggle de Dark Mode */
+    .theme-switch-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: auto; /* Empurra para o final da sidebar */
+      padding-top: 24px;
+      border-top: 1px solid var(--sidebar-item-bg);
+    }
+    .theme-switch {
+      display: inline-block;
+      height: 24px;
+      position: relative;
+      width: 50px;
+    }
+    .theme-switch input {
+      display:none;
+    }
+    .slider {
+      background-color: var(--sidebar-item-bg);
+      bottom: 0;
+      cursor: pointer;
+      left: 0;
+      position: absolute;
+      right: 0;
+      top: 0;
+      transition: .4s;
+      border-radius: 34px;
+    }
+    .slider:before {
+      content: "☀️";
+      font-size: 14px;
+      line-height: 18px;
+      text-align: center;
+      background-color: #fff;
+      bottom: 3px;
+      height: 18px;
+      left: 4px;
+      position: absolute;
+      transition: .4s;
+      width: 18px;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: var(--accent);
+    }
+    input:checked + .slider:before {
+      transform: translateX(26px);
+      content: "🌙";
     }
 
     @media (max-width: 768px) {
@@ -518,7 +587,7 @@
         flex-direction: row;
         gap: 16px;
         align-items: flex-end;
-        background: var(--bg-dark);
+        background: var(--sidebar-bg);
         padding: 12px 16px;
       }
       .sidebar-controls .ano-select, .sidebar-controls .mes-select-mobile {
@@ -533,7 +602,7 @@
         font-size: 14px;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        color: var(--subtle);
+        color: var(--text-secondary);
       }
       .months-wrapper { 
         display: none; /* Oculta a lista de meses em mobile */
@@ -555,6 +624,13 @@
       /* Remove a altura mínima que causava problemas de alinhamento */
       .actions-cell { min-height: unset; }
     }
+
+    .table-wrapper thead {
+      position: sticky;
+      top: 0;
+      background: var(--bg-section);
+      z-index: 1;
+    }
   </style>
 </head>
 <body>
@@ -573,6 +649,13 @@
     <div class="months-wrapper">
       <label>Meses</label>
       <div class="months" id="listaMeses"></div>
+    </div>
+
+    <div class="theme-switch-wrapper">
+      <label class="theme-switch" for="theme-toggle">
+        <input type="checkbox" id="theme-toggle" />
+        <span class="slider"></span>
+      </label>
     </div>
   </aside>
 
@@ -608,7 +691,7 @@
       </div>
       <div class="table-wrapper">
         <table>
-        <thead style="position: sticky; top: 0; background: white;">
+        <thead>
           <tr>
             <th>Conta</th>
             <th>Valor</th>
@@ -631,7 +714,7 @@
       </div>
       <div class="table-wrapper">
         <table>
-        <thead style="position: sticky; top: 0; background: white;">
+        <thead>
           <tr>
             <th>Descrição</th>
             <th>Valor</th>
@@ -652,7 +735,7 @@
       </div>
       <div class="table-wrapper">
         <table>
-        <thead style="position: sticky; top: 0; background: white;">
+        <thead>
           <tr>
             <th>Descrição</th>
             <th>Valor</th>
@@ -852,6 +935,21 @@
       selectAno.addEventListener("change", trocarAno);
       selectMesMobile.addEventListener("change", (e) => selecionarMes(e.target.value));
     }
+
+    // Lógica do Dark Mode
+    const themeToggle = document.getElementById('theme-toggle');
+    const currentTheme = localStorage.getItem('theme');
+
+    if (currentTheme === 'dark') {
+      document.body.classList.add('dark-mode');
+      themeToggle.checked = true;
+    }
+
+    themeToggle.addEventListener('change', () => {
+      document.body.classList.toggle('dark-mode');
+      const theme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
+      localStorage.setItem('theme', theme);
+    });
 
     async function garantirAno(ano) {
       if (!/^[0-9]{4}$/.test(String(ano))) {
