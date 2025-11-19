@@ -338,6 +338,7 @@
     .actions-cell {
       display: flex;
       gap: 10px;
+      align-items: center; /* Alinha os botões verticalmente */
     }
 
     .btn-icon-inline {
@@ -478,6 +479,10 @@
       }
       th, td {
         padding: 10px 8px;
+      }
+      /* Garante que a célula de ações tenha uma altura mínima consistente em mobile */
+      .actions-cell {
+        min-height: 40px;
       }
     }
   </style>
