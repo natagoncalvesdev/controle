@@ -625,6 +625,22 @@
       /* Remove a altura mínima que causava problemas de alinhamento */
       .actions-cell { min-height: unset; }
     }
+    
+    .footer-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: auto; /* Empurra para o final do container */
+    }
+    .footer-actions .btn-add {
+      flex: 1; /* Faz os botões terem o mesmo tamanho */
+      border: none;
+      border-radius: 10px; /* Cantos arredondados */
+      padding: 12px 14px; /* Espaçamento interno */
+    }
+    
+    @media (max-width: 768px) {
+      .sidebar .footer-actions { display: none; } /* Esconde no sidebar em mobile */
+    }
 
     .table-wrapper thead {
       position: sticky;
@@ -659,10 +675,8 @@
       <div class="months" id="listaMeses"></div>
     </div>
 
-    <div style="margin-top: auto; display: flex; flex-direction: column; gap: 12px;">
-      <div id="admin-actions" style="display: none;"> <!-- Oculto por padrão, conterá o botão ADM -->
-        <button id="admin-button" class="btn-add" style="background-color: var(--accent-blue);" onclick="window.location.href='admin.html'">ADM</button>
-      </div>
+    <div class="footer-actions">
+      <button id="admin-button" class="btn-add" style="background-color: var(--accent-blue); display: none;" onclick="window.location.href='admin.html'">ADM</button>
       <button id="logout-button" class="btn-add" style="background-color: var(--accent-3);">Sair</button>
     </div>
 
@@ -756,6 +770,12 @@
       </div>
       
     </section>
+
+    <!-- Botões movidos para cá na visualização mobile -->
+    <div class="footer-actions" style="display: none;">
+      <button id="admin-button-mobile" class="btn-add" style="background-color: var(--accent-blue); display: none;" onclick="window.location.href='admin.html'">ADM</button>
+      <button id="logout-button-mobile" class="btn-add" style="background-color: var(--accent-3);" onclick="auth.signOut().then(() => window.location.href = 'login.html')">Sair</button>
+    </div>
 
   </main>
 
@@ -959,8 +979,12 @@
 
             // Verifica se o usuário é administrador
             if (userData.adm === true) {
-              const adminActions = document.getElementById('admin-actions');
-              adminActions.style.display = 'flex'; // Mostra os botões para admins
+              // Mostra os botões de admin (desktop e mobile)
+              document.getElementById('admin-button').style.display = 'block';
+              document.getElementById('admin-button-mobile').style.display = 'block';
+            } else {
+              document.getElementById('admin-button').style.display = 'none';
+              document.getElementById('admin-button-mobile').style.display = 'none';
             }
           }
         }).catch(error => {
@@ -973,6 +997,13 @@
         // Se não houver usuário, redireciona para o login
         window.location.href = 'login.html';
       }
+    });
+
+    // Exibe os botões de rodapé no mobile quando a página carrega
+    window.addEventListener('DOMContentLoaded', () => {
+        if (window.innerWidth <= 768) {
+            document.querySelector('main .footer-actions').style.display = 'flex';
+        }
     });
 
     document.getElementById('logout-button').addEventListener('click', () => {
