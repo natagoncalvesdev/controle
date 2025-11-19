@@ -665,29 +665,7 @@
       }
       /* Remove a altura mínima que causava problemas de alinhamento */
       .actions-cell { min-height: unset; }
-
-      /* Esconde colunas de ações nas tabelas em mobile */
-      #tabelaContas th:nth-child(4),
-      #tabelaContas td:nth-child(4),
-      #tabelaContas th:nth-child(5),
-      #tabelaContas td:nth-child(5),
-      #tabelaCartao th:nth-child(4),
-      #tabelaCartao td:nth-child(4) {
-        display: none;
-      }
-
-      /* Adiciona cursor de ponteiro para indicar que a linha é clicável */
-      #tabelaContas > tr,
-      #tabelaCartao > tr {
-        cursor: pointer;
-      }
-      #itemActionsModalBody .form-row {
-        flex-direction: column;
-      }
-    }
-    
-    .footer-actions {
-      display: flex;
+    }lay: flex;
       gap: 12px;
       margin-top: auto; /* Empurra para o final do container */
     }
@@ -787,8 +765,6 @@
             <th>Conta</th>
             <th>Valor</th>
             <th>Status</th>
-            <th>Mudar Status</th>
-            <th></th>
           </tr>
         </thead>
         <tbody id="tabelaContas"></tbody>
@@ -803,14 +779,11 @@
         <button class="btn-add" onclick="abrirModalAdiantar()">Adiantar Parcela</button>
         <button class="btn-add" onclick="abrirModalCartao()">Adicionar Compra</button>
       </div>
-      <div class="table-wrapper">
-        <table>
+      <div class="tab
         <thead>
-          <tr>
             <th>Descrição</th>
             <th>Valor</th>
             <th>Parcelas</th>
-            <th>Ações</th>
           </tr>
         </thead>
         <tbody id="tabelaCartao"></tbody>
@@ -829,8 +802,7 @@
         <thead>
           <tr>
             <th>Descrição</th>
-            <th>Valor</th>
-            <th>Ações</th>
+          </tth>Ações</th>
           </tr>
         </thead>
         <tbody id="tabelaReservado"></tbody>
@@ -1255,32 +1227,11 @@
         `;
 
         if (conta.isCartao) { // Se for o item "Cartão de Crédito"
-          tr.innerHTML += `
-            <td>
-              <select onchange="atualizarStatusCartao(this.value)">
-                <option value="pendente" ${status === "pendente" ? "selected" : ""}>Pendente</option>
-                <option value="pago" ${status === "pago" ? "selected" : ""}>Pago</option>
-              </select>
-            </td>
-            <td class="actions-cell"></td>
-          `;
           tr.onclick = () => abrirModalAcoes('cartaoAgregado', -1, conta);
 
         } else { // Se for uma conta normal
-          tr.innerHTML += `
-            <td>
-                <select onchange="atualizarStatusConta(${originalIndex}, this.value)">
-                  <option value="pendente" ${status === "pendente" ? "selected" : ""}>Pendente</option>
-                  <option value="pago" ${status === "pago" ? "selected" : ""}>Pago</option>
-                </select>
-            </td>
-            <td class="actions-cell">
-                <button class="btn-icon-inline edit" onclick="editarItem(this, 'contas', ${originalIndex})">✏️</button>
-                <button class="btn-icon-inline copy" onclick="abrirModalCopia('contas', ${originalIndex})">❐</button>
-                <button class="btn-inline" onclick="removerItem('contas', ${originalIndex})">🗑️</button>
-            </td>`;
+          tr.onclick = () => abrirModalAcoes('contas', originalIndex, conta);
         }
-        tr.onclick = () => abrirModalAcoes('contas', originalIndex, conta);
         tabelaContas.appendChild(tr);
       });
 
@@ -1294,38 +1245,12 @@
             <td class="actions-cell">
               <button class="btn-icon-inline edit" onclick="editarItem(this, 'adicionais', ${index})">✏️</button>
               <button class="btn-icon-inline copy" onclick="abrirModalCopia('adicionais', ${index})">❐</button>
-              <button class="btn-inline" onclick="removerItem('adicionais', ${index})">🗑️</button>
-            </td>
-        `;
-        tabelaAdicionais.appendChild(tr);
-      });
-
-      const tabelaCartao = document.getElementById("tabelaCartao");
-      tabelaCartao.innerHTML = "";
-      data.cartao.forEach((item, index) => {
-        const tr = document.createElement('tr');
+              <button class="btn-inline" onclick="removerItemtidt tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${item.nome}</td>
             <td>${formatar(item.valor)}</td>
-            <td>${item.parcelas || "-"}</td>
-            <td class="actions-cell">
-              <button class="btn-icon-inline edit" onclick="editarItem(this, 'cartao', ${index})">✏️</button>
-              <button class="btn-inline" onclick="removerItem('cartao', ${index})">🗑️</button>
-            </td>          
-        `;
-        // Adiciona o evento de clique para abrir o modal de ações no mobile
-        tr.onclick = () => abrirModalAcoes('cartao', index, item);
-        tabelaCartao.appendChild(tr);
-      });
-
-      const tabelaReservado = document.getElementById("tabelaReservado");
-      tabelaReservado.innerHTML = "";
-      data.reservado.forEach((item, index) => {
-        tabelaReservado.innerHTML += `
-          <tr>
-            <td>${item.nome}</td>
-            <td>${formatar(item.valor)}</td>
-            <td class="actions-cell">
+            <enteetem.nome}</td>
+         
               <button class="btn-icon-inline edit" onclick="editarItem(this, 'reservado', ${index})">✏️</button>
               <button class="btn-icon-inline copy" onclick="abrirModalCopia('reservado', ${index})">❐</button>
               <button class="btn-inline" onclick="removerItem('reservado', ${index})">🗑️</button>
@@ -1352,11 +1277,7 @@
 
     async function adicionarConta() {
       const ref = getMesRef();
-      if (!ref) return;
-      const nomeInput = document.getElementById("contaNomeModal");
-      const valorInput = document.getElementById("contaValorModal");
-      const statusInput = document.getElementById("contaStatusModal");
-      const nome = nomeInput.value.trim();
+      if (!ref) return;n(nome t.value.trim();
       const valor = Number(valorInput.value);
       const status = statusInput.value;
       if (!nome || !valor) return alert("Preencha descrição e valor.");
@@ -1853,11 +1774,6 @@
     }
 
     function abrirModalAcoes(tipo, index, item) {
-      // Esta função só deve ser acionada em telas pequenas
-      if (window.innerWidth > 768) {
-        return;
-      }
-
       const modal = document.getElementById('itemActionsModal');
       const modalTitle = document.getElementById('itemActionsModalTitle');
       const modalBody = document.getElementById('itemActionsModalBody');
@@ -1902,11 +1818,6 @@
 
       modal.classList.add('visible');
     }
-
-    function fecharModalAcoes() {
-      document.getElementById('itemActionsModal').classList.remove('visible');
-    }
-
     // A inicialização agora é chamada pelo onAuthStateChanged
   </script>
 </body>
