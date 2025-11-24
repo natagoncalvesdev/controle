@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Controle de Veículos</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚗</text></svg>">
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <style>
+    /* Estilos copiados de index.html para a sidebar e layout principal */
+    :root {
+      --bg-main: #f0f2f5;
+      --bg-section: #ffffff;
+      --text-primary: #1d1d2e;
+      --text-secondary: #6c7190;
+      --border-color: #eef0fa;
+      --sidebar-bg: #151728;
+      --sidebar-text: #f9f9ff;
+      --sidebar-item-bg: #1f2238;
+      --sidebar-item-hover: #2b2f4a;
+      --accent-blue: #2563eb;
+      --accent-green: #33c27f;
+      --accent-red: #ff6b6b;
+    }
+    :root {
+      --bg-main: #f0f2f5;
+      --bg-section: #ffffff;
+      --text-primary: #1d1d2e;
+      --text-secondary: #6c7190;
+      --border-color: #eef0fa;
+      --accent-blue: #2563eb;
+      --accent-green: #33c27f;
+      --accent-red: #ff6b6b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background-color: var(--bg-main);
+      display: flex;
+      min-height: 100vh;
+      margin: 0;
+      color: var(--text-primary);
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 280px;
+      background: var(--sidebar-bg);
+      color: var(--sidebar-text);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      z-index: 10;
+    }
+
+    .sidebar h1 {
+      font-size: 22px;
+      margin: 0;
+      letter-spacing: 0.05em;
+      text-align: center;
+    }
+
+    .btn-sidebar {
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: var(--sidebar-item-bg);
+      color: var(--sidebar-text);
+      cursor: pointer;
+      transition: background 0.2s ease;
+      border: none;
+      font-size: 16px;
+    }
+    
+    .btn-sidebar:hover {
+      background: var(--sidebar-item-hover);
+    }
+
+    a.btn-sidebar {
+      text-decoration: none; /* Remove o sublinhado dos links */
+    }
+
+    .btn-sidebar.active {
+      background: var(--accent-blue); /* Cor de destaque para a aba ativa */
+    }
+
+    .content {
+      flex: 1;
+      padding: 32px;
+      margin-left: 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    /* Fim dos estilos copiados */
+
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .header h1 {
+      margin: 0;
+    }
+
+    .content > h1 {
+      margin: 0;
+    }
+
+    .header .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .btn-primary { background: var(--accent-blue); color: #fff; }
+    .btn-secondary { background: var(--text-secondary); color: #fff; }
+    .btn-add { background: var(--accent-green); color: #fff; }
+    .btn-danger { background: var(--accent-red); color: #fff; }
+    .btn-confirm { background: var(--accent-blue); color: #fff; }
+    .btn-cancel { background: var(--bg-main); color: var(--text-secondary); }
+
+    select {
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color) !important;
+      background: var(--bg-main) !important;
+      color: var(--text-primary) !important;
+    }
+
+    .page-content {
+      display: flex; /* Renomeado de main-content */
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .section {
+      background: var(--bg-section);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .section h3 { margin: 0; }
+
+    .vehicle-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .vehicle-item {
+      padding: 15px;
+      background: var(--bg-main);
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s ease;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .vehicle-item:hover { background: var(--border-color); }
+    .info-text { font-size: 13px; color: var(--text-secondary); }
+
+    .vehicle-details-view, .vehicle-list-view {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .form-row { display: flex; flex-wrap: wrap; gap: 12px; }
+    .form-row input {
+      flex: 1;
+      min-width: 160px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-main);
+    }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+    .stat-card {
+      background: var(--bg-section);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .stat-card .icon { font-size: 24px; } /* Mantido para compatibilidade com outras seções */
+    .stat-card .info { display: flex; flex-direction: column; align-items: center; text-align: center; }
+    .stat-card .info small { font-size: 13px; color: var(--text-secondary); }
+    .stat-card .info strong { font-size: 22px; font-weight: 600; }
+    .stat-card.green .icon { color: var(--accent-green); }
+    .stat-card.blue .icon { color: var(--accent-blue); }
+    .stat-card.red .icon { color: var(--accent-red); }
+    .stat-card.red strong { color: var(--accent-red); }
+    .stat-card.blue strong { color: var(--accent-blue); }
+    .stat-card.green strong { color: var(--accent-green); }
+    /* Modal Styles */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: none; justify-content: center; align-items: center;
+      z-index: 1000;
+    }
+    .modal-overlay.visible { display: flex; }
+    .modal-content {
+      background: var(--bg-section); padding: 24px; border-radius: 16px;
+      width: 90%; max-width: 400px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .modal-content h3 { margin: 0; }
+    .modal-content input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-main); }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 12px; }
+  </style>
+  <style> /* Estilos para tabela de histórico e ações */
+    .table-wrapper {
+      overflow-x: auto;
+      width: 100%;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 12px 10px;
+      text-align: left;
+      vertical-align: middle;
+      border-bottom: 1px solid var(--border-color);
+    }
+    th {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-secondary);
+    }
+    tbody tr:hover {
+      background: var(--bg-main);
+    }
+    tbody tr {
+        cursor: pointer;
+    }
+    .btn-icon-inline {
+      border: none; background: none; cursor: pointer; font-size: 16px; padding: 5px;
+      color: var(--text-secondary);
+    }
+    .btn-icon-inline:hover { color: var(--accent-blue); }
+    .btn-icon-inline.delete:hover { color: var(--accent-red); }
+  </style>
+  <style> /* Estilos do footer da sidebar */
+    .footer-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: auto; /* Empurra para o final do container */
+    }
+    .footer-actions .btn-add {
+      flex: 1; /* Faz os botões terem o mesmo tamanho */
+      border: none;
+      border-radius: 10px; /* Cantos arredondados */
+      padding: 12px 14px; /* Espaçamento interno */
+      font-weight: 600;
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar">
+    <h1>💰 Controle</h1>
+
+    <a href="index.html" class="btn-sidebar" style="text-align: center;">Financeiro</a>
+    <a href="veiculos.html" class="btn-sidebar active" style="text-align: center;">Veículos</a>
+
+    <div class="footer-actions">
+      <button id="admin-button" class="btn-add" style="background-color: var(--accent-blue); display: none;" onclick="window.location.href='admin.html'">ADM</button>
+      <button id="logout-button" class="btn-add" style="background-color: var(--accent-red);">Sair</button>
+    </div>
+  </aside>
+
+  <main class="content">
+    <h1>🚗 Controle de Veículos</h1>
+
+    <div id="general-stats-section" class="section">
+      <h4>Estatísticas Gerais (<span id="geral-stats-month-year"></span>)</h4>
+      <div class="stats-grid">
+        <div class="stat-card red">
+          <div class="info"><small>Custo Total</small><strong id="geral-stat-custo-total">R$ 0,00</strong></div>
+        </div>
+        <div class="stat-card blue">
+          <div class="info"><small>KM Rodados</small><strong id="geral-stat-km-total">0 km</strong></div>
+        </div>
+        <div class="stat-card green">
+          <div class="info"><small>Média KM/L</small><strong id="geral-stat-kml-media">0.0</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <!-- Tela de Listagem de Veículos (Padrão) -->
+      <div id="vehicle-list-view" class="section">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h3>Meus Veículos</h3>
+          <div class="header">
+            <div class="controls">
+              <select id="selectAno"></select>
+              <select id="selectMes"></select>
+              <button class="btn btn-add" onclick="abrirModalAddVeiculo()">Adicionar</button>
+            </div>
+          </div>
+        </div>
+        <div id="listaVeiculos" class="vehicle-list" style="margin-top: 16px;">
+          <p class="info-text">Carregando veículos...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tela de Detalhes do Veículo (Oculta por padrão) -->
+    <div id="vehicle-details-view" style="display: none; flex-direction: column; gap: 24px;">
+      <div class="section">
+        <h4>Estatísticas do mês (<span id="stats-vehicle-name"></span>)</h4>
+        <div class="stats-grid">
+          <div class="stat-card red">
+            <div class="info"><small>Custo Total</small><strong id="stat-custo-total">R$ 0,00</strong></div>
+          </div>
+          <div class="stat-card blue">
+            <div class="info"><small>KM Rodados</small><strong id="stat-km-total">0 km</strong></div>
+          </div>
+          <div class="stat-card green">
+            <div class="info"><small>Média KM/L</small><strong id="stat-kml-media">0.0</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+              <h3 id="vehicle-name-details"></h3>
+              <button class="btn btn-secondary" onclick="voltarParaListaVeiculos()">Voltar</button>
+          </div>
+          <div class="header">
+              <div class="controls">
+                <select id="selectAnoDetalhes"></select>
+                <select id="selectMesDetalhes"></select>
+              </div>
+          </div>
+          
+          <div class="form-row">
+              <input id="veiculoKmAtual" type="number" placeholder="KM Atual">
+              <input id="veiculoLitros" type="number" placeholder="Litros">
+              <input id="veiculoValor" type="number" placeholder="Valor Total (R$)">
+              <button class="btn btn-primary" onclick="registrarAbastecimento()">Registrar</button>
+          </div>
+      </div>
+
+      <div class="section">
+        <h4>Histórico do Mês</h4>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr><th>Data</th><th>KM</th><th>Valor</th><th>Litros</th><th>KM/L</th></tr>
+                </thead>
+                <tbody id="tabelaHistoricoAbastecimento">
+                </tbody>
+            </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal para Adicionar Veículo -->
+  <div id="addVeiculoModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>Adicionar Novo Veículo</h3>
+      <input id="addVeiculoNome" placeholder="Nome/Modelo (ex: Gol G5)">
+      <input id="addVeiculoKmInicial" type="number" placeholder="Quilometragem Inicial">
+      <div class="modal-actions">
+        <button class="btn btn-cancel" onclick="fecharModalAddVeiculo()">Cancelar</button>
+        <button class="btn btn-confirm" onclick="salvarNovoVeiculo()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Editar Abastecimento -->
+  <div id="editAbastecimentoModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>Editar Abastecimento</h3>
+      <div class="form-row" style="flex-direction: column;">
+        <input id="editVeiculoData" type="date">
+        <input id="editVeiculoKmAtual" type="number" placeholder="KM Atual">
+        <input id="editVeiculoLitros" type="number" placeholder="Litros">
+        <input id="editVeiculoValor" type="number" placeholder="Valor Total (R$)">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-danger" onclick="removerAbastecimento()">Excluir</button>
+        <button class="btn btn-confirm" onclick="salvarEdicaoAbastecimento()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBVwUVoudM_IxWQgkLxlabinw4AXGgf1So",
+      authDomain: "controle-f1437.firebaseapp.com",
+      databaseURL: "https://controle-f1437-default-rtdb.firebaseio.com",
+      projectId: "controle-f1437",
+      storageBucket: "controle-f1437.firebasestorage.app",
+      messagingSenderId: "796244202232",
+      appId: "1:796244202232:web:4e98f9b9a3c34bd569e10d"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+    const ANO_BASE = 2025;
+    const ANO_LIMITE = ANO_BASE + 10;
+
+    const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+    const formatar = valor => moeda.format(Number(valor) || 0);
+
+    let currentUser = null;
+    let anoAtual = "";
+    let mesAtual = "";
+    let veiculoSelecionadoId = null;
+    let ultimoAbastecimentoCache = null;
+    let unsubscribeVeiculos = null;
+    let abastecimentoParaEditarId = null;
+
+    const selectAno = document.getElementById("selectAno");
+    const selectMes = document.getElementById("selectMes");
+    const selectAnoDetalhes = document.getElementById("selectAnoDetalhes");
+    const selectMesDetalhes = document.getElementById("selectMesDetalhes");
+
+    // --- INICIALIZAÇÃO E AUTENTICAÇÃO ---
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        currentUser = user;
+        db.collection('users').doc(currentUser.uid).get().then(doc => {
+          if (doc.exists) {
+            const userData = doc.data();
+            if (userData.adm === true) {
+              document.getElementById('admin-button').style.display = 'block';
+            } else {
+              document.getElementById('admin-button').style.display = 'none';
+            }
+          }
+        }).catch(error => {
+          console.error("Erro ao buscar dados do usuário:", error);
+        });
+
+        inicializarSeletoresData();
+        escutarVeiculos();
+        calcularEstatisticasGerais();
+      } else {
+        window.location.href = 'login.html';
+      }
+    });
+
+    document.getElementById('logout-button').addEventListener('click', () => {
+      if (unsubscribeVeiculos) unsubscribeVeiculos();
+      auth.signOut().then(() => window.location.href = 'login.html');
+    });
+
+    // Adiciona a funcionalidade de fechar modais ao clicar no overlay
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', function(event) { if (event.target === this) this.classList.remove('visible'); });
+      });
+    });
+
+    function inicializarSeletoresData() {
+      // Popula anos
+      for (let ano = ANO_BASE; ano <= ANO_LIMITE; ano++) {
+        const option = document.createElement("option");
+        option.value = String(ano);
+        option.textContent = String(ano);
+        selectAno.appendChild(option.cloneNode(true));
+        selectAnoDetalhes.appendChild(option);
+      }
+
+      // Popula meses
+      MESES.forEach(mes => {
+        const option = document.createElement("option");
+        option.value = mes;
+        option.textContent = mes;
+        selectMes.appendChild(option.cloneNode(true));
+        selectMesDetalhes.appendChild(option);
+      });
+
+      // Define data atual
+      const hoje = new Date();
+      let anoCorrente = hoje.getFullYear();
+      // Garante que o ano corrente esteja dentro do intervalo, senão usa o ANO_BASE
+      const anosDisponiveis = Array.from(selectAno.options).map(o => parseInt(o.value));
+      if (!anosDisponiveis.includes(anoCorrente)) {
+        const anoMaisProximo = anosDisponiveis.reduce((prev, curr) => 
+            Math.abs(curr - anoCorrente) < Math.abs(prev - anoCorrente) ? curr : prev);
+        anoCorrente = anoMaisProximo;
+      }
+      
+      anoAtual = String(anoCorrente);
+      mesAtual = MESES[hoje.getMonth()];
+
+      selectAno.value = anoAtual;
+      selectMes.value = mesAtual;
+
+      selectAnoDetalhes.value = anoAtual;
+      selectMesDetalhes.value = mesAtual;
+
+      selectAno.addEventListener("change", atualizarPeriodo);
+      selectMes.addEventListener("change", atualizarPeriodo);
+      selectAnoDetalhes.addEventListener("change", atualizarPeriodo);
+      selectMesDetalhes.addEventListener("change", atualizarPeriodo);
+    }
+
+    function atualizarPeriodo(event) {
+        const source = event.target;
+        anoAtual = source.id.includes('Detalhes') ? selectAnoDetalhes.value : selectAno.value;
+        mesAtual = source.id.includes('Detalhes') ? selectMesDetalhes.value : selectMes.value;
+
+        // Sincroniza os dois pares de seletores
+        selectAno.value = anoAtual; selectMes.value = mesAtual;
+        selectAnoDetalhes.value = anoAtual; selectMesDetalhes.value = mesAtual;
+
+        // Se um veículo estiver selecionado, atualiza sua view
+        if (veiculoSelecionadoId) {
+            renderizarDetalhesVeiculo(veiculoSelecionadoId, document.getElementById('vehicle-name-details').textContent);
+        }
+        // Atualiza as estatísticas gerais sempre que o período mudar
+        calcularEstatisticasGerais();
+    }
+
+    async function calcularEstatisticasGerais() {
+      if (!currentUser) return;
+
+      document.getElementById('geral-stats-month-year').textContent = `${mesAtual}/${anoAtual}`;
+
+      let custoTotalGeral = 0;
+      let kmTotalGeral = 0;
+      let litrosTotalGeral = 0;
+
+      const veiculosRef = db.collection('users').doc(currentUser.uid).collection('veiculos');
+      const veiculosSnapshot = await veiculosRef.get();
+
+      if (!veiculosSnapshot.empty) {
+        const promises = veiculosSnapshot.docs.map(veiculoDoc => {
+          return veiculoDoc.ref.collection('abastecimentos')
+            .where('ano', '==', anoAtual)
+            .where('mes', '==', mesAtual)
+            .get();
+        });
+
+        const snapshotsPorVeiculo = await Promise.all(promises);
+
+        snapshotsPorVeiculo.forEach(snapshot => {
+          snapshot.forEach(doc => {
+            const abastecimento = doc.data();
+            custoTotalGeral += Number(abastecimento.valor || 0);
+            kmTotalGeral += Number(abastecimento.kmRodado || 0);
+            litrosTotalGeral += Number(abastecimento.litros || 0);
+          });
+        });
+      }
+
+      const mediaKmLGeral = litrosTotalGeral > 0 ? (kmTotalGeral / litrosTotalGeral).toFixed(1) : '0.0';
+
+      document.getElementById('geral-stat-custo-total').textContent = formatar(custoTotalGeral);
+      document.getElementById('geral-stat-km-total').textContent = `${Math.round(kmTotalGeral)} km`;
+      document.getElementById('geral-stat-kml-media').textContent = mediaKmLGeral;
+    }
+    
+    // --- LÓGICA DE VEÍCULOS ---
+
+    function escutarVeiculos() {
+      if (unsubscribeVeiculos) unsubscribeVeiculos();
+      if (!currentUser) return;
+
+      const veiculosRef = db.collection('users').doc(currentUser.uid).collection('veiculos').orderBy('nome');
+      unsubscribeVeiculos = veiculosRef.onSnapshot(snapshot => {
+        const lista = document.getElementById('listaVeiculos');
+        lista.innerHTML = '';
+        if (snapshot.empty) {
+          lista.innerHTML = '<p class="info-text">Nenhum veículo cadastrado.</p>';
+          return;
+        }
+        snapshot.forEach(doc => {
+          const veiculo = doc.data();
+          const itemDiv = document.createElement('div');
+          itemDiv.className = 'vehicle-item';
+          itemDiv.textContent = veiculo.nome;
+          itemDiv.addEventListener('click', () => renderizarDetalhesVeiculo(doc.id, veiculo.nome));
+          lista.appendChild(itemDiv);
+        });
+      }, error => {
+        console.error("Erro ao buscar veículos:", error);
+        document.getElementById('listaVeiculos').innerHTML = '<p class="info-text">Erro ao carregar veículos.</p>';
+      });
+    }
+
+    async function renderizarDetalhesVeiculo(veiculoId, veiculoNome) {
+      veiculoSelecionadoId = veiculoId;
+      document.getElementById('vehicle-name-details').textContent = veiculoNome;
+      document.getElementById('stats-vehicle-name').textContent = veiculoNome;
+
+      // Limpa campos e estatísticas
+      document.getElementById('veiculoKmAtual').value = '';
+      document.getElementById('veiculoLitros').value = '';
+      document.getElementById('veiculoValor').value = '';
+      document.getElementById('stat-custo-total').textContent = formatar(0);
+      document.getElementById('stat-km-total').textContent = '0 km';
+      document.getElementById('stat-kml-media').textContent = '0.0';
+      document.getElementById('tabelaHistoricoAbastecimento').innerHTML = '<tr><td colspan="6" class="info-text">Nenhum abastecimento neste mês.</td></tr>';
+
+      // Busca o último abastecimento para cálculo do próximo registro
+      const ultimoAbastecimentoRef = db.collection('users').doc(currentUser.uid).collection('veiculos').doc(veiculoId)
+        .collection('abastecimentos').orderBy('kmAtual', 'desc').limit(1);
+      const ultimoSnapshot = await ultimoAbastecimentoRef.get();
+      ultimoAbastecimentoCache = null;
+      if (!ultimoSnapshot.empty) {
+        ultimoAbastecimentoCache = ultimoSnapshot.docs[0].data();
+      } else {
+        const veiculoDoc = await db.collection('users').doc(currentUser.uid).collection('veiculos').doc(veiculoId).get();
+        if (veiculoDoc.exists) {
+          ultimoAbastecimentoCache = { kmAtual: veiculoDoc.data().kmInicial };
+        }
+      }
+
+      // Busca abastecimentos do mês selecionado para as estatísticas
+      const abastecimentosMesRef = db.collection('users').doc(currentUser.uid).collection('veiculos').doc(veiculoId)
+        .collection('abastecimentos').where('ano', '==', anoAtual).where('mes', '==', mesAtual).orderBy('data', 'asc');
+      
+      const snapshotMes = await abastecimentosMesRef.get();
+      let custoTotalMes = 0, kmTotalMes = 0, litrosTotalMes = 0;
+      const tabelaHistorico = document.getElementById('tabelaHistoricoAbastecimento');
+      tabelaHistorico.innerHTML = '';
+
+      if (!snapshotMes.empty) {
+        snapshotMes.forEach(doc => {
+          const abastecimento = doc.data();
+          const id = doc.id;
+          custoTotalMes += Number(abastecimento.valor || 0);
+          kmTotalMes += Number(abastecimento.kmRodado || 0);
+          litrosTotalMes += Number(abastecimento.litros || 0);
+
+          const dataFormatada = abastecimento.data?.toDate().toLocaleDateString('pt-BR') || 'N/A';
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${dataFormatada}</td>
+            <td>${Math.round(abastecimento.kmAtual)}</td>
+            <td>${formatar(abastecimento.valor)}</td>
+            <td>${abastecimento.litros.toFixed(2)} L</td>
+            <td>${(abastecimento.kmPorLitro || 0).toFixed(2)}</td>
+          `;
+          tr.addEventListener('click', () => abrirModalEditarAbastecimento(id));
+          tabelaHistorico.appendChild(tr);
+        });
+      } else {
+        tabelaHistorico.innerHTML = '<tr><td colspan="5" class="info-text" style="text-align:center;">Nenhum abastecimento neste mês.</td></tr>';
+      }
+
+      const mediaKmL = litrosTotalMes > 0 ? (kmTotalMes / litrosTotalMes).toFixed(1) : '0.0';
+
+      document.getElementById('stat-custo-total').textContent = formatar(custoTotalMes);
+      document.getElementById('stat-km-total').textContent = `${Math.round(kmTotalMes)} km`;
+      document.getElementById('stat-kml-media').textContent = mediaKmL;
+
+      // Troca a view
+      document.getElementById('general-stats-section').style.display = 'none'; // Esconde as estatísticas gerais
+      document.querySelector('.page-content').style.display = 'none'; // Esconde a lista de veículos
+      document.getElementById('vehicle-details-view').style.display = 'flex';
+      document.getElementById('veiculoKmAtual').focus(); // Adiciona foco ao campo KM
+    }
+
+    async function registrarAbastecimento() {
+      if (!veiculoSelecionadoId) return;
+      const kmAtualInput = Number(document.getElementById('veiculoKmAtual').value);
+      const litros = Number(document.getElementById('veiculoLitros').value);
+      const valor = Number(document.getElementById('veiculoValor').value);
+
+      if (!kmAtualInput || !litros || !valor) {
+        return alert("Por favor, preencha todos os campos do abastecimento.");
+      }
+
+      if (!ultimoAbastecimentoCache || kmAtualInput <= ultimoAbastecimentoCache.kmAtual) {
+        return alert("A quilometragem atual deve ser maior que a do último registro.");
+      }
+
+      const kmRodado = kmAtualInput - ultimoAbastecimentoCache.kmAtual;
+      const kmPorLitro = kmRodado / litros;
+
+      const novoAbastecimento = {
+        kmAtual: kmAtualInput,
+        litros,
+        valor,
+        kmRodado,
+        kmPorLitro,
+        data: firebase.firestore.FieldValue.serverTimestamp(),
+        mes: mesAtual,
+        ano: anoAtual
+      };
+
+      try {
+        const ref = db.collection('users').doc(currentUser.uid).collection('veiculos').doc(veiculoSelecionadoId).collection('abastecimentos');
+        await ref.add(novoAbastecimento);
+        alert(`Abastecimento registrado!\nConsumo: ${kmPorLitro.toFixed(2)} km/L`);
+        renderizarDetalhesVeiculo(veiculoSelecionadoId, document.getElementById('vehicle-name-details').textContent);
+      } catch (error) {
+        console.error("Erro ao registrar abastecimento:", error);
+        alert("Ocorreu um erro ao salvar. Tente novamente.");
+      }
+    }
+
+    function voltarParaListaVeiculos() {
+      veiculoSelecionadoId = null;
+      ultimoAbastecimentoCache = null;
+      document.getElementById('vehicle-details-view').style.display = 'none'; // Esconde detalhes
+      document.getElementById('general-stats-section').style.display = 'flex'; // Mostra as estatísticas gerais
+      document.querySelector('.page-content').style.display = 'flex'; // Mostra a lista de veículos
+    }
+
+    async function salvarNovoVeiculo() {
+      const nome = document.getElementById('addVeiculoNome').value.trim();
+      const kmInicial = Number(document.getElementById('addVeiculoKmInicial').value);
+
+      if (!nome || !kmInicial) {
+        return alert("Preencha o nome e a quilometragem inicial do veículo.");
+      }
+
+      try {
+        const veiculosRef = db.collection('users').doc(currentUser.uid).collection('veiculos');
+        await veiculosRef.add({ nome, kmInicial });
+        alert("Veículo cadastrado com sucesso!");
+        fecharModalAddVeiculo();
+      } catch (error) {
+        console.error("Erro ao salvar veículo:", error);
+        alert("Não foi possível salvar o veículo. Tente novamente.");
+      }
+    }
+
+    // --- CONTROLES DE MODAL ---
+    function abrirModalAddVeiculo() { 
+        document.getElementById('addVeiculoNome').value = '';
+        document.getElementById('addVeiculoKmInicial').value = '';
+        document.getElementById('addVeiculoModal').classList.add('visible'); 
+    }
+    function fecharModalAddVeiculo() { document.getElementById('addVeiculoModal').classList.remove('visible'); }
+
+    async function abrirModalEditarAbastecimento(id) {
+        if (!veiculoSelecionadoId) return;
+        const abastecimentoRef = db.collection('users').doc(currentUser.uid).collection('veiculos').doc(veiculoSelecionadoId).collection('abastecimentos').doc(id);
+        const doc = await abastecimentoRef.get();
+        if (!doc.exists) {
+            return alert("Erro: Registro de abastecimento não encontrado.");
+        }
+        const abastecimento = doc.data();
+        abastecimentoParaEditarId = id;
+
+        const data = abastecimento.data.toDate();
+        const dataFormatada = data.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+        document.getElementById('editVeiculoData').value = dataFormatada;
+        document.getElementById('editVeiculoKmAtual').value = abastecimento.kmAtual;
+        document.getElementById('editVeiculoLitros').value = abastecimento.litros;
+        document.getElementById('editVeiculoValor').value = abastecimento.valor;
+        document.getElementById('editAbastecimentoModal').classList.add('visible');
+    }
+    function fecharModalEditarAbastecimento() {
+        document.getElementById('editAbastecimentoModal').classList.remove('visible');
+        abastecimentoParaEditarId = null;
+    }
+
+    async function salvarEdicaoAbastecimento() {
+        if (!abastecimentoParaEditarId || !veiculoSelecionadoId) return;
+
+        const novaDataString = document.getElementById('editVeiculoData').value;
+        const novoKm = Number(document.getElementById('editVeiculoKmAtual').value);
+        const novoLitros = Number(document.getElementById('editVeiculoLitros').value);
+        const novoValor = Number(document.getElementById('editVeiculoValor').value);
+
+        if (!novaDataString || !novoKm || !novoLitros || !novoValor) {
+            return alert("Todos os campos são obrigatórios.");
+        }
+
+        const veiculoRef = db.collection('users').doc(currentUser.uid).collection('veiculos').doc(veiculoSelecionadoId);
+        const abastecimentoRef = veiculoRef.collection('abastecimentos').doc(abastecimentoParaEditarId);
+
+        const batch = db.batch();
+
+        // Converte a data do input para um objeto Date do JS e depois para timestamp do Firestore
+        const novaData = new Date(novaDataString + 'T12:00:00'); // Adiciona meio-dia para evitar problemas de fuso
+        const novoMes = MESES[novaData.getMonth()];
+        const novoAno = String(novaData.getFullYear());
+
+        // 1. Encontrar o abastecimento anterior para recalcular o KM rodado deste item
+        const abastecimentoAnteriorSnapshot = await veiculoRef.collection('abastecimentos')
+            .where('data', '<', (await abastecimentoRef.get()).data().data).orderBy('data', 'desc').limit(1).get();
+        
+        let kmAnterior;
+        if (!abastecimentoAnteriorSnapshot.empty) {
+            kmAnterior = abastecimentoAnteriorSnapshot.docs[0].data().kmAtual;
+        } else {
+            // Se não houver anterior, busca o KM inicial do veículo como fallback
+            const veiculoDoc = await veiculoRef.get();
+            if (veiculoDoc.exists) {
+                kmAnterior = veiculoDoc.data().kmInicial;
+            } else {
+                return alert("Erro: Veículo não encontrado para recalcular.");
+            }
+        }
+
+        const novoKmRodado = novoKm - kmAnterior;
+        const novoKmPorLitro = novoKmRodado / novoLitros;
+
+        batch.update(abastecimentoRef, {
+            kmAtual: novoKm,
+            litros: novoLitros,
+            valor: novoValor,
+            data: firebase.firestore.Timestamp.fromDate(novaData),
+            mes: novoMes,
+            ano: novoAno,
+            kmRodado: novoKmRodado,
+            kmPorLitro: novoKmPorLitro
+        });
+
+        // 2. Encontrar o abastecimento seguinte para recalcular o KM rodado dele
+        const abastecimentoSeguinteSnapshot = await veiculoRef.collection('abastecimentos')
+            .where('data', '>', (await abastecimentoRef.get()).data().data).orderBy('data', 'asc').limit(1).get();
+
+        if (!abastecimentoSeguinteSnapshot.empty) {
+            const seguinteDoc = abastecimentoSeguinteSnapshot.docs[0];
+            const seguinteDados = seguinteDoc.data();
+            const seguinteKmRodado = seguinteDados.kmAtual - novoKm;
+            const seguinteKmPorLitro = seguinteKmRodado / seguinteDados.litros;
+            batch.update(seguinteDoc.ref, { kmRodado: seguinteKmRodado, kmPorLitro: seguinteKmPorLitro });
+        }
+
+        try {
+            await batch.commit();
+            alert("Abastecimento atualizado com sucesso!");
+            fecharModalEditarAbastecimento();
+            calcularEstatisticasGerais(); // Atualiza as estatísticas gerais
+            renderizarDetalhesVeiculo(veiculoSelecionadoId, document.getElementById('vehicle-name-details').textContent);
+        } catch (error) {
+            console.error("Erro ao salvar edição:", error);
+            alert("Ocorreu um erro ao salvar a edição.");
+        }
+    }
+
+    async function removerAbastecimento(id) {
+        const idParaRemover = id || abastecimentoParaEditarId;
+        if (!idParaRemover || !confirm("Tem certeza que deseja excluir este registro de abastecimento? Esta ação não pode ser desfeita.")) {
+            return;
+        }
+
+        const veiculoRef = db.collection('users').doc(currentUser.uid).collection('veiculos').doc(veiculoSelecionadoId);
+        const abastecimentoRef = veiculoRef.collection('abastecimentos').doc(idParaRemover);
+        const abastecimentoDoc = await abastecimentoRef.get();
+        if (!abastecimentoDoc.exists) return;
+
+        const abastecimentoRemovido = abastecimentoDoc.data();
+        const batch = db.batch();
+        batch.delete(abastecimentoRef);
+
+        // Encontra o abastecimento seguinte para recalcular seu KM rodado
+        const abastecimentoSeguinteSnapshot = await veiculoRef.collection('abastecimentos')
+            .where('data', '>', abastecimentoRemovido.data).orderBy('data', 'asc').limit(1).get();
+        
+        if (!abastecimentoSeguinteSnapshot.empty) {
+            const seguinteDoc = abastecimentoSeguinteSnapshot.docs[0];
+            const seguinteDados = seguinteDoc.data();
+
+            // Encontra o abastecimento anterior ao que foi removido
+            const anteriorAoRemovidoSnapshot = await veiculoRef.collection('abastecimentos')
+                .where('data', '<', abastecimentoRemovido.data).orderBy('data', 'desc').limit(1).get();
+
+            let kmAnterior;
+            if (!anteriorAoRemovidoSnapshot.empty) {
+                kmAnterior = anteriorAoRemovidoSnapshot.docs[0].data().kmAtual;
+            } else {
+                // Se não houver, usa o KM inicial do veículo
+                const veiculoDoc = await veiculoRef.get();
+                kmAnterior = veiculoDoc.data().kmInicial;
+            }
+
+            // Recalcula o KM rodado e o consumo do abastecimento seguinte
+            const novoKmRodadoSeguinte = seguinteDados.kmAtual - kmAnterior;
+            const novoKmPorLitroSeguinte = novoKmRodadoSeguinte / seguinteDados.litros;
+
+            batch.update(seguinteDoc.ref, {
+                kmRodado: novoKmRodadoSeguinte,
+                kmPorLitro: novoKmPorLitroSeguinte
+            });
+        }
+
+        await batch.commit();
+        alert("Registro de abastecimento removido com sucesso.");
+        fecharModalEditarAbastecimento();
+        calcularEstatisticasGerais(); // Atualiza as estatísticas gerais
+        renderizarDetalhesVeiculo(veiculoSelecionadoId, document.getElementById('vehicle-name-details').textContent);
+    }
+
+  </script>
+</body>
+</html>

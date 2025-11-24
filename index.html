@@ -123,6 +123,29 @@
       background: var(--sidebar-item-hover);
     }
 
+    .btn-sidebar {
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: var(--sidebar-item-bg);
+      color: var(--sidebar-text);
+      cursor: pointer;
+      transition: background 0.2s ease;
+      border: none;
+      font-size: 16px;
+    }
+
+    a.btn-sidebar {
+      text-decoration: none; /* Remove o sublinhado dos links */
+    }
+
+    .btn-sidebar:hover {
+      background: var(--sidebar-item-hover);
+    }
+
+    .btn-sidebar.active {
+      background: var(--accent-blue); /* Cor de destaque para a aba ativa */
+    }
+
     .sidebar-controls {
       display: flex;
       flex-direction: column;
@@ -516,7 +539,12 @@
     #copyModal {
       z-index: 2000;
     }
-    
+
+    /* Modal financeiro deve aparecer acima de outros modais */
+    #financeiroModal {
+      z-index: 2000;
+    }
+
     .collapsible-section, .hidden-section {
       display: none; /* Escondido por padrão */
       margin-top: -8px; /* Reduz o espaço quando expandido */
@@ -702,36 +730,11 @@
 </head>
 <body>
   <aside class="sidebar">
-    <!-- Nova estrutura para a barra de controle no mobile -->
-    <div class="sidebar-controls">
-      <!-- Seção superior: Dark Mode e Nome do Usuário -->
-      <div class="top-bar-mobile-section">
-        <div class="theme-switch-wrapper mobile-theme-switch">
-          <label class="theme-switch" for="theme-toggle-mobile">
-            <input type="checkbox" id="theme-toggle-mobile" />
-            <span class="slider"></span>
-          </label>
-          <span id="user-name-mobile" style="margin-left: 10px; color: var(--sidebar-text); font-weight: 600;"></span>
-        </div>
-      </div>
+    <h1>💰 Controle</h1>
 
-      <!-- Seção inferior: Seletores de Ano e Mês -->
-      <div class="selection-bar-mobile-section">
-        <div class="ano-select">
-        <label for="selectAno">Ano</label>
-        <select id="selectAno"></select>
-        </div>
-        <div class="mes-select-mobile">
-        <label for="selectMesMobile">Mês</label>
-        <select id="selectMesMobile"></select>
-        </div>
-      </div>
-    </div>
-
-    <div class="months-wrapper">
-      <label>Meses</label>
-      <div class="months" id="listaMeses"></div>
-    </div>
+    <!-- Botão para abrir o modal Financeiro -->
+    <button class="btn-sidebar active" onclick="abrirModalFinanceiro()">Financeiro</button>
+    <a href="veiculos.html" class="btn-sidebar" style="text-align: center;">Veículos</a>
 
     <div class="footer-actions">
       <button id="admin-button" class="btn-add" style="background-color: var(--accent-blue); display: none;" onclick="window.location.href='admin.html'">ADM</button>
@@ -830,6 +833,28 @@
     </div>
 
   </main>
+
+  <!-- Modal para Financeiro (Ano/Mês) -->
+  <div id="financeiroModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>Selecione o Período</h3>
+      <div class="ano-select">
+        <label for="selectAno">Ano</label>
+        <div class="ano-row">
+          <select id="selectAno"></select>
+        </div>
+      </div>
+      <div class="months-wrapper">
+        <label>Meses</label>
+        <div class="months" id="listaMeses"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="fecharModalFinanceiro()">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <select id="selectMesMobile" style="display: none;"></select>
 
   <!-- Modal para Copiar Itens -->
   <div id="copyModal" class="modal-overlay">
@@ -987,7 +1012,6 @@
     let parcelasParaAdiantar = [];
 
     const selectAno = document.getElementById("selectAno");
-    const listaMeses = document.getElementById("listaMeses");
     const selectMesMobile = document.getElementById("selectMesMobile");
 
     function popularListaAnos() {
@@ -1140,6 +1164,7 @@
     }
 
     function renderizarMeses() {
+      const listaMeses = document.getElementById("listaMeses");
       listaMeses.innerHTML = "";
       MESES.forEach(mes => {
         const div = document.createElement("div");
@@ -1163,6 +1188,7 @@
       if (!anoAtual) return;
       mesAtual = mes;
       document.getElementById("tituloMes").innerText = `${mesAtual} / ${anoAtual}`;
+      fecharModalFinanceiro();
       renderizarMeses();
       await garantirEstruturaUsuario(anoAtual);
       escutarMes(anoAtual, mesAtual);
@@ -1698,6 +1724,13 @@
       document.getElementById('reservadoModal').classList.remove('visible');
     }
 
+    function abrirModalFinanceiro() {
+      document.getElementById('financeiroModal').classList.add('visible');
+    }
+    function fecharModalFinanceiro() {
+      document.getElementById('financeiroModal').classList.remove('visible');
+    }
+
     function abrirModalEntradas() {
       document.getElementById('entradasModal').classList.add('visible');
     }
@@ -1739,8 +1772,6 @@
       } else {
         saldoCard.classList.add('card-saldo-positivo');
       }
-
-      document.getElementById("infoCartaoNasContas").innerText = formatar(totalCartao);
     }
 
     async function confirmarAdiantamento() {
@@ -1902,5 +1933,6 @@
     });
   </script>
 </body>
+
 </html>
  
