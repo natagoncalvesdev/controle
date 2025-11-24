@@ -63,6 +63,19 @@
       text-align: center;
     }
 
+    .period-controls {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .period-controls select {
+      background: var(--bg-section);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      min-width: 150px;
+    }
+
     .ano-select {
       display: flex;
       flex-direction: column;
@@ -149,11 +162,6 @@
     .mobile-nav { display: none; } /* Oculto no desktop */
 
     .desktop-nav {
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-    }
-    .sidebar-controls {
       display: flex;
       flex-direction: column;
       gap: 24px;
@@ -723,7 +731,11 @@
 
   <main class="content">
     <div class="header">
-      <h2 id="tituloMes">Selecione um ano e um mês</h2>
+      <h2 id="tituloMes">Carregando...</h2>
+      <div class="period-controls">
+        <select id="selectAno"></select>
+        <select id="selectMesMobile"></select>
+      </div>
       <div class="resumo">
         <div class="card yellow">
           <small>Total contas (inclui cartão)</small>
@@ -812,27 +824,7 @@
 
   </main>
 
-  <!-- Modal para Financeiro (Ano/Mês) -->
-  <div id="financeiroModal" class="modal-overlay">
-    <div class="modal-content">
-      <h3>Selecione o Período</h3>
-      <div class="ano-select">
-        <label for="selectAno">Ano</label>
-        <div class="ano-row">
-          <select id="selectAno"></select>
-        </div>
-      </div>
-      <div class="months-wrapper">
-        <label>Meses</label>
-        <div class="months" id="listaMeses"></div>
-      </div>
-      <div class="modal-actions">
-        <button class="btn-cancel" onclick="fecharModalFinanceiro()">Fechar</button>
-      </div>
-    </div>
-  </div>
-
-  <select id="selectMesMobile" style="display: none;"></select>
+  
 
   <!-- Modal para Copiar Itens -->
   <div id="copyModal" class="modal-overlay">
@@ -996,6 +988,7 @@
 
     const selectAno = document.getElementById("selectAno");
     const selectMesMobile = document.getElementById("selectMesMobile");
+    const financeiroModalSelectAno = document.querySelector("#financeiroModal #selectAno");
 
     function popularListaAnos() {
       selectAno.innerHTML = "";
@@ -1004,6 +997,10 @@
         option.value = String(ano);
         option.textContent = String(ano);
         selectAno.appendChild(option);
+      }
+      // Popula também o seletor de ano dentro do modal financeiro, se ele existir
+      if (financeiroModalSelectAno) {
+        financeiroModalSelectAno.innerHTML = selectAno.innerHTML;
       }
     }
 
@@ -1032,6 +1029,10 @@
 
       anoAtual = String(anoCorrente);
       selectAno.value = anoAtual; // Define o valor no seletor
+      // Sincroniza o seletor do modal
+      if (financeiroModalSelectAno) {
+        financeiroModalSelectAno.value = anoAtual;
+      }
 
       await garantirEstruturaUsuario(anoAtual); // Garante que a estrutura do ano exista no DB
       await selecionarMes(mesCorrente); // Seleciona o mês e ano atuais
@@ -1160,7 +1161,11 @@
     }
 
     async function trocarAno() {
-      anoAtual = selectAno.value;
+      // Usa o seletor do modal como fonte da verdade se o modal estiver aberto
+      const anoSelecionado = document.getElementById('financeiroModal').classList.contains('visible') 
+        ? financeiroModalSelectAno.value 
+        : selectAno.value;
+      anoAtual = anoSelecionado;
       mesAtual = "";
       if (unsubscribeMes) unsubscribeMes();
       await garantirEstruturaUsuario(anoAtual);
@@ -1172,6 +1177,11 @@
       mesAtual = mes;
       document.getElementById("tituloMes").innerText = `${mesAtual} / ${anoAtual}`;
       fecharModalFinanceiro();
+      // Sincroniza os seletores
+      selectAno.value = anoAtual;
+      if (financeiroModalSelectAno) {
+        financeiroModalSelectAno.value = anoAtual;
+      }
       renderizarMeses();
       await garantirEstruturaUsuario(anoAtual);
       escutarMes(anoAtual, mesAtual);
