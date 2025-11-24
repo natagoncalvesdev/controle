@@ -146,6 +146,13 @@
       background: var(--accent-blue); /* Cor de destaque para a aba ativa */
     }
 
+    .mobile-nav { display: none; } /* Oculto no desktop */
+
+    .desktop-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
     .sidebar-controls {
       display: flex;
       flex-direction: column;
@@ -707,6 +714,29 @@
       gap: 12px;
       margin-top: auto; /* Empurra para o final do container */
     }
+    @media (max-width: 768px) {
+      .sidebar {
+        justify-content: flex-start; /* Alinha itens à esquerda */
+      }
+      .mobile-nav-toggle {
+        background: var(--sidebar-item-bg);
+        color: var(--sidebar-text);
+        border: none;
+        padding: 10px 15px;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      .sidebar-controls {
+        display: none; /* Esconde os controles de ano/mês da barra superior */
+      }
+      .content { margin-top: 80px; } /* Ajusta margem para a nova barra */
+    }
+    .footer-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: auto; /* Empurra para o final do container */
+    }
     .footer-actions .btn-add {
       flex: 1; /* Faz os botões terem o mesmo tamanho */
       border: none;
@@ -732,9 +762,18 @@
   <aside class="sidebar">
     <h1>💰 Controle</h1>
 
-    <!-- Botão para abrir o modal Financeiro -->
-    <button class="btn-sidebar active" onclick="abrirModalFinanceiro()">Financeiro</button>
-    <a href="veiculos.html" class="btn-sidebar" style="text-align: center;">Veículos</a>
+    <div class="desktop-nav">
+      <!-- Botão para abrir o modal Financeiro -->
+      <button class="btn-sidebar active" onclick="abrirModalFinanceiro()">Financeiro</button>
+      <a href="veiculos.html" class="btn-sidebar" style="text-align: center;">Veículos</a>
+    </div>
+    <div class="mobile-nav">
+      <button class="mobile-nav-toggle" onclick="toggleMobileMenu()">☰ Menu</button>
+      <div class="mobile-nav-menu" id="mobileNavMenu">
+        <a href="index.html">Financeiro</a>
+        <a href="veiculos.html">Veículos</a>
+      </div>
+    </div>
 
     <div class="footer-actions">
       <button id="admin-button" class="btn-add" style="background-color: var(--accent-blue); display: none;" onclick="window.location.href='admin.html'">ADM</button>
@@ -1010,6 +1049,11 @@
     let unsubscribeMes = null;
     let itemParaCopiar = null;
     let parcelasParaAdiantar = [];
+
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobileNavMenu');
+      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    }
 
     const selectAno = document.getElementById("selectAno");
     const selectMesMobile = document.getElementById("selectMesMobile");

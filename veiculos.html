@@ -91,6 +91,13 @@
       background: var(--accent-blue); /* Cor de destaque para a aba ativa */
     }
 
+    .mobile-nav { display: none; } /* Oculto no desktop */
+
+    .desktop-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
     .content {
       flex: 1;
       padding: 32px;
@@ -292,13 +299,83 @@
       color: #ffffff;
     }
   </style>
+  <style> /* Estilos para Mobile */
+    @media (max-width: 768px) {
+      body { flex-direction: column; }
+      .sidebar {
+        width: 100%;
+        height: auto;
+        position: fixed;
+        top: 0;
+        left: 0;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        gap: 16px;
+      }
+      .sidebar h1 { display: none; }
+      .desktop-nav { display: none; }
+      .footer-actions { display: none; }
+
+      .mobile-nav {
+        display: block;
+        position: relative;
+      }
+      .mobile-nav-toggle {
+        background: var(--sidebar-item-bg);
+        color: var(--sidebar-text);
+        border: none;
+        padding: 10px 15px;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      .mobile-nav-menu {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background: var(--sidebar-item-hover);
+        border-radius: 8px;
+        padding: 8px;
+        margin-top: 5px;
+        width: 150px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      }
+      .mobile-nav-menu a {
+        display: block;
+        color: var(--sidebar-text);
+        text-decoration: none;
+        padding: 10px;
+        border-radius: 6px;
+      }
+      .mobile-nav-menu a:hover {
+        background: var(--accent-blue);
+      }
+
+      .content {
+        margin-left: 0;
+        margin-top: 80px; /* Altura da nova barra superior */
+        padding: 16px;
+      }
+    }
+  </style>
 </head>
 <body>
   <aside class="sidebar">
     <h1>💰 Controle</h1>
-
-    <a href="index.html" class="btn-sidebar" style="text-align: center;">Financeiro</a>
-    <a href="veiculos.html" class="btn-sidebar active" style="text-align: center;">Veículos</a>
+    <div class="desktop-nav">
+      <a href="index.html" class="btn-sidebar" style="text-align: center;">Financeiro</a>
+      <a href="veiculos.html" class="btn-sidebar active" style="text-align: center;">Veículos</a>
+    </div>
+    <div class="mobile-nav">
+      <button class="mobile-nav-toggle" onclick="toggleMobileMenu()">☰ Menu</button>
+      <div class="mobile-nav-menu" id="mobileNavMenu">
+        <a href="index.html">Financeiro</a>
+        <a href="veiculos.html">Veículos</a>
+      </div>
+    </div>
 
     <div class="footer-actions">
       <button id="admin-button" class="btn-add" style="background-color: var(--accent-blue); display: none;" onclick="window.location.href='admin.html'">ADM</button>
@@ -454,6 +531,11 @@
     let ultimoAbastecimentoCache = null;
     let unsubscribeVeiculos = null;
     let abastecimentoParaEditarId = null;
+
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobileNavMenu');
+      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    }
 
     const selectAno = document.getElementById("selectAno");
     const selectMes = document.getElementById("selectMes");
