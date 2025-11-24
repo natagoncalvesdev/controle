@@ -621,102 +621,30 @@
     @media (max-width: 768px) {
       body { overflow-y: auto; } /* Adiciona rolagem ao corpo da página */
       body { flex-direction: column; }
+
       .sidebar {
         width: 100%;
         height: auto;
-        padding: 0;
-        position: fixed; /* Mantém a barra fixa no topo */
-        top: 0; /* Garante que a barra fique colada no topo */
-        left: 0; /* Garante que a barra ocupe toda a largura */
-        z-index: 100; /* Garante que a barra fique sobre todo o conteúdo */
-      }
-      .sidebar-controls {
+        position: fixed;
+        top: 0;
+        left: 0;
         flex-direction: row;
-        gap: 16px;
-        /* Removendo align-items aqui, será definido nas sub-seções */
-        background: var(--sidebar-bg);
-        padding: 0; /* Removendo padding do container principal, será aplicado nas sub-seções */
-        flex-direction: column; /* Empilha as seções verticalmente */
-        gap: 0; /* Remove o gap entre as seções */
-      }
-      .top-bar-mobile-section {
-        display: flex;
+        justify-content: space-between; /* Espaça o título e o menu */
         align-items: center;
-        justify-content: flex-start;
-        width: 100%;
-        padding: 12px 16px; /* Padding para esta seção */
-      }
-      .selection-bar-mobile-section {
-        display: flex;
-        flex-direction: row; /* Ano e mês lado a lado */
+        padding: 12px 16px;
         gap: 16px;
-        width: 100%;
-        padding: 12px 16px; /* Padding para esta seção */
-        border-top: 1px solid var(--border-color); /* Separador visual */
+        z-index: 100;
       }
-      .selection-bar-mobile-section .ano-select,
-      .selection-bar-mobile-section .mes-select-mobile {
-        flex: 1; /* Faz com que o ano e o mês ocupem o mesmo espaço */
-      }
-      .sidebar-controls .ano-select, .sidebar-controls .mes-select-mobile {
-        flex: 1;
-      }
-      .mes-select-mobile {
-        display: flex; /* Exibido em mobile */
-        flex-direction: column;
-        gap: 12px;
-      }
-      .mes-select-mobile label {
-        font-size: 14px;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--text-secondary);
-      }
-      .months-wrapper { 
-        display: none; /* Oculta a lista de meses em mobile */
-      }
-      /* Override desktop-specific theme switch wrapper styles for mobile */
-      .top-bar-mobile-section .theme-switch-wrapper {
-        margin-top: 0;
-        padding-top: 0;
-        border-top: none;
-        position: relative; /* Necessário para z-index funcionar em flex items */
-        z-index: 101; /* Garante que o toggle seja clicável */
-      }
-      /* Ajusta a margem superior do conteúdo principal para corresponder à altura da nova barra fixa */
-      /* Altura da top-bar-mobile-section: 12px (padding top) + ~24px (altura do toggle) + 12px (padding bottom) = ~48px */
-      /* Altura da selection-bar-mobile-section: 12px (padding top) + ~40px (altura do select) + 12px (padding bottom) + 1px (border) = ~65px */
-      /* Total aproximado: 48px + 65px = 113px */
-      .content {
-        padding: 16px;
-        overflow-y: visible;
-        margin-left: 0; /* Remove a margem lateral da sidebar */
-        margin-top: 140px; /* Aumenta a margem para dar mais espaço visual */
-      }
-      .header h2 { font-size: 22px; }
-      .card strong { font-size: 22px; }
 
-      .form-row {
-        flex-direction: column;
-        align-items: stretch;
-      }
-      .form-row button {
-        padding: 10px 12px;
-      }
-      th, td {
-        padding: 10px 8px;
-      }
-      /* Remove a altura mínima que causava problemas de alinhamento */
-      .actions-cell { min-height: unset; }
-    }
-    .footer-actions {
-      display: flex;
-      gap: 12px;
-      margin-top: auto; /* Empurra para o final do container */
-    }
-    @media (max-width: 768px) {
-      .sidebar {
-        justify-content: flex-start; /* Alinha itens à esquerda */
+      /* Esconde elementos do desktop */
+      .sidebar h1 { font-size: 18px; } /* Deixa o título um pouco menor */
+      .desktop-nav { display: none; }
+      .footer-actions { display: none; }
+
+      /* Mostra e estiliza o menu mobile */
+      .mobile-nav {
+        display: block;
+        position: relative;
       }
       .mobile-nav-toggle {
         background: var(--sidebar-item-bg);
@@ -727,27 +655,43 @@
         font-size: 16px;
         cursor: pointer;
       }
-      .sidebar-controls {
-        display: none; /* Esconde os controles de ano/mês da barra superior */
+      .mobile-nav-menu {
+        display: none;
+        position: absolute;
+        top: 100%;
+        right: 0; /* Alinha o menu à direita */
+        background: var(--sidebar-item-hover);
+        border-radius: 8px;
+        padding: 8px;
+        margin-top: 5px;
+        width: 150px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
       }
-      .content { margin-top: 80px; } /* Ajusta margem para a nova barra */
-    }
-    .footer-actions {
-      display: flex;
-      gap: 12px;
-      margin-top: auto; /* Empurra para o final do container */
-    }
-    .footer-actions .btn-add {
-      flex: 1; /* Faz os botões terem o mesmo tamanho */
-      border: none;
-      border-radius: 10px; /* Cantos arredondados */
-      padding: 12px 14px; /* Espaçamento interno */
-      font-weight: 600;
-      color: #ffffff;
-    }
-    
-    @media (max-width: 768px) {
-      .sidebar .footer-actions { display: none; } /* Esconde no sidebar em mobile */
+      .selection-bar-mobile-section {
+        display: flex;
+        flex-direction: row; /* Ano e mês lado a lado */
+        gap: 16px;
+        width: 100%;
+        padding: 12px 16px; /* Padding para esta seção */
+        border-top: 1px solid var(--border-color); /* Separador visual */
+      }
+      .mobile-nav-menu a {
+        display: block;
+        color: var(--sidebar-text);
+        text-decoration: none;
+        padding: 10px;
+        border-radius: 6px;
+      }
+      .mobile-nav-menu a:hover {
+        background: var(--accent-blue);
+      }
+
+      .content {
+        padding: 16px;
+        overflow-y: visible;
+        margin-left: 0; /* Remove a margem lateral da sidebar */
+        margin-top: 80px; /* Espaço para a barra superior fixa */
+      }
     }
 
     .table-wrapper thead {
@@ -762,11 +706,6 @@
   <aside class="sidebar">
     <h1>💰 Controle</h1>
 
-    <div class="desktop-nav">
-      <!-- Botão para abrir o modal Financeiro -->
-      <button class="btn-sidebar active" onclick="abrirModalFinanceiro()">Financeiro</button>
-      <a href="veiculos.html" class="btn-sidebar" style="text-align: center;">Veículos</a>
-    </div>
     <div class="mobile-nav">
       <button class="mobile-nav-toggle" onclick="toggleMobileMenu()">☰ Menu</button>
       <div class="mobile-nav-menu" id="mobileNavMenu">
@@ -774,11 +713,10 @@
         <a href="veiculos.html">Veículos</a>
       </div>
     </div>
-
-    <div class="footer-actions">
-      <button id="admin-button" class="btn-add" style="background-color: var(--accent-blue); display: none;" onclick="window.location.href='admin.html'">ADM</button>
-      <button id="logout-button" class="btn-add" style="background-color: var(--accent-3);">Sair</button>
-    </div>
+    
+    <!-- O restante da sidebar (desktop) permanece aqui -->
+    <button class="btn-sidebar active" onclick="abrirModalFinanceiro()">Financeiro</button>
+    <a href="veiculos.html" class="btn-sidebar" style="text-align: center;">Veículos</a>
 
   </aside>
 
