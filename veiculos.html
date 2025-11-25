@@ -378,20 +378,18 @@
     <div class="mobile-nav">
       <button class="mobile-nav-toggle" onclick="toggleMobileMenu()">☰ Menu</button>
       <div class="mobile-nav-menu" id="mobileNavMenu">
+        <a href="home.html">Home</a>
         <a href="index.html">Financeiro</a>
         <a href="veiculos.html">Veículos</a>
       </div>
     </div>
 
     <div class="desktop-nav">
+      <a href="home.html" class="btn-sidebar" style="text-align: center;">Home</a>
       <a href="index.html" class="btn-sidebar" style="text-align: center;">Financeiro</a>
       <a href="veiculos.html" class="btn-sidebar active" style="text-align: center;">Veículos</a>
     </div>
 
-    <div class="footer-actions">
-      <button id="admin-button" class="btn-add" style="background-color: var(--accent-blue); display: none;" onclick="window.location.href='admin.html'">ADM</button>
-      <button id="logout-button" class="btn-add" style="background-color: var(--accent-red);">Sair</button>
-    </div>
   </aside>
 
   <main class="content">
@@ -567,11 +565,7 @@
         db.collection('users').doc(currentUser.uid).get().then(doc => {
           if (doc.exists) {
             const userData = doc.data();
-            if (userData.adm === true) {
-              document.getElementById('admin-button').style.display = 'block';
-            } else {
-              document.getElementById('admin-button').style.display = 'none';
-            }
+            // Lógica de administrador pode ser adicionada aqui se necessário no futuro.
           }
         }).catch(error => {
           console.error("Erro ao buscar dados do usuário:", error);
@@ -583,11 +577,6 @@
       } else {
         window.location.href = 'login.html';
       }
-    });
-
-    document.getElementById('logout-button').addEventListener('click', () => {
-      if (unsubscribeVeiculos) unsubscribeVeiculos();
-      auth.signOut().then(() => window.location.href = 'login.html');
     });
 
     // Adiciona a funcionalidade de fechar modais ao clicar no overlay

@@ -717,13 +717,15 @@
     <div class="mobile-nav">
       <button class="mobile-nav-toggle" onclick="toggleMobileMenu()">☰ Menu</button>
       <div class="mobile-nav-menu" id="mobileNavMenu">
+        <a href="home.html">Home</a>
         <a href="index.html">Financeiro</a>
         <a href="veiculos.html">Veículos</a>
       </div>
     </div>
     
-    <div class="desktop-nav">
-      <button class="btn-sidebar active" onclick="abrirModalFinanceiro()">Financeiro</button>
+    <div class="desktop-nav">     
+      <a href="home.html" class="btn-sidebar" style="text-align: center;">Home</a>
+      <a href="index.html" class="btn-sidebar active" style="text-align: center;">Financeiro</a>
       <a href="veiculos.html" class="btn-sidebar" style="text-align: center;">Veículos</a>
     </div>
 
@@ -815,12 +817,6 @@
         </table>
       </div>
     </section>
-
-    <!-- Botões movidos para cá na visualização mobile -->
-    <div class="footer-actions" style="display: none;">
-      <button id="admin-button-mobile" class="btn-add" style="background-color: var(--accent-blue); display: none;" onclick="window.location.href='admin.html'">ADM</button>
-      <button id="logout-button-mobile" class="btn-add" style="background-color: var(--accent-3);" onclick="auth.signOut().then(() => window.location.href = 'login.html')">Sair</button>
-    </div>
 
   </main>
 
@@ -1053,13 +1049,7 @@
 
             // Verifica se o usuário é administrador
             if (userData.adm === true) {
-              // Mostra o botão de admin (mobile)
-              // document.getElementById('admin-button').style.display = 'block'; // Botão desktop não existe
-              document.getElementById('admin-button-mobile').style.display = 'block';
-            } else {
-              
-              // document.getElementById('admin-button').style.display = 'none'; // Botão desktop não existe
-              document.getElementById('admin-button-mobile').style.display = 'none';
+              // Lógica para administrador pode ser adicionada aqui no futuro
             }
           }
         }).catch(error => {
@@ -1072,13 +1062,6 @@
         // Se não houver usuário, redireciona para o login
         window.location.href = 'login.html';
       }
-    });
-
-    // Exibe os botões de rodapé no mobile quando a página carrega
-    window.addEventListener('DOMContentLoaded', () => {
-        if (window.innerWidth <= 768) {
-            document.querySelector('main .footer-actions').style.display = 'flex';
-        }
     });
 
     // Lógica do Dark Mode

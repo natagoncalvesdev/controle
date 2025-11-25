@@ -113,11 +113,7 @@
       <button id="export-button" class="btn-add" style="background-color: var(--accent-blue);">Exportar Ano</button>
     </div>
 
-    <div class="button-group">
-      <button id="back-button" class="btn-add btn-back" onclick="window.location.href='index.html'">Voltar</button>
-      <button id="logout-button" class="btn-add btn-logout">Sair</button>
-    </div>
-
+    <button id="back-button" class="btn-add btn-back" style="margin-top: 10px;" onclick="window.location.href='index.html'">Voltar</button>
     <p id="error-message"></p>
   </div>
 
@@ -291,9 +287,6 @@
       errorMessage.style.display = 'none'; // Limpa a mensagem de erro ao trocar de ano
     });
     exportButton.addEventListener('click', exportarDados);
-    document.getElementById('logout-button').addEventListener('click', () => {
-      auth.signOut().then(() => window.location.href = 'login.html');
-    });
 
     // Proteção da rota ADM
     auth.onAuthStateChanged(user => {
