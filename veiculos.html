@@ -480,7 +480,7 @@
         <div class="table-wrapper">
             <table>
                 <thead>
-                    <tr><th>Data</th><th>KM</th><th>Valor</th><th>KM/L</th><th>Ações</th></tr>
+                    <tr><th>Data</th><th>KM</th><th>Valor</th><th>KM/L</th></tr>
                 </thead>
                 <tbody id="tabelaHistoricoAbastecimento">
                 </tbody>
@@ -848,13 +848,12 @@
             <td>${Math.round(abastecimento.kmAtual)} km</td>
             <td>${formatar(abastecimento.valor)}</td>
             <td>${(abastecimento.kmPorLitro || 0).toFixed(2)}</td>
-            <td><button class="btn-icon-inline delete" onclick="removerAbastecimento('${id}')">🗑️</button></td>
           `;
           tr.addEventListener('click', () => abrirModalEditarAbastecimento(id));
           tabelaHistorico.appendChild(tr);
         });
       } else {
-        tabelaHistorico.innerHTML = '<tr><td colspan="5" class="info-text" style="text-align:center;">Nenhum abastecimento neste mês.</td></tr>';
+        tabelaHistorico.innerHTML = '<tr><td colspan="4" class="info-text" style="text-align:center;">Nenhum abastecimento neste mês.</td></tr>';
       }
 
       // Busca manutenções do mês
@@ -965,6 +964,10 @@
             const ref = db.collection('users').doc(currentUser.uid).collection('veiculos').doc(veiculoSelecionadoId).collection('manutencoes');
             await ref.add(novaManutencao);
             alert("Manutenção registrada com sucesso!");
+            // Limpa os campos do formulário após o registro
+            descricaoInput.value = '';
+            valorInput.value = '';
+            tipoInput.value = 'Preventiva'; // Reseta para o valor padrão
             renderizarDetalhesVeiculo(veiculoSelecionadoId, document.getElementById('stats-vehicle-name').textContent);
         } catch (error) {
             console.error("Erro ao registrar manutenção:", error);
@@ -1215,7 +1218,7 @@
         }
 
         await batch.commit();
-        alert("Registro de abastecimento removido com sucesso.");
+        
         fecharModalEditarAbastecimento();
         calcularEstatisticasGerais(); // Atualiza as estatísticas gerais
         renderizarDetalhesVeiculo(veiculoSelecionadoId, document.getElementById('vehicle-name-details').textContent);
@@ -1231,7 +1234,7 @@
         
         await manutencaoRef.delete();
 
-        alert("Registro de manutenção removido com sucesso.");
+        
         fecharModalEditarManutencao();
         calcularEstatisticasGerais();
         renderizarDetalhesVeiculo(veiculoSelecionadoId, document.getElementById('stats-vehicle-name').textContent);
