@@ -63,7 +63,7 @@
 
       auth.signInWithEmailAndPassword(email, password)
         .then((userCredential) => {
-          window.location.href = 'index.html';
+          window.location.href = 'home.html';
         })
         .catch((error) => {
           errorMessage.textContent = 'Email ou senha inválidos. Tente novamente.';
