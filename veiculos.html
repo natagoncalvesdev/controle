@@ -499,10 +499,17 @@
     <div class="modal-content">
       <h3>Editar Abastecimento</h3>
       <div id="editModalBodyDetails" class="modal-body-details"></div>
-      <div class="form-row" style="flex-direction: column;">
+      <div class="form-row" style="flex-direction: column; gap: 4px;">
+        <label for="editVeiculoData" style="font-size: 14px; color: var(--text-secondary);">Data</label>
         <input id="editVeiculoData" type="date">
+
+        <label for="editVeiculoKmAtual" style="font-size: 14px; color: var(--text-secondary); margin-top: 8px;">Quilometragem</label>
         <input id="editVeiculoKmAtual" type="number" placeholder="KM Atual">
+
+        <label for="editVeiculoLitros" style="font-size: 14px; color: var(--text-secondary); margin-top: 8px;">Litros</label>
         <input id="editVeiculoLitros" type="number" placeholder="Litros">
+
+        <label for="editVeiculoValor" style="font-size: 14px; color: var(--text-secondary); margin-top: 8px;">Valor</label>
         <input id="editVeiculoValor" type="number" placeholder="Valor Total (R$)">
       </div>
       <div class="modal-actions">
@@ -749,7 +756,7 @@
 
       // Busca abastecimentos do mês selecionado para as estatísticas
       const abastecimentosMesRef = db.collection('users').doc(currentUser.uid).collection('veiculos').doc(veiculoId)
-        .collection('abastecimentos').where('ano', '==', anoAtual).where('mes', '==', mesAtual).orderBy('data', 'asc');
+        .collection('abastecimentos').where('ano', '==', anoAtual).where('mes', '==', mesAtual).orderBy('data', 'desc');
       
       const snapshotMes = await abastecimentosMesRef.get();
       let custoTotalMes = 0, kmTotalMes = 0, litrosTotalMes = 0;
