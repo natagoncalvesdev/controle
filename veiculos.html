@@ -233,6 +233,10 @@
     .stat-card.blue strong { color: var(--accent-blue); }
     .stat-card.green strong { color: var(--accent-green); }
     /* Modal Styles */
+    .modal-body-details p {
+      margin: 8px 0;
+      font-size: 16px;
+    }
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0, 0, 0, 0.6);
@@ -411,14 +415,12 @@
     <div class="page-content">
       <!-- Tela de Listagem de Veículos (Padrão) -->
       <div id="vehicle-list-view" class="section">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <h3>Meus Veículos</h3>
-          <div class="header">
-            <div class="controls">
-              <select id="selectAno"></select>
-              <select id="selectMes"></select>
-              <button class="btn btn-add" onclick="abrirModalAddVeiculo()">Adicionar</button>
-            </div>
+        <h3>Meus Veículos</h3>
+        <div class="header">
+          <div class="controls">
+            <select id="selectAno"></select>
+            <select id="selectMes"></select>
+            <button class="btn btn-add" onclick="abrirModalAddVeiculo()">Adicionar</button>
           </div>
         </div>
         <div id="listaVeiculos" class="vehicle-list" style="margin-top: 16px;">
@@ -449,7 +451,7 @@
               <h3 id="vehicle-name-details"></h3>
               <button class="btn btn-secondary" onclick="voltarParaListaVeiculos()">Voltar</button>
           </div>
-          <div class="header">
+          <div class="header" style="flex-wrap: nowrap;">
               <div class="controls">
                 <select id="selectAnoDetalhes"></select>
                 <select id="selectMesDetalhes"></select>
@@ -469,7 +471,7 @@
         <div class="table-wrapper">
             <table>
                 <thead>
-                    <tr><th>Data</th><th>KM</th><th>Valor</th><th>Litros</th><th>KM/L</th></tr>
+                    <tr><th>Data</th><th>KM</th><th>Valor</th><th>KM/L</th></tr>
                 </thead>
                 <tbody id="tabelaHistoricoAbastecimento">
                 </tbody>
@@ -496,6 +498,7 @@
   <div id="editAbastecimentoModal" class="modal-overlay">
     <div class="modal-content">
       <h3>Editar Abastecimento</h3>
+      <div id="editModalBodyDetails" class="modal-body-details"></div>
       <div class="form-row" style="flex-direction: column;">
         <input id="editVeiculoData" type="date">
         <input id="editVeiculoKmAtual" type="number" placeholder="KM Atual">
@@ -765,16 +768,15 @@
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td>${dataFormatada}</td>
-            <td>${Math.round(abastecimento.kmAtual)}</td>
+            <td>${Math.round(abastecimento.kmAtual)} km</td>
             <td>${formatar(abastecimento.valor)}</td>
-            <td>${abastecimento.litros.toFixed(2)} L</td>
             <td>${(abastecimento.kmPorLitro || 0).toFixed(2)}</td>
           `;
           tr.addEventListener('click', () => abrirModalEditarAbastecimento(id));
           tabelaHistorico.appendChild(tr);
         });
       } else {
-        tabelaHistorico.innerHTML = '<tr><td colspan="5" class="info-text" style="text-align:center;">Nenhum abastecimento neste mês.</td></tr>';
+        tabelaHistorico.innerHTML = '<tr><td colspan="4" class="info-text" style="text-align:center;">Nenhum abastecimento neste mês.</td></tr>';
       }
 
       const mediaKmL = litrosTotalMes > 0 ? (kmTotalMes / litrosTotalMes).toFixed(1) : '0.0';
@@ -787,7 +789,6 @@
       document.getElementById('general-stats-section').style.display = 'none'; // Esconde as estatísticas gerais
       document.querySelector('.page-content').style.display = 'none'; // Esconde a lista de veículos
       document.getElementById('vehicle-details-view').style.display = 'flex';
-      document.getElementById('veiculoKmAtual').focus(); // Adiciona foco ao campo KM
     }
 
     async function registrarAbastecimento() {
@@ -873,6 +874,13 @@
         }
         const abastecimento = doc.data();
         abastecimentoParaEditarId = id;
+
+        const modalBodyDetails = document.getElementById('editModalBodyDetails');
+        modalBodyDetails.innerHTML = `
+          <p><strong>Litros:</strong> ${abastecimento.litros.toFixed(2)} L</p>
+          <p><strong>KM Rodado:</strong> ${Math.round(abastecimento.kmRodado || 0)} km</p>
+          <p><strong>Média:</strong> ${(abastecimento.kmPorLitro || 0).toFixed(2)} km/L</p>
+        `;
 
         const data = abastecimento.data.toDate();
         const dataFormatada = data.toISOString().split('T')[0]; // Formato YYYY-MM-DD
