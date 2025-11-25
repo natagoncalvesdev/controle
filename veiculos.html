@@ -226,7 +226,7 @@
     .stat-card .info { display: flex; flex-direction: column; align-items: center; text-align: center; }
     .stat-card .info small { font-size: 13px; color: var(--text-secondary); }
     .stat-card .info strong { font-size: 22px; font-weight: 600; }
-    .stat-card.green .icon { color: var(--accent-green); }
+    .stat-card.orange strong { color: #f97316; }
     .stat-card.blue .icon { color: var(--accent-blue); }
     .stat-card.red .icon { color: var(--accent-red); }
     .stat-card.red strong { color: var(--accent-red); }
@@ -251,6 +251,11 @@
       display: flex; flex-direction: column; gap: 16px;
     }
     .modal-content h3 { margin: 0; }
+    .modal-content .form-row label {
+        font-size: 14px;
+        color: var(--text-secondary);
+        margin-top: 8px;
+    }
     .modal-content input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-main); }
     .modal-actions { display: flex; justify-content: flex-end; gap: 12px; }
   </style>
@@ -399,8 +404,11 @@
       <h4>Estatísticas Gerais (<span id="geral-stats-month-year"></span>)</h4>
       <div class="stats-grid">
         <div class="stat-card red">
-          <div class="info"><small>Custo Total</small><strong id="geral-stat-custo-total">R$ 0,00</strong></div>
+          <div class="info"><small>Custo Total (Comb. + Manut.)</small><strong id="geral-stat-custo-total">R$ 0,00</strong></div>
         </div>
+        <div class="stat-card orange">
+            <div class="info"><small>Combustível Total</small><strong id="geral-stat-combustivel-total">R$ 0,00</strong></div>
+          </div>
         <div class="stat-card blue">
           <div class="info"><small>KM Rodados</small><strong id="geral-stat-km-total">0 km</strong></div>
         </div>
@@ -433,7 +441,10 @@
         <h4>Estatísticas do mês (<span id="stats-vehicle-name"></span>)</h4>
         <div class="stats-grid">
           <div class="stat-card red">
-            <div class="info"><small>Custo Total</small><strong id="stat-custo-total">R$ 0,00</strong></div>
+            <div class="info"><small>Custo Total (Comb. + Manut.)</small><strong id="stat-custo-total">R$ 0,00</strong></div>
+          </div>
+          <div class="stat-card orange">
+            <div class="info"><small>Combustível Total</small><strong id="stat-combustivel-total">R$ 0,00</strong></div>
           </div>
           <div class="stat-card blue">
             <div class="info"><small>KM Rodados</small><strong id="stat-km-total">0 km</strong></div>
@@ -446,7 +457,7 @@
 
       <div class="section">
           <div style="display: flex; justify-content: space-between; align-items: center;">
-              <h3 id="vehicle-name-details"></h3>
+              <h3 id="vehicle-name-details">Abastecimentos</h3>
               <button class="btn btn-secondary" onclick="voltarParaListaVeiculos()">Voltar</button>
           </div>
           <div class="header" style="flex-wrap: nowrap;">
@@ -465,14 +476,39 @@
       </div>
 
       <div class="section">
-        <h4>Histórico do Mês</h4>
+        <h4>Histórico de Abastecimentos do Mês</h4>
         <div class="table-wrapper">
             <table>
                 <thead>
-                    <tr><th>Data</th><th>KM</th><th>Valor</th><th>KM/L</th></tr>
+                    <tr><th>Data</th><th>KM</th><th>Valor</th><th>KM/L</th><th>Ações</th></tr>
                 </thead>
                 <tbody id="tabelaHistoricoAbastecimento">
                 </tbody>
+            </table>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Manutenção do Veículo</h3>
+        <div class="form-row">
+            <input id="manutencaoDescricao" type="text" placeholder="Descrição (ex: Troca de óleo)">
+            <input id="manutencaoValor" type="number" placeholder="Valor Gasto (R$)">
+            <select id="manutencaoTipo">
+              <option value="Preventiva">Manutenção Preventiva</option>
+              <option value="Conserto">Conserto</option>
+            </select>
+            <button class="btn btn-primary" onclick="registrarManutencao()">Registrar</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <h4>Histórico de Manutenções do Mês</h4>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr><th>Data</th><th>Descrição</th><th>Tipo</th><th>Valor</th></tr>
+                </thead>
+                <tbody id="tabelaHistoricoManutencao"></tbody>
             </table>
         </div>
       </div>
@@ -517,6 +553,33 @@
     </div>
   </div>
 
+  <!-- Modal para Editar Manutenção -->
+  <div id="editManutencaoModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>Editar Manutenção</h3>
+      <div class="form-row" style="flex-direction: column; gap: 4px;">
+        <label for="editManutencaoData">Data</label>
+        <input id="editManutencaoData" type="date">
+
+        <label for="editManutencaoDescricao">Descrição</label>
+        <input id="editManutencaoDescricao" type="text" placeholder="Descrição da manutenção">
+
+        <label for="editManutencaoTipo">Tipo</label>
+        <select id="editManutencaoTipo" style="width: 100%; color: var(--text-primary);">
+          <option value="Preventiva">Manutenção Preventiva</option>
+          <option value="Conserto">Conserto</option>
+        </select>
+
+        <label for="editManutencaoValor">Valor</label>
+        <input id="editManutencaoValor" type="number" placeholder="Valor Gasto (R$)">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-danger" onclick="removerManutencao()">Excluir</button>
+        <button class="btn btn-confirm" onclick="salvarEdicaoManutencao()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyBVwUVoudM_IxWQgkLxlabinw4AXGgf1So",
@@ -546,6 +609,7 @@
     let ultimoAbastecimentoCache = null;
     let unsubscribeVeiculos = null;
     let abastecimentoParaEditarId = null;
+    let manutencaoParaEditarId = null;
 
     function toggleMobileMenu() {
       const menu = document.getElementById('mobileNavMenu');
@@ -656,6 +720,8 @@
       let custoTotalGeral = 0;
       let kmTotalGeral = 0;
       let litrosTotalGeral = 0;
+      let combustivelTotalGeral = 0;
+      let manutencaoTotalGeral = 0;
 
       const veiculosRef = db.collection('users').doc(currentUser.uid).collection('veiculos');
       const veiculosSnapshot = await veiculosRef.get();
@@ -673,16 +739,29 @@
         snapshotsPorVeiculo.forEach(snapshot => {
           snapshot.forEach(doc => {
             const abastecimento = doc.data();
-            custoTotalGeral += Number(abastecimento.valor || 0);
+            combustivelTotalGeral += Number(abastecimento.valor || 0);
             kmTotalGeral += Number(abastecimento.kmRodado || 0);
             litrosTotalGeral += Number(abastecimento.litros || 0);
           });
         });
+
+        const manutencaoPromises = veiculosSnapshot.docs.map(veiculoDoc => {
+          return veiculoDoc.ref.collection('manutencoes')
+            .where('ano', '==', anoAtual)
+            .where('mes', '==', mesAtual)
+            .get();
+        });
+        const manutencaoSnapshots = await Promise.all(manutencaoPromises);
+        manutencaoSnapshots.forEach(snapshot => {
+            snapshot.forEach(doc => manutencaoTotalGeral += Number(doc.data().valor || 0));
+        });
       }
 
+      custoTotalGeral = combustivelTotalGeral + manutencaoTotalGeral;
       const mediaKmLGeral = litrosTotalGeral > 0 ? (kmTotalGeral / litrosTotalGeral).toFixed(1) : '0.0';
 
       document.getElementById('geral-stat-custo-total').textContent = formatar(custoTotalGeral);
+      document.getElementById('geral-stat-combustivel-total').textContent = formatar(combustivelTotalGeral);
       document.getElementById('geral-stat-km-total').textContent = `${Math.round(kmTotalGeral)} km`;
       document.getElementById('geral-stat-kml-media').textContent = mediaKmLGeral;
     }
@@ -717,7 +796,7 @@
 
     async function renderizarDetalhesVeiculo(veiculoId, veiculoNome) {
       veiculoSelecionadoId = veiculoId;
-      document.getElementById('vehicle-name-details').textContent = veiculoNome;
+      document.getElementById('vehicle-name-details').textContent = `Abastecimentos - ${veiculoNome}`;
       document.getElementById('stats-vehicle-name').textContent = veiculoNome;
 
       // Limpa campos e estatísticas
@@ -725,9 +804,11 @@
       document.getElementById('veiculoLitros').value = '';
       document.getElementById('veiculoValor').value = '';
       document.getElementById('stat-custo-total').textContent = formatar(0);
+      document.getElementById('stat-combustivel-total').textContent = formatar(0);
       document.getElementById('stat-km-total').textContent = '0 km';
       document.getElementById('stat-kml-media').textContent = '0.0';
-      document.getElementById('tabelaHistoricoAbastecimento').innerHTML = '<tr><td colspan="6" class="info-text">Nenhum abastecimento neste mês.</td></tr>';
+      document.getElementById('tabelaHistoricoAbastecimento').innerHTML = '<tr><td colspan="5" class="info-text" style="text-align:center;">Nenhum abastecimento neste mês.</td></tr>';
+      document.getElementById('tabelaHistoricoManutencao').innerHTML = '<tr><td colspan="4" class="info-text" style="text-align:center;">Nenhuma manutenção neste mês.</td></tr>';
 
       // Busca o último abastecimento para cálculo do próximo registro
       const ultimoAbastecimentoRef = db.collection('users').doc(currentUser.uid).collection('veiculos').doc(veiculoId)
@@ -748,7 +829,7 @@
         .collection('abastecimentos').where('ano', '==', anoAtual).where('mes', '==', mesAtual).orderBy('data', 'desc');
       
       const snapshotMes = await abastecimentosMesRef.get();
-      let custoTotalMes = 0, kmTotalMes = 0, litrosTotalMes = 0;
+      let combustivelTotalMes = 0, kmTotalMes = 0, litrosTotalMes = 0;
       const tabelaHistorico = document.getElementById('tabelaHistoricoAbastecimento');
       tabelaHistorico.innerHTML = '';
 
@@ -756,7 +837,7 @@
         snapshotMes.forEach(doc => {
           const abastecimento = doc.data();
           const id = doc.id;
-          custoTotalMes += Number(abastecimento.valor || 0);
+          combustivelTotalMes += Number(abastecimento.valor || 0);
           kmTotalMes += Number(abastecimento.kmRodado || 0);
           litrosTotalMes += Number(abastecimento.litros || 0);
 
@@ -767,20 +848,53 @@
             <td>${Math.round(abastecimento.kmAtual)} km</td>
             <td>${formatar(abastecimento.valor)}</td>
             <td>${(abastecimento.kmPorLitro || 0).toFixed(2)}</td>
+            <td><button class="btn-icon-inline delete" onclick="removerAbastecimento('${id}')">🗑️</button></td>
           `;
           tr.addEventListener('click', () => abrirModalEditarAbastecimento(id));
           tabelaHistorico.appendChild(tr);
         });
       } else {
-        tabelaHistorico.innerHTML = '<tr><td colspan="4" class="info-text" style="text-align:center;">Nenhum abastecimento neste mês.</td></tr>';
+        tabelaHistorico.innerHTML = '<tr><td colspan="5" class="info-text" style="text-align:center;">Nenhum abastecimento neste mês.</td></tr>';
       }
 
+      // Busca manutenções do mês
+      const manutencoesMesRef = db.collection('users').doc(currentUser.uid).collection('veiculos').doc(veiculoId)
+        .collection('manutencoes').where('ano', '==', anoAtual).where('mes', '==', mesAtual).orderBy('data', 'desc');
+      const snapshotManutencoes = await manutencoesMesRef.get();
+      let manutencaoTotalMes = 0;
+      const tabelaManutencao = document.getElementById('tabelaHistoricoManutencao');
+      tabelaManutencao.innerHTML = '';
+
+      if (!snapshotManutencoes.empty) {
+        snapshotManutencoes.forEach(doc => {
+            const manutencao = doc.data();
+            manutencaoTotalMes += Number(manutencao.valor || 0);
+            const dataFormatada = manutencao.data?.toDate().toLocaleDateString('pt-BR') || 'N/A';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${dataFormatada}</td>
+                <td>${manutencao.descricao}</td>
+                <td>${manutencao.tipo}</td>
+                <td>${formatar(manutencao.valor)}</td>
+            `;
+            tr.addEventListener('click', () => abrirModalEditarManutencao(doc.id));
+            tabelaManutencao.appendChild(tr);
+        });
+      } else {
+        tabelaManutencao.innerHTML = '<tr><td colspan="4" class="info-text" style="text-align:center;">Nenhuma manutenção neste mês.</td></tr>';
+      }
+
+      // Calcula totais e médias
+      const custoTotalMes = combustivelTotalMes + manutencaoTotalMes;
       const mediaKmL = litrosTotalMes > 0 ? (kmTotalMes / litrosTotalMes).toFixed(1) : '0.0';
 
+      // Atualiza os cards de estatísticas
       document.getElementById('stat-custo-total').textContent = formatar(custoTotalMes);
+      document.getElementById('stat-combustivel-total').textContent = formatar(combustivelTotalMes);
       document.getElementById('stat-km-total').textContent = `${Math.round(kmTotalMes)} km`;
       document.getElementById('stat-kml-media').textContent = mediaKmL;
 
+      calcularEstatisticasGerais(); // Recalcula estatísticas gerais
       // Troca a view
       document.getElementById('general-stats-section').style.display = 'none'; // Esconde as estatísticas gerais
       document.querySelector('.page-content').style.display = 'none'; // Esconde a lista de veículos
@@ -824,6 +938,38 @@
         console.error("Erro ao registrar abastecimento:", error);
         alert("Ocorreu um erro ao salvar. Tente novamente.");
       }
+    }
+
+    async function registrarManutencao() {
+        if (!veiculoSelecionadoId) return;
+        const descricaoInput = document.getElementById('manutencaoDescricao');
+        const valorInput = document.getElementById('manutencaoValor');
+        const tipoInput = document.getElementById('manutencaoTipo');
+
+        const descricao = descricaoInput.value.trim();
+        const valor = Number(valorInput.value);
+        const tipo = tipoInput.value;
+
+        if (!descricao || !valor) {
+            return alert("Por favor, preencha a descrição e o valor da manutenção.");
+        }
+
+        const novaManutencao = {
+            descricao, valor, tipo,
+            data: firebase.firestore.FieldValue.serverTimestamp(),
+            mes: mesAtual,
+            ano: anoAtual
+        };
+
+        try {
+            const ref = db.collection('users').doc(currentUser.uid).collection('veiculos').doc(veiculoSelecionadoId).collection('manutencoes');
+            await ref.add(novaManutencao);
+            alert("Manutenção registrada com sucesso!");
+            renderizarDetalhesVeiculo(veiculoSelecionadoId, document.getElementById('stats-vehicle-name').textContent);
+        } catch (error) {
+            console.error("Erro ao registrar manutenção:", error);
+            alert("Ocorreu um erro ao salvar. Tente novamente.");
+        }
     }
 
     function voltarParaListaVeiculos() {
@@ -889,6 +1035,60 @@
     function fecharModalEditarAbastecimento() {
         document.getElementById('editAbastecimentoModal').classList.remove('visible');
         abastecimentoParaEditarId = null;
+    }
+
+    async function abrirModalEditarManutencao(id) {
+        if (!veiculoSelecionadoId) return;
+        const manutencaoRef = db.collection('users').doc(currentUser.uid).collection('veiculos').doc(veiculoSelecionadoId).collection('manutencoes').doc(id);
+        const doc = await manutencaoRef.get();
+        if (!doc.exists) {
+            return alert("Erro: Registro de manutenção não encontrado.");
+        }
+        const manutencao = doc.data();
+        manutencaoParaEditarId = id;
+
+        const data = manutencao.data.toDate();
+        const dataFormatada = data.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+        document.getElementById('editManutencaoData').value = dataFormatada;
+        document.getElementById('editManutencaoDescricao').value = manutencao.descricao;
+        document.getElementById('editManutencaoTipo').value = manutencao.tipo;
+        document.getElementById('editManutencaoValor').value = manutencao.valor;
+
+        document.getElementById('editManutencaoModal').classList.add('visible');
+    }
+
+    function fecharModalEditarManutencao() {
+        document.getElementById('editManutencaoModal').classList.remove('visible');
+        manutencaoParaEditarId = null;
+    }
+
+    async function salvarEdicaoManutencao() {
+        if (!manutencaoParaEditarId || !veiculoSelecionadoId) return;
+
+        const novaDataString = document.getElementById('editManutencaoData').value;
+        const novaDescricao = document.getElementById('editManutencaoDescricao').value.trim();
+        const novoTipo = document.getElementById('editManutencaoTipo').value;
+        const novoValor = Number(document.getElementById('editManutencaoValor').value);
+
+        if (!novaDataString || !novaDescricao || !novoValor) {
+            return alert("Todos os campos são obrigatórios.");
+        }
+
+        const manutencaoRef = db.collection('users').doc(currentUser.uid).collection('veiculos').doc(veiculoSelecionadoId).collection('manutencoes').doc(manutencaoParaEditarId);
+        const novaData = new Date(novaDataString + 'T12:00:00');
+
+        await manutencaoRef.update({
+            data: firebase.firestore.Timestamp.fromDate(novaData),
+            descricao: novaDescricao,
+            tipo: novoTipo,
+            valor: novoValor,
+            mes: MESES[novaData.getMonth()],
+            ano: String(novaData.getFullYear())
+        });
+
+        alert("Manutenção atualizada com sucesso!");
+        fecharModalEditarManutencao();
+        renderizarDetalhesVeiculo(veiculoSelecionadoId, document.getElementById('stats-vehicle-name').textContent);
     }
 
     async function salvarEdicaoAbastecimento() {
@@ -1019,6 +1219,22 @@
         fecharModalEditarAbastecimento();
         calcularEstatisticasGerais(); // Atualiza as estatísticas gerais
         renderizarDetalhesVeiculo(veiculoSelecionadoId, document.getElementById('vehicle-name-details').textContent);
+    }
+
+    async function removerManutencao() {
+        const idParaRemover = manutencaoParaEditarId;
+        if (!idParaRemover || !confirm("Tem certeza que deseja excluir este registro de manutenção?")) {
+            return;
+        }
+
+        const manutencaoRef = db.collection('users').doc(currentUser.uid).collection('veiculos').doc(veiculoSelecionadoId).collection('manutencoes').doc(idParaRemover);
+        
+        await manutencaoRef.delete();
+
+        alert("Registro de manutenção removido com sucesso.");
+        fecharModalEditarManutencao();
+        calcularEstatisticasGerais();
+        renderizarDetalhesVeiculo(veiculoSelecionadoId, document.getElementById('stats-vehicle-name').textContent);
     }
 
   </script>
