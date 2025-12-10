@@ -722,6 +722,8 @@
       let litrosTotalGeral = 0;
       let combustivelTotalGeral = 0;
       let manutencaoTotalGeral = 0;
+      let somaKmPorLitroGeral = 0;
+      let quantidadeAbastecimentosGeral = 0;
 
       const veiculosRef = db.collection('users').doc(currentUser.uid).collection('veiculos');
       const veiculosSnapshot = await veiculosRef.get();
@@ -742,6 +744,10 @@
             combustivelTotalGeral += Number(abastecimento.valor || 0);
             kmTotalGeral += Number(abastecimento.kmRodado || 0);
             litrosTotalGeral += Number(abastecimento.litros || 0);
+            if (abastecimento.kmPorLitro && abastecimento.kmPorLitro > 0) {
+              somaKmPorLitroGeral += Number(abastecimento.kmPorLitro);
+              quantidadeAbastecimentosGeral++;
+            }
           });
         });
 
@@ -758,7 +764,7 @@
       }
 
       custoTotalGeral = combustivelTotalGeral + manutencaoTotalGeral;
-      const mediaKmLGeral = litrosTotalGeral > 0 ? (kmTotalGeral / litrosTotalGeral).toFixed(1) : '0.0';
+      const mediaKmLGeral = quantidadeAbastecimentosGeral > 0 ? (somaKmPorLitroGeral / quantidadeAbastecimentosGeral).toFixed(1) : '0.0';
 
       document.getElementById('geral-stat-custo-total').textContent = formatar(custoTotalGeral);
       document.getElementById('geral-stat-combustivel-total').textContent = formatar(combustivelTotalGeral);
@@ -830,6 +836,8 @@
       
       const snapshotMes = await abastecimentosMesRef.get();
       let combustivelTotalMes = 0, kmTotalMes = 0, litrosTotalMes = 0;
+      let somaKmPorLitroMes = 0;
+      let quantidadeAbastecimentosMes = 0;
       const tabelaHistorico = document.getElementById('tabelaHistoricoAbastecimento');
       tabelaHistorico.innerHTML = '';
 
@@ -840,6 +848,10 @@
           combustivelTotalMes += Number(abastecimento.valor || 0);
           kmTotalMes += Number(abastecimento.kmRodado || 0);
           litrosTotalMes += Number(abastecimento.litros || 0);
+          if (abastecimento.kmPorLitro && abastecimento.kmPorLitro > 0) {
+            somaKmPorLitroMes += Number(abastecimento.kmPorLitro);
+            quantidadeAbastecimentosMes++;
+          }
 
           const dataFormatada = abastecimento.data?.toDate().toLocaleDateString('pt-BR') || 'N/A';
           const tr = document.createElement('tr');
@@ -885,7 +897,7 @@
 
       // Calcula totais e médias
       const custoTotalMes = combustivelTotalMes + manutencaoTotalMes;
-      const mediaKmL = litrosTotalMes > 0 ? (kmTotalMes / litrosTotalMes).toFixed(1) : '0.0';
+      const mediaKmL = quantidadeAbastecimentosMes > 0 ? (somaKmPorLitroMes / quantidadeAbastecimentosMes).toFixed(1) : '0.0';
 
       // Atualiza os cards de estatísticas
       document.getElementById('stat-custo-total').textContent = formatar(custoTotalMes);
