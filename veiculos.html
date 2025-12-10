@@ -915,7 +915,7 @@
       }
 
       const kmRodado = kmAtualInput - ultimoAbastecimentoCache.kmAtual;
-      const kmPorLitro = kmRodado / litros;
+      const kmPorLitro = kmRodado / ultimoAbastecimentoCache.litros;
 
       const novoAbastecimento = {
         kmAtual: kmAtualInput,
@@ -1120,21 +1120,24 @@
         const abastecimentoAnteriorSnapshot = await veiculoRef.collection('abastecimentos')
             .where('data', '<', (await abastecimentoRef.get()).data().data).orderBy('data', 'desc').limit(1).get();
         
-        let kmAnterior;
+        let kmAnterior, litrosAnterior;
         if (!abastecimentoAnteriorSnapshot.empty) {
-            kmAnterior = abastecimentoAnteriorSnapshot.docs[0].data().kmAtual;
+            const anteriorDados = abastecimentoAnteriorSnapshot.docs[0].data();
+            kmAnterior = anteriorDados.kmAtual;
+            litrosAnterior = anteriorDados.litros;
         } else {
             // Se não houver anterior, busca o KM inicial do veículo como fallback
             const veiculoDoc = await veiculoRef.get();
             if (veiculoDoc.exists) {
                 kmAnterior = veiculoDoc.data().kmInicial;
+                litrosAnterior = novoLitros; // Se não houver anterior, usa a litragem atual como fallback
             } else {
                 return alert("Erro: Veículo não encontrado para recalcular.");
             }
         }
 
         const novoKmRodado = novoKm - kmAnterior;
-        const novoKmPorLitro = novoKmRodado / novoLitros;
+        const novoKmPorLitro = novoKmRodado / litrosAnterior;
 
         batch.update(abastecimentoRef, {
             kmAtual: novoKm,
@@ -1155,7 +1158,7 @@
             const seguinteDoc = abastecimentoSeguinteSnapshot.docs[0];
             const seguinteDados = seguinteDoc.data();
             const seguinteKmRodado = seguinteDados.kmAtual - novoKm;
-            const seguinteKmPorLitro = seguinteKmRodado / seguinteDados.litros;
+            const seguinteKmPorLitro = seguinteKmRodado / novoLitros;
             batch.update(seguinteDoc.ref, { kmRodado: seguinteKmRodado, kmPorLitro: seguinteKmPorLitro });
         }
 
@@ -1209,7 +1212,7 @@
 
             // Recalcula o KM rodado e o consumo do abastecimento seguinte
             const novoKmRodadoSeguinte = seguinteDados.kmAtual - kmAnterior;
-            const novoKmPorLitroSeguinte = novoKmRodadoSeguinte / seguinteDados.litros;
+            const novoKmPorLitroSeguinte = novoKmRodadoSeguinte / abastecimentoRemovido.litros;
 
             batch.update(seguinteDoc.ref, {
                 kmRodado: novoKmRodadoSeguinte,
