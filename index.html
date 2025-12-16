@@ -452,9 +452,73 @@
       border-radius: 4px;
     }
 
+    .cartoes-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
     @media (max-width: 768px) {
+      #cartoesContainerWrapper {
+        overflow: hidden;
+        margin-bottom: 16px;
+      }
+      
+      .cartoes-container {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 16px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+        padding: 0 20px;
+        margin-left: -20px;
+        margin-right: -20px;
+        padding-bottom: 16px;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      
+      .cartoes-container::-webkit-scrollbar {
+        display: none;
+      }
+      
       .cartao-card {
-        width: 100%;
+        min-width: calc(100% - 40px);
+        max-width: calc(100% - 40px);
+        scroll-snap-align: center;
+        flex-shrink: 0;
+        margin: 0 10px;
+      }
+      
+      .cartao-card:first-child {
+        margin-left: 20px;
+      }
+      
+      .cartao-card:last-child {
+        margin-right: 20px;
+      }
+      
+      .modal-content {
+        max-height: 85vh;
+      }
+      
+      #contasCartaoModalContent,
+      #comprasDebitoModalContent {
+        max-height: calc(85vh - 120px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-right: 4px;
+      }
+      
+      #contasCartaoModalContent table,
+      #comprasDebitoModalContent table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
       }
     }
 
@@ -635,10 +699,19 @@
       border-radius: 16px;
       width: 90%;
       max-width: 400px;
+      max-height: 90vh;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
       display: flex;
       flex-direction: column;
       gap: 16px;
+      overflow: hidden;
+    }
+    
+    #contasCartaoModalContent,
+    #comprasDebitoModalContent {
+      overflow-y: auto;
+      max-height: calc(90vh - 150px);
+      -webkit-overflow-scrolling: touch;
     }
     .modal-content h3 {
       margin: 0;
@@ -916,16 +989,19 @@
     <section class="section">
       <h3>Cartão de crédito</h3>
       <div class="section-actions">
-        <button id="btnAdiantarParcela" class="btn-add" onclick="abrirModalAdiantar()" style="display: none;">Adiantar Parcela</button>
-        <button id="btnAdicionarCompra" class="btn-add" onclick="abrirModalCartao()" style="display: none;">Adicionar Compra</button>
         <button class="btn-add" onclick="abrirModalGerenciarCartoes()">Gerenciar Cartões</button>
       </div>
-      <div id="cartaoSelecionadoInfo" style="display: none; margin-bottom: 16px; padding: 12px; background: var(--bg-main); border-radius: 8px;">
-        <strong>Cartão selecionado: </strong><span id="cartaoSelecionadoNome"></span>
-        <button class="btn-cancel" onclick="deselecionarCartao()" style="margin-left: 12px; padding: 6px 12px; font-size: 14px;">Deselecionar</button>
+      <div id="cartaoSelecionadoInfo" style="display: none; margin-bottom: 16px; padding: 12px; background: var(--bg-main); border-radius: 8px; text-align: center;">
+        <span id="cartaoSelecionadoNome"></span>
       </div>
-      <div id="cartoesContainer" style="display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 16px;">
-        <!-- Cartões cadastrados serão renderizados aqui -->
+      <div id="cartoesContainerWrapper">
+        <div id="cartoesContainer" class="cartoes-container">
+          <!-- Cartões cadastrados serão renderizados aqui -->
+        </div>
+      </div>
+      <div id="botoesCartaoSelecionado" class="section-actions" style="display: none; margin-top: 16px;">
+        <button id="btnAdiantarParcela" class="btn-add" onclick="abrirModalAdiantar()">Adiantar Parcela</button>
+        <button id="btnAdicionarCompra" class="btn-add" onclick="abrirModalCartao()">Adicionar Compra</button>
       </div>
       <div id="tabelaCartaoWrapper" class="table-wrapper" style="display: none;">
         <table>
@@ -1111,7 +1187,9 @@
     <div class="modal-content" style="max-width: 700px;">
       <h3>Gerenciar Cartões</h3>
       <div style="margin-bottom: 20px;">
-        <button class="btn-add" onclick="abrirFormularioNovoCartao()" style="margin-bottom: 16px;">+ Novo Cartão</button>
+        <div class="section-actions" style="margin-bottom: 16px;">
+          <button class="btn-add" onclick="abrirFormularioNovoCartao()">+ Novo Cartão</button>
+        </div>
         <div id="listaCartoesGerenciar" style="display: flex; flex-direction: column; gap: 12px;">
           <!-- Lista de cartões será populada via JS -->
         </div>
@@ -1257,8 +1335,12 @@
       await garantirEstruturaUsuario(anoAtual); // Garante que a estrutura do ano exista no DB
       await selecionarMes(mesCorrente); // Seleciona o mês e ano atuais
 
-      selectAno.addEventListener("change", trocarAno);
-      selectMesMobile.addEventListener("change", (e) => selecionarMes(e.target.value));
+      selectAno.addEventListener("change", () => {
+        trocarAno();
+      });
+      selectMesMobile.addEventListener("change", (e) => {
+        selecionarMes(e.target.value);
+      });
     }
 
     // Lógica de Autenticação e Proteção de Rota
@@ -1950,9 +2032,58 @@
       fecharModalCopia();
     }
 
+    function obterCartaoAtivo() {
+      // Se houver cartão selecionado, usa ele
+      if (cartaoSelecionado) {
+        return cartaoSelecionado;
+      }
+      
+      // No mobile, tenta encontrar o cartão centralizado
+      if (window.innerWidth <= 768) {
+        const container = document.getElementById('cartoesContainer');
+        if (container) {
+          const containerRect = container.getBoundingClientRect();
+          const containerCenter = containerRect.left + containerRect.width / 2;
+          
+          let cartaoMaisProximo = null;
+          let menorDistancia = Infinity;
+          
+          const cards = container.querySelectorAll('.cartao-card');
+          cards.forEach(card => {
+            const cardRect = card.getBoundingClientRect();
+            const cardCenter = cardRect.left + cardRect.width / 2;
+            const distancia = Math.abs(cardCenter - containerCenter);
+            
+            if (distancia < menorDistancia) {
+              menorDistancia = distancia;
+              const cartaoId = card.dataset.cartaoId;
+              cartaoMaisProximo = cartoesCache.find(c => c.id === cartaoId);
+            }
+          });
+          
+          if (cartaoMaisProximo) {
+            return cartaoMaisProximo;
+          }
+        }
+      }
+      
+      // Se não encontrou, usa o primeiro cartão disponível
+      if (cartoesCache.length > 0) {
+        return cartoesCache[0];
+      }
+      
+      return null;
+    }
+
     async function abrirModalAdiantar() {
-      if (!cartaoSelecionado) {
-        return alert('Por favor, selecione um cartão primeiro.');
+      const cartaoAtivo = obterCartaoAtivo();
+      if (!cartaoAtivo) {
+        return alert('Por favor, cadastre um cartão primeiro.');
+      }
+      
+      // Seleciona o cartão se não estiver selecionado
+      if (!cartaoSelecionado || cartaoSelecionado.id !== cartaoAtivo.id) {
+        selecionarCartao(cartaoAtivo, false);
       }
       // Verifica se o mês selecionado é um mês passado
       const hoje = new Date();
@@ -1988,8 +2119,8 @@
 
         if (doc.exists && doc.data().cartao && doc.data().cartao.length > 0) {
           doc.data().cartao.forEach((item, index) => {
-            // Filtra apenas parcelas do cartão selecionado
-            if (item.cartaoId !== cartaoSelecionado.id) return;
+            // Filtra apenas parcelas do cartão ativo
+            if (item.cartaoId !== cartaoAtivo.id) return;
             // Adiciona apenas itens parcelados e não recorrentes
             if (item.parcelas && item.parcelas.includes('/') && item.parcelas !== '1/1' && !item.recorrente) {
               parcelasEncontradas.push({
@@ -2081,17 +2212,23 @@
     }
 
     async function abrirModalCartao() {
-      if (!cartaoSelecionado) {
-        return alert('Por favor, selecione um cartão primeiro.');
+      const cartaoAtivo = obterCartaoAtivo();
+      if (!cartaoAtivo) {
+        return alert('Por favor, cadastre um cartão primeiro.');
+      }
+      
+      // Seleciona o cartão se não estiver selecionado
+      if (!cartaoSelecionado || cartaoSelecionado.id !== cartaoAtivo.id) {
+        selecionarCartao(cartaoAtivo, false);
       }
 
       // Define o cartão selecionado no select
       const selectCartao = document.getElementById('cartaoSelecionadoModal');
       selectCartao.innerHTML = '';
       const option = document.createElement('option');
-      option.value = cartaoSelecionado.id;
-      const bandeiraNome = cartaoSelecionado.bandeira.charAt(0).toUpperCase() + cartaoSelecionado.bandeira.slice(1);
-      option.textContent = `${bandeiraNome} - Final ${cartaoSelecionado.numero}`;
+      option.value = cartaoAtivo.id;
+      const bandeiraNome = cartaoAtivo.bandeira.charAt(0).toUpperCase() + cartaoAtivo.bandeira.slice(1);
+      option.textContent = `${bandeiraNome} - Final ${cartaoAtivo.numero}`;
       option.selected = true;
       selectCartao.appendChild(option);
       selectCartao.disabled = true; // Desabilita para não permitir mudança
@@ -2311,10 +2448,11 @@
 
       container.style.display = 'flex';
 
-      cartoes.forEach(cartao => {
+      cartoes.forEach((cartao, index) => {
         const card = document.createElement('div');
         const isSelecionado = cartaoSelecionado && cartaoSelecionado.id === cartao.id;
         card.className = `cartao-card ${cartao.bandeira} ${isSelecionado ? 'selecionado' : ''}`;
+        card.dataset.cartaoId = cartao.id;
         card.onclick = (e) => {
           e.stopPropagation();
           selecionarCartao(cartao);
@@ -2339,12 +2477,142 @@
         
         container.appendChild(card);
       });
+
+      // Adicionar funcionalidade de swipe e detecção de cartão centralizado no mobile
+      if (window.innerWidth <= 768) {
+        adicionarSwipeECentralizacao(container, cartoes);
+        // Mostrar botões sempre que houver cartões no mobile
+        if (cartoes.length > 0) {
+          const botoesDiv = document.getElementById('botoesCartaoSelecionado');
+          if (botoesDiv) {
+            botoesDiv.style.display = 'flex';
+          }
+        }
+      } else {
+        // No desktop, só mostra se houver cartão selecionado
+        atualizarInterfaceCartaoSelecionado();
+      }
     }
 
-    function selecionarCartao(cartao) {
+    function adicionarSwipeECentralizacao(container, cartoes) {
+      let isScrolling = false;
+      let scrollTimeout = null;
+
+      // Detectar qual cartão está centralizado
+      function detectarCartaoCentralizado() {
+        const containerRect = container.getBoundingClientRect();
+        const containerCenter = containerRect.left + containerRect.width / 2;
+        
+        let cartaoMaisProximo = null;
+        let menorDistancia = Infinity;
+        
+        const cards = container.querySelectorAll('.cartao-card');
+        cards.forEach(card => {
+          const cardRect = card.getBoundingClientRect();
+          const cardCenter = cardRect.left + cardRect.width / 2;
+          const distancia = Math.abs(cardCenter - containerCenter);
+          
+          if (distancia < menorDistancia) {
+            menorDistancia = distancia;
+            cartaoMaisProximo = card;
+          }
+        });
+        
+        if (cartaoMaisProximo) {
+          const cartaoId = cartaoMaisProximo.dataset.cartaoId;
+          const cartao = cartoes.find(c => c.id === cartaoId);
+          if (cartao && (!cartaoSelecionado || cartaoSelecionado.id !== cartao.id)) {
+            // Não abre o modal automaticamente, apenas atualiza a seleção
+            selecionarCartao(cartao, false);
+          }
+        }
+      }
+
+      // Detectar scroll
+      container.addEventListener('scroll', () => {
+        isScrolling = true;
+        clearTimeout(scrollTimeout);
+        
+        scrollTimeout = setTimeout(() => {
+          isScrolling = false;
+          detectarCartaoCentralizado();
+        }, 150);
+      }, { passive: true });
+
+      // Detectar quando o scroll termina
+      container.addEventListener('scrollend', () => {
+        detectarCartaoCentralizado();
+      }, { passive: true });
+
+      // Detectar toque inicial para swipe
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let isDragging = false;
+
+      container.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        isDragging = false;
+      }, { passive: true });
+
+      container.addEventListener('touchmove', (e) => {
+        if (!isDragging) {
+          const deltaX = Math.abs(e.touches[0].clientX - touchStartX);
+          const deltaY = Math.abs(e.touches[0].clientY - touchStartY);
+          if (deltaX > deltaY && deltaX > 10) {
+            isDragging = true;
+          }
+        }
+      }, { passive: true });
+
+      container.addEventListener('touchend', () => {
+        if (isDragging) {
+          setTimeout(() => {
+            detectarCartaoCentralizado();
+          }, 100);
+        }
+        isDragging = false;
+      }, { passive: true });
+
+      // Não detectar cartão centralizado ao carregar automaticamente
+      // Apenas quando o usuário interagir com o scroll
+    }
+
+    function selecionarCartao(cartao, abrirVisualizacao = true) {
       cartaoSelecionado = cartao;
       atualizarInterfaceCartaoSelecionado();
-      visualizarContasCartao(cartao);
+      
+      // Só visualiza as contas se for uma seleção manual (clique do usuário)
+      if (abrirVisualizacao) {
+        visualizarContasCartao(cartao);
+      }
+      
+      // Centralizar cartão no carrossel no mobile
+      if (window.innerWidth <= 768) {
+        centralizarCartao(cartao.id);
+      }
+    }
+
+    function centralizarCartao(cartaoId) {
+      const container = document.getElementById('cartoesContainer');
+      const card = container.querySelector(`[data-cartao-id="${cartaoId}"]`);
+      
+      if (card) {
+        const containerRect = container.getBoundingClientRect();
+        const cardRect = card.getBoundingClientRect();
+        const scrollLeft = container.scrollLeft;
+        const cardOffsetLeft = card.offsetLeft;
+        const cardWidth = card.offsetWidth;
+        const containerWidth = container.offsetWidth;
+        
+        // Calcular a posição para centralizar
+        const targetScroll = cardOffsetLeft - (containerWidth / 2) + (cardWidth / 2);
+        
+        container.scrollTo({
+          left: targetScroll,
+          behavior: 'smooth'
+        });
+      }
     }
 
     function deselecionarCartao() {
@@ -2357,19 +2625,51 @@
     function atualizarInterfaceCartaoSelecionado() {
       const infoDiv = document.getElementById('cartaoSelecionadoInfo');
       const nomeSpan = document.getElementById('cartaoSelecionadoNome');
-      const btnAdiantar = document.getElementById('btnAdiantarParcela');
-      const btnAdicionar = document.getElementById('btnAdicionarCompra');
+      const botoesDiv = document.getElementById('botoesCartaoSelecionado');
+      const container = document.getElementById('cartoesContainer');
+      const isMobile = window.innerWidth <= 768;
 
       if (cartaoSelecionado) {
         const bandeiraNome = cartaoSelecionado.bandeira.charAt(0).toUpperCase() + cartaoSelecionado.bandeira.slice(1);
         nomeSpan.textContent = `${bandeiraNome} - Final ${cartaoSelecionado.numero}`;
         infoDiv.style.display = 'block';
-        btnAdiantar.style.display = 'inline-block';
-        btnAdicionar.style.display = 'inline-block';
+        
+        // No mobile, botões sempre aparecem se houver cartões. No desktop, só se houver selecionado
+        if (isMobile) {
+          // Verifica se há cartões cadastrados
+          const cartoes = container ? container.querySelectorAll('.cartao-card') : [];
+          botoesDiv.style.display = cartoes.length > 0 ? 'flex' : 'none';
+        } else {
+          botoesDiv.style.display = 'flex';
+        }
+        
+        // Atualizar classe selecionado nos cartões
+        if (container) {
+          const cards = container.querySelectorAll('.cartao-card');
+          cards.forEach(card => {
+            if (card.dataset.cartaoId === cartaoSelecionado.id) {
+              card.classList.add('selecionado');
+            } else {
+              card.classList.remove('selecionado');
+            }
+          });
+        }
       } else {
         infoDiv.style.display = 'none';
-        btnAdiantar.style.display = 'none';
-        btnAdicionar.style.display = 'none';
+        
+        // No mobile, botões aparecem sempre que houver cartões. No desktop, só se houver selecionado
+        if (isMobile) {
+          const cartoes = container ? container.querySelectorAll('.cartao-card') : [];
+          botoesDiv.style.display = cartoes.length > 0 ? 'flex' : 'none';
+        } else {
+          botoesDiv.style.display = 'none';
+        }
+        
+        // Remover classe selecionado de todos os cartões
+        if (container) {
+          const cards = container.querySelectorAll('.cartao-card');
+          cards.forEach(card => card.classList.remove('selecionado'));
+        }
       }
     }
 
