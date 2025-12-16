@@ -325,6 +325,67 @@
       gap: 12px;
     }
 
+    .cartao-card {
+      background: var(--bg-section);
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      min-width: 200px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .cartao-card:hover {
+      border-color: var(--accent-blue);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .cartao-card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .cartao-bandeira {
+      width: 40px;
+      height: 25px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+      color: white;
+    }
+
+    .cartao-bandeira.visa { background: #1a1f71; }
+    .cartao-bandeira.mastercard { background: #eb001b; }
+    .cartao-bandeira.elo { background: #ffcb05; color: #000; }
+    .cartao-bandeira.amex { background: #006fcf; }
+    .cartao-bandeira.hipercard { background: #df0f50; }
+    .cartao-bandeira.outro { background: #6c7190; }
+
+    .cartao-numero {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .cartao-final {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    @media (max-width: 768px) {
+      .cartao-card {
+        width: 100%;
+      }
+    }
+
     .section-actions .btn-add {
       border: none;
       border-radius: 10px;
@@ -785,6 +846,10 @@
       <div class="section-actions">
         <button class="btn-add" onclick="abrirModalAdiantar()">Adiantar Parcela</button>
         <button class="btn-add" onclick="abrirModalCartao()">Adicionar Compra</button>
+        <button id="btnCadastrarCartao" class="btn-add" onclick="abrirModalCadastrarCartao()" style="display: none;">Cadastrar Cartão</button>
+      </div>
+      <div id="cartoesContainer" style="display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 16px;">
+        <!-- Cartões cadastrados serão renderizados aqui -->
       </div>
       <div class="table-wrapper">
         <table>
@@ -944,6 +1009,55 @@
     </div>
   </div>
 
+  <!-- Modal para Cadastrar Cartão -->
+  <div id="cadastrarCartaoModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>Cadastrar Cartão</h3>
+      <div class="form-row">
+        <input id="cartaoNumeroModal" placeholder="Número do cartão (últimos 4 dígitos)" maxlength="4" />
+        <select id="cartaoBandeiraModal">
+          <option value="">Selecione a bandeira</option>
+          <option value="visa">Visa</option>
+          <option value="mastercard">Mastercard</option>
+          <option value="elo">Elo</option>
+          <option value="amex">American Express</option>
+          <option value="hipercard">Hipercard</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="fecharModalCadastrarCartao()">Cancelar</button>
+        <button class="btn-confirm" onclick="cadastrarCartao()">Cadastrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Visualizar Contas do Cartão (Mobile) -->
+  <div id="contasCartaoModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3 id="contasCartaoModalTitulo">Contas do Cartão</h3>
+      <div id="contasCartaoModalContent">
+        <!-- Conteúdo será populado via JS -->
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="fecharModalContasCartao()">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Visualização Desktop de Contas do Cartão -->
+  <div id="contasCartaoDesktop" style="display: none;">
+    <div class="section">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 id="contasCartaoDesktopTitulo">Contas do Cartão</h3>
+        <button class="btn-cancel" onclick="fecharContasCartaoDesktop()">Fechar</button>
+      </div>
+      <div id="contasCartaoDesktopContent">
+        <!-- Conteúdo será populado via JS -->
+      </div>
+    </div>
+  </div>
+
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyBVwUVoudM_IxWQgkLxlabinw4AXGgf1So",
@@ -1058,6 +1172,8 @@
           displayUserName(currentUser.email); // Fallback em caso de erro
         });
         inicializar();
+        // Carrega os cartões cadastrados
+        carregarCartoes();
       } else {
         // Se não houver usuário, redireciona para o login
         window.location.href = 'login.html';
@@ -1680,6 +1796,253 @@
     }
     function fecharModalReservado() {
       document.getElementById('reservadoModal').classList.remove('visible');
+    }
+
+    // Funções para cadastrar cartão
+    function abrirModalCadastrarCartao() {
+      document.getElementById('cadastrarCartaoModal').classList.add('visible');
+      document.getElementById('cartaoNumeroModal').value = '';
+      document.getElementById('cartaoBandeiraModal').value = '';
+    }
+
+    function fecharModalCadastrarCartao() {
+      document.getElementById('cadastrarCartaoModal').classList.remove('visible');
+    }
+
+    async function cadastrarCartao() {
+      if (!currentUser) return;
+      const numero = document.getElementById('cartaoNumeroModal').value.trim();
+      const bandeira = document.getElementById('cartaoBandeiraModal').value;
+
+      if (!numero || numero.length !== 4 || !/^\d+$/.test(numero)) {
+        return alert('Por favor, informe os últimos 4 dígitos do cartão.');
+      }
+
+      if (!bandeira) {
+        return alert('Por favor, selecione a bandeira do cartão.');
+      }
+
+      try {
+        const cartoesRef = db.collection('users').doc(currentUser.uid).collection('cartoes');
+        await cartoesRef.add({
+          numero: numero,
+          bandeira: bandeira,
+          dataCriacao: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        fecharModalCadastrarCartao();
+        await carregarCartoes();
+      } catch (error) {
+        console.error('Erro ao cadastrar cartão:', error);
+        alert('Erro ao cadastrar cartão. Tente novamente.');
+      }
+    }
+
+    // Função para identificar bandeira pelo número (se necessário)
+    function identificarBandeira(numero) {
+      // Esta função pode ser expandida para identificar automaticamente
+      // Por enquanto, retorna null pois o usuário seleciona manualmente
+      return null;
+    }
+
+    // Função para carregar e renderizar cartões
+    let unsubscribeCartoes = null;
+    async function carregarCartoes() {
+      if (!currentUser) return;
+      
+      if (unsubscribeCartoes) unsubscribeCartoes();
+      
+      const cartoesRef = db.collection('users').doc(currentUser.uid).collection('cartoes');
+      unsubscribeCartoes = cartoesRef.onSnapshot(snapshot => {
+        const cartoes = [];
+        snapshot.forEach(doc => {
+          cartoes.push({ id: doc.id, ...doc.data() });
+        });
+        renderizarCartoes(cartoes);
+      }, error => {
+        console.error('Erro ao carregar cartões:', error);
+      });
+    }
+
+    function renderizarCartoes(cartoes) {
+      const container = document.getElementById('cartoesContainer');
+      const btnCadastrar = document.getElementById('btnCadastrarCartao');
+      
+      container.innerHTML = '';
+
+      if (cartoes.length === 0) {
+        container.style.display = 'none';
+        btnCadastrar.style.display = 'none';
+        return;
+      }
+
+      container.style.display = 'flex';
+      
+      // Mostra botão "Cadastrar Cartão" se houver pelo menos um cartão (para cadastrar mais)
+      btnCadastrar.style.display = cartoes.length >= 1 ? 'inline-block' : 'none';
+
+      cartoes.forEach(cartao => {
+        const card = document.createElement('div');
+        card.className = 'cartao-card';
+        card.onclick = () => visualizarContasCartao(cartao);
+        
+        const bandeiraNome = cartao.bandeira.charAt(0).toUpperCase() + cartao.bandeira.slice(1);
+        const bandeiraAbrev = cartao.bandeira === 'mastercard' ? 'MC' : 
+                              cartao.bandeira === 'amex' ? 'AX' :
+                              cartao.bandeira === 'hipercard' ? 'HC' :
+                              cartao.bandeira.toUpperCase().substring(0, 2);
+        
+        card.innerHTML = `
+          <div class="cartao-card-header">
+            <div class="cartao-bandeira ${cartao.bandeira}">${bandeiraAbrev}</div>
+            <div>
+              <div class="cartao-numero">${bandeiraNome}</div>
+              <div class="cartao-final">Final ${cartao.numero}</div>
+            </div>
+          </div>
+        `;
+        
+        container.appendChild(card);
+      });
+    }
+
+    // Função para visualizar contas do cartão
+    async function visualizarContasCartao(cartao) {
+      if (!currentUser) return;
+
+      const ref = getMesRef();
+      if (!ref) return;
+
+      const doc = await ref.get();
+      const data = doc.exists ? doc.data() : { cartao: [] };
+      const contasCartao = data.cartao || [];
+
+      const isMobile = window.innerWidth <= 768;
+
+      if (isMobile) {
+        // Modal para mobile
+        document.getElementById('contasCartaoModalTitulo').textContent = 
+          `${cartao.bandeira.charAt(0).toUpperCase() + cartao.bandeira.slice(1)} - Final ${cartao.numero}`;
+        
+        const content = document.getElementById('contasCartaoModalContent');
+        content.innerHTML = '';
+        
+        if (contasCartao.length === 0) {
+          content.innerHTML = '<p class="info-text">Nenhuma conta cadastrada para este cartão.</p>';
+        } else {
+          const table = document.createElement('table');
+          table.style.width = '100%';
+          table.style.marginTop = '16px';
+          table.innerHTML = `
+            <thead>
+              <tr>
+                <th>Descrição</th>
+                <th>Valor</th>
+                <th>Parcelas</th>
+              </tr>
+            </thead>
+            <tbody id="contasCartaoModalTableBody"></tbody>
+          `;
+          
+          const tbody = table.querySelector('#contasCartaoModalTableBody');
+          contasCartao.forEach((item, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${item.nome}</td>
+              <td>${formatar(item.valor)}</td>
+              <td>${item.parcelas || '-'}</td>
+            `;
+            tr.onclick = () => abrirModalAcoes('cartao', index, item);
+            tbody.appendChild(tr);
+          });
+          
+          content.appendChild(table);
+        }
+
+        // Adicionar opção de mudar status do cartão
+        const statusSelect = document.createElement('div');
+        statusSelect.className = 'form-row';
+        statusSelect.style.marginTop = '16px';
+        const statusCartao = data.cartaoStatus || 'pendente';
+        statusSelect.innerHTML = `
+          <label for="modalStatusCartaoSelect">Status do Cartão</label>
+          <select id="modalStatusCartaoSelect" onchange="atualizarStatusCartao(this.value)">
+            <option value="pendente" ${statusCartao === "pendente" ? "selected" : ""}>Pendente</option>
+            <option value="pago" ${statusCartao === "pago" ? "selected" : ""}>Pago</option>
+          </select>
+        `;
+        content.appendChild(statusSelect);
+
+        document.getElementById('contasCartaoModal').classList.add('visible');
+      } else {
+        // Visualização desktop
+        document.getElementById('contasCartaoDesktopTitulo').textContent = 
+          `${cartao.bandeira.charAt(0).toUpperCase() + cartao.bandeira.slice(1)} - Final ${cartao.numero}`;
+        
+        const content = document.getElementById('contasCartaoDesktopContent');
+        content.innerHTML = '';
+        
+        if (contasCartao.length === 0) {
+          content.innerHTML = '<p class="info-text">Nenhuma conta cadastrada para este cartão.</p>';
+        } else {
+          const table = document.createElement('table');
+          table.style.width = '100%';
+          table.innerHTML = `
+            <thead>
+              <tr>
+                <th>Descrição</th>
+                <th>Valor</th>
+                <th>Parcelas</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="contasCartaoDesktopTableBody"></tbody>
+          `;
+          
+          const tbody = table.querySelector('#contasCartaoDesktopTableBody');
+          contasCartao.forEach((item, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${item.nome}</td>
+              <td>${formatar(item.valor)}</td>
+              <td>${item.parcelas || '-'}</td>
+              <td>
+                <button class="btn-icon-inline edit" id="editBtnCartao${index}">✏️ Editar</button>
+                <button class="btn-inline" onclick="removerItem('cartao', ${index})">🗑️ Remover</button>
+              </td>
+            `;
+            // Adiciona evento de clique para editar
+            tr.querySelector(`#editBtnCartao${index}`).onclick = () => abrirModalAcoes('cartao', index, item);
+            tbody.appendChild(tr);
+          });
+          
+          content.appendChild(table);
+        }
+
+        // Adicionar opção de mudar status do cartão
+        const statusSelect = document.createElement('div');
+        statusSelect.className = 'form-row';
+        statusSelect.style.marginTop = '16px';
+        const statusCartao = data.cartaoStatus || 'pendente';
+        statusSelect.innerHTML = `
+          <label for="desktopStatusCartaoSelect">Status do Cartão</label>
+          <select id="desktopStatusCartaoSelect" onchange="atualizarStatusCartao(this.value)">
+            <option value="pendente" ${statusCartao === "pendente" ? "selected" : ""}>Pendente</option>
+            <option value="pago" ${statusCartao === "pago" ? "selected" : ""}>Pago</option>
+          </select>
+        `;
+        content.appendChild(statusSelect);
+
+        document.getElementById('contasCartaoDesktop').style.display = 'block';
+        document.getElementById('contasCartaoDesktop').scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    function fecharModalContasCartao() {
+      document.getElementById('contasCartaoModal').classList.remove('visible');
+    }
+
+    function fecharContasCartaoDesktop() {
+      document.getElementById('contasCartaoDesktop').style.display = 'none';
     }
 
     function abrirModalEntradas() {
