@@ -987,6 +987,20 @@
     </section>
 
     <section class="section">
+      <h3>Débito</h3>
+      <div class="form-row">
+        <input id="debitoNome" placeholder="Descrição" />
+        <input id="debitoValor" type="number" placeholder="Valor em R$" step="0.01" />
+        <button class="btn-add" onclick="adicionarDebito()">Registrar</button>
+        <button class="btn-add" onclick="visualizarComprasDebito()">Ver Compras</button>
+      </div>
+      <!-- Área para mostrar compras do débito no desktop -->
+      <div id="comprasDebitoDesktop" style="display: none; margin-top: 16px;">
+        <!-- Conteúdo será populado via JS -->
+      </div>
+    </section>
+
+    <section class="section">
       <h3>Cartão de crédito</h3>
       <div class="section-actions">
         <button class="btn-add" onclick="abrirModalGerenciarCartoes()">Gerenciar Cartões</button>
@@ -1341,6 +1355,138 @@
       selectMesMobile.addEventListener("change", (e) => {
         selecionarMes(e.target.value);
       });
+
+      // Adicionar navegação por swipe no mobile
+      adicionarNavegacaoSwipe();
+    }
+
+    function adicionarNavegacaoSwipe() {
+      // Só funciona no mobile
+      if (window.innerWidth > 768) return;
+
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let touchEndX = 0;
+      let touchEndY = 0;
+      let isSwiping = false;
+
+      const minSwipeDistance = 50; // Distância mínima para considerar um swipe
+
+      document.body.addEventListener('touchstart', (e) => {
+        // Ignora se estiver tocando em um input, textarea, select ou botão
+        const target = e.target;
+        if (target.tagName === 'INPUT' || 
+            target.tagName === 'TEXTAREA' || 
+            target.tagName === 'SELECT' || 
+            target.tagName === 'BUTTON' ||
+            target.closest('button') ||
+            target.closest('input') ||
+            target.closest('textarea') ||
+            target.closest('select') ||
+            target.closest('.modal-overlay') ||
+            target.closest('.cartoes-container')) {
+          return;
+        }
+
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        isSwiping = false;
+      }, { passive: true });
+
+      document.body.addEventListener('touchmove', (e) => {
+        if (touchStartX === 0) return;
+
+        const deltaX = Math.abs(e.touches[0].clientX - touchStartX);
+        const deltaY = Math.abs(e.touches[0].clientY - touchStartY);
+
+        // Só considera swipe se o movimento horizontal for maior que o vertical
+        if (deltaX > deltaY && deltaX > 10) {
+          isSwiping = true;
+        }
+      }, { passive: true });
+
+      document.body.addEventListener('touchend', (e) => {
+        if (!isSwiping || touchStartX === 0) {
+          touchStartX = 0;
+          touchStartY = 0;
+          return;
+        }
+
+        touchEndX = e.changedTouches[0].clientX;
+        touchEndY = e.changedTouches[0].clientY;
+
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = Math.abs(touchEndY - touchStartY);
+
+        // Verifica se é um swipe horizontal válido
+        if (Math.abs(deltaX) > minSwipeDistance && Math.abs(deltaX) > deltaY) {
+          if (deltaX > 0) {
+            // Swipe para direita - volta um mês
+            navegarMesAnterior();
+          } else {
+            // Swipe para esquerda - avança um mês
+            navegarProximoMes();
+          }
+        }
+
+        touchStartX = 0;
+        touchStartY = 0;
+        isSwiping = false;
+      }, { passive: true });
+    }
+
+    async function navegarMesAnterior() {
+      if (!mesAtual || !anoAtual) return;
+
+      const mesAtualIndex = MESES.indexOf(mesAtual);
+      let novoMesIndex = mesAtualIndex - 1;
+      let novoAno = Number(anoAtual);
+
+      if (novoMesIndex < 0) {
+        novoMesIndex = 11; // Dezembro
+        novoAno -= 1;
+      }
+
+      const novoMes = MESES[novoMesIndex];
+      
+      // Verifica se o ano está dentro dos limites
+      if (novoAno >= ANO_BASE && novoAno <= ANO_LIMITE) {
+        anoAtual = String(novoAno);
+        selectAno.value = anoAtual;
+        if (financeiroModalSelectAno) {
+          financeiroModalSelectAno.value = anoAtual;
+        }
+        // Garante a estrutura do ano antes de selecionar o mês
+        await garantirEstruturaUsuario(anoAtual);
+        await selecionarMes(novoMes);
+      }
+    }
+
+    async function navegarProximoMes() {
+      if (!mesAtual || !anoAtual) return;
+
+      const mesAtualIndex = MESES.indexOf(mesAtual);
+      let novoMesIndex = mesAtualIndex + 1;
+      let novoAno = Number(anoAtual);
+
+      if (novoMesIndex > 11) {
+        novoMesIndex = 0; // Janeiro
+        novoAno += 1;
+      }
+
+      const novoMes = MESES[novoMesIndex];
+      
+      // Verifica se o ano está dentro dos limites
+      if (novoAno >= ANO_BASE && novoAno <= ANO_LIMITE) {
+        anoAtual = String(novoAno);
+        selectAno.value = anoAtual;
+        if (financeiroModalSelectAno) {
+          financeiroModalSelectAno.value = anoAtual;
+        }
+        // Garante a estrutura do ano antes de selecionar o mês
+        await garantirEstruturaUsuario(anoAtual);
+        await selecionarMes(novoMes);
+      }
     }
 
     // Lógica de Autenticação e Proteção de Rota
