@@ -946,6 +946,20 @@
     </section>
 
     <section class="section">
+      <h3>Débito</h3>
+      <div class="form-row">
+        <input id="debitoNome" placeholder="Descrição" />
+        <input id="debitoValor" type="number" placeholder="Valor em R$" step="0.01" />
+        <button class="btn-add" onclick="adicionarDebito()">Registrar</button>
+        <button class="btn-add" onclick="visualizarComprasDebito()">Ver Compras</button>
+      </div>
+      <!-- Área para mostrar compras do débito no desktop -->
+      <div id="comprasDebitoDesktop" style="display: none; margin-top: 16px;">
+        <!-- Conteúdo será populado via JS -->
+      </div>
+    </section>
+
+    <section class="section">
       <h3>Reservados (combustível, lazer, etc.)</h3>
       <div class="section-actions">
         <button class="btn-add" onclick="abrirModalReservado()">Adicionar Reservado</button>
@@ -1140,6 +1154,19 @@
     </div>
   </div>
 
+  <!-- Modal para Visualizar Compras do Débito (Mobile) -->
+  <div id="comprasDebitoModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>Compras no Débito</h3>
+      <div id="comprasDebitoModalContent">
+        <!-- Conteúdo será populado via JS -->
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="fecharModalComprasDebito()">Fechar</button>
+      </div>
+    </div>
+  </div>
+
 
   <script>
     const firebaseConfig = {
@@ -1317,7 +1344,7 @@
         batch.set(anoRef, { ano: Number(ano) });
         MESES.forEach(mesNome => {
           const mesRef = anoRef.collection('meses').doc(mesNome);
-          batch.set(mesRef, { contas: [], adicionais: [], cartao: [], reservado: [], cartaoStatus: 'pendente' });
+          batch.set(mesRef, { contas: [], adicionais: [], cartao: [], reservado: [], debito: [], cartaoStatus: 'pendente' });
         });
         await batch.commit();
       }
@@ -1384,6 +1411,7 @@
       data.adicionais = data.adicionais || [];
       data.cartao = data.cartao || [];
       data.reservado = data.reservado || [];
+      data.debito = data.debito || [];
       const statusCartao = data.cartaoStatus || 'pendente';
 
       // Ordena as contas manualmente em ordem alfabética
@@ -1427,6 +1455,19 @@
         contasOrdenadas.sort((a, b) => a.nome.localeCompare(b.nome));
       }
 
+      // Adiciona o item "Débito" sempre como pago
+      const totalDebito = data.debito.reduce((acc, item) => acc + Number(item.valor || 0), 0);
+      if (totalDebito > 0) {
+        contasOrdenadas.push({
+          nome: "Débito",
+          valor: totalDebito,
+          status: "pago",
+          isDebito: true
+        });
+        // Reordena após adicionar o débito
+        contasOrdenadas.sort((a, b) => a.nome.localeCompare(b.nome));
+      }
+
       const tabelaContas = document.getElementById("tabelaContas");
       tabelaContas.innerHTML = "";
       contasOrdenadas.forEach((conta) => {
@@ -1448,7 +1489,8 @@
 
         if (conta.isCartao) { // Se for um item de cartão
           tr.onclick = () => abrirModalAcoes('cartaoAgregado', -1, conta);
-
+        } else if (conta.isDebito) { // Se for débito, não permite ações
+          tr.onclick = null;
         } else { // Se for uma conta normal
           tr.onclick = () => abrirModalAcoes('contas', originalIndex, conta);
         }
@@ -1520,7 +1562,7 @@
 
     async function carregarDadosRef(ref) {
       const doc = await ref.get();
-      return doc.exists ? doc.data() : { contas: [], adicionais: [], cartao: [], reservado: [], cartaoStatus: 'pendente' };
+      return doc.exists ? doc.data() : { contas: [], adicionais: [], cartao: [], reservado: [], debito: [], cartaoStatus: 'pendente' };
     }
 
     async function adicionarConta() {
@@ -1571,6 +1613,143 @@
       nomeInput.value = "";
       valorInput.value = "";
       fecharModalReservado();
+    }
+
+    async function adicionarDebito() {
+      const ref = getMesRef();
+      if (!ref) return;
+      const nomeInput = document.getElementById("debitoNome");
+      const valorInput = document.getElementById("debitoValor");
+      const nome = nomeInput.value.trim();
+      const valor = Number(valorInput.value);
+      if (!nome || !valor) return alert("Preencha descrição e valor.");
+      await ref.update({
+        debito: firebase.firestore.FieldValue.arrayUnion({ nome, valor })
+      });
+      nomeInput.value = "";
+      valorInput.value = "";
+    }
+
+    function abrirModalDebito() {
+      document.getElementById('debitoNome').focus();
+    }
+
+    async function visualizarComprasDebito() {
+      if (!currentUser) return;
+
+      const ref = getMesRef();
+      if (!ref) return;
+
+      const doc = await ref.get();
+      const data = doc.exists ? doc.data() : { debito: [] };
+      const comprasDebito = data.debito || [];
+
+      const isMobile = window.innerWidth <= 768;
+
+      if (isMobile) {
+        // Modal para mobile
+        const content = document.getElementById('comprasDebitoModalContent');
+        content.innerHTML = '';
+        
+        if (comprasDebito.length === 0) {
+          content.innerHTML = '<p class="info-text">Nenhuma compra registrada no débito.</p>';
+        } else {
+          const table = document.createElement('table');
+          table.style.width = '100%';
+          table.style.marginTop = '16px';
+          table.innerHTML = `
+            <thead>
+              <tr>
+                <th>Descrição</th>
+                <th>Valor</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="comprasDebitoModalTableBody"></tbody>
+          `;
+          
+          const tbody = table.querySelector('#comprasDebitoModalTableBody');
+          comprasDebito.forEach((item, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${item.nome}</td>
+              <td>${formatar(item.valor)}</td>
+              <td>
+                <button class="btn-inline" onclick="removerItem('debito', ${index}); fecharModalComprasDebito();">🗑️ Remover</button>
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+          
+          content.appendChild(table);
+        }
+
+        document.getElementById('comprasDebitoModal').classList.add('visible');
+      } else {
+        // Visualização desktop - mostra na página mesmo
+        const comprasDiv = document.getElementById('comprasDebitoDesktop');
+        comprasDiv.innerHTML = '';
+        comprasDiv.style.display = 'block';
+        
+        // Título
+        const titulo = document.createElement('h4');
+        titulo.style.marginBottom = '16px';
+        titulo.style.display = 'flex';
+        titulo.style.justifyContent = 'space-between';
+        titulo.style.alignItems = 'center';
+        titulo.innerHTML = `
+          <span>Compras no Débito</span>
+          <button class="btn-cancel" onclick="fecharComprasDebitoDesktop()" style="padding: 6px 12px; font-size: 14px;">Fechar</button>
+        `;
+        comprasDiv.appendChild(titulo);
+        
+        if (comprasDebito.length === 0) {
+          const p = document.createElement('p');
+          p.className = 'info-text';
+          p.textContent = 'Nenhuma compra registrada no débito.';
+          comprasDiv.appendChild(p);
+        } else {
+          const table = document.createElement('table');
+          table.style.width = '100%';
+          table.style.marginTop = '16px';
+          table.innerHTML = `
+            <thead>
+              <tr>
+                <th>Descrição</th>
+                <th>Valor</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="comprasDebitoDesktopTableBody"></tbody>
+          `;
+          
+          const tbody = table.querySelector('#comprasDebitoDesktopTableBody');
+          comprasDebito.forEach((item, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${item.nome}</td>
+              <td>${formatar(item.valor)}</td>
+              <td>
+                <button class="btn-inline" onclick="removerItem('debito', ${index})">🗑️ Remover</button>
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+          
+          comprasDiv.appendChild(table);
+        }
+
+        comprasDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+
+    function fecharModalComprasDebito() {
+      document.getElementById('comprasDebitoModal').classList.remove('visible');
+    }
+
+    function fecharComprasDebitoDesktop() {
+      document.getElementById('comprasDebitoDesktop').style.display = 'none';
+      document.getElementById('comprasDebitoDesktop').innerHTML = '';
     }
 
     async function adicionarCartao() {
@@ -2259,20 +2438,6 @@
           content.appendChild(table);
         }
 
-        // Adicionar opção de mudar status do cartão
-        const statusSelect = document.createElement('div');
-        statusSelect.className = 'form-row';
-        statusSelect.style.marginTop = '16px';
-        const statusCartao = data.cartaoStatus || 'pendente';
-        statusSelect.innerHTML = `
-          <label for="modalStatusCartaoSelect">Status do Cartão</label>
-          <select id="modalStatusCartaoSelect" onchange="atualizarStatusCartao(this.value)">
-            <option value="pendente" ${statusCartao === "pendente" ? "selected" : ""}>Pendente</option>
-            <option value="pago" ${statusCartao === "pago" ? "selected" : ""}>Pago</option>
-          </select>
-        `;
-        content.appendChild(statusSelect);
-
         document.getElementById('contasCartaoModal').classList.add('visible');
       } else {
         // Visualização desktop - mostra na página mesmo
@@ -2341,20 +2506,6 @@
           comprasDiv.appendChild(table);
         }
 
-        // Adicionar opção de mudar status do cartão
-        const statusSelect = document.createElement('div');
-        statusSelect.className = 'form-row';
-        statusSelect.style.marginTop = '16px';
-        const statusCartao = data.cartaoStatus || 'pendente';
-        statusSelect.innerHTML = `
-          <label for="desktopStatusCartaoSelect">Status do Cartão</label>
-          <select id="desktopStatusCartaoSelect" onchange="atualizarStatusCartao(this.value)">
-            <option value="pendente" ${statusCartao === "pendente" ? "selected" : ""}>Pendente</option>
-            <option value="pago" ${statusCartao === "pago" ? "selected" : ""}>Pago</option>
-          </select>
-        `;
-        comprasDiv.appendChild(statusSelect);
-
         comprasDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
     }
@@ -2380,15 +2531,17 @@
       let totalAdicionais = 0;
       let totalCartao = 0;
       let totalReservado = 0;
+      let totalDebito = 0;
 
       if (data) {
         totalContasManuais = data.contas.reduce((acc, item) => acc + Number(item.valor || 0), 0);
         totalAdicionais = data.adicionais.reduce((acc, item) => acc + Number(item.valor || 0), 0);
         totalCartao = data.cartao.reduce((acc, item) => acc + Number(item.valor || 0), 0);
         totalReservado = data.reservado.reduce((acc, item) => acc + Number(item.valor || 0), 0);
+        totalDebito = (data.debito || []).reduce((acc, item) => acc + Number(item.valor || 0), 0);
       }
 
-      const totalContas = totalContasManuais + totalCartao;
+      const totalContas = totalContasManuais + totalCartao + totalDebito;
       const saldo = totalAdicionais - totalContas - totalReservado;
 
       document.getElementById("totalContas").innerText = formatar(totalContas);
