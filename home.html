@@ -155,22 +155,34 @@
     /* Estilos Mobile */
     .mobile-nav { display: none; }
     @media (max-width: 768px) {
-      body { flex-direction: column; }
-      .sidebar { width: 100%; height: auto; position: fixed; top: 0; left: 0; flex-direction: row; justify-content: space-between; align-items: center; padding: 12px 16px; gap: 16px; z-index: 100; }
-      .sidebar h1 { font-size: 18px; }
+      body { flex-direction: column; background-color: var(--bg-main); }
+      .sidebar { 
+        width: 100%; height: auto; position: fixed; top: 0; left: 0; 
+        flex-direction: row; justify-content: space-between; align-items: center; 
+        padding: 16px 20px; gap: 16px; z-index: 100; 
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      }
+      .sidebar h1 { font-size: 20px; }
       .desktop-nav, .footer-actions { display: none; }
       .mobile-nav { display: block; position: relative; }
-      .mobile-nav-toggle { background: var(--sidebar-item-bg); color: var(--sidebar-text); border: none; padding: 10px 15px; border-radius: 8px; font-size: 16px; cursor: pointer; }
-      .mobile-nav-menu { display: none; position: absolute; top: 100%; right: 0; background: var(--sidebar-item-hover); border-radius: 8px; padding: 8px; margin-top: 5px; width: 150px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-      .mobile-nav-menu a { display: block; color: var(--sidebar-text); text-decoration: none; padding: 10px; border-radius: 6px; }
-      .mobile-nav-menu a:hover { background: var(--accent-blue); }
-      .content { margin-left: 0; margin-top: 80px; padding: 16px; }
+      .mobile-nav-toggle { background: transparent; color: var(--sidebar-text); border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 8px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+      .mobile-nav-menu { display: none; position: absolute; top: 120%; right: 0; background: var(--sidebar-bg); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 8px; width: 200px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+      .mobile-nav-menu a { display: block; color: var(--sidebar-text); text-decoration: none; padding: 12px 16px; border-radius: 8px; font-size: 16px; font-weight: 500; margin-bottom: 4px; }
+      .mobile-nav-menu a:last-child { margin-bottom: 0; }
+      .mobile-nav-menu a:hover, .mobile-nav-menu a:active { background: var(--sidebar-item-hover); }
+      .content { margin-left: 0; margin-top: 70px; padding: 20px; min-height: calc(100vh - 70px); }
+      .welcome-card { padding: 30px 20px; margin-bottom: 20px; }
+      .welcome-card h2 { font-size: 24px; }
+      .welcome-card p { font-size: 15px; margin-bottom: 20px; }
       .quick-links {
         flex-direction: column; /* Empilha os botões verticalmente */
         gap: 16px;
       }
       /* No mobile, o botão ocupa a largura total */
-      .quick-links a { width: 100%; min-height: auto; padding: 25px 20px; }
+      .quick-links a { width: 100%; min-height: auto; padding: 24px; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.15); }
+      
+      /* Botão de sair full width */
+      #logout-button-home { width: 100%; padding: 16px; font-size: 16px; margin-top: 10px; }
     }
   </style>
   <style>
@@ -194,14 +206,14 @@
       <button class="mobile-nav-toggle" onclick="toggleMobileMenu()">☰ Menu</button>
       <div class="mobile-nav-menu" id="mobileNavMenu">
         <a href="home.html">Home</a>
-        <a href="index.html">Financeiro</a>
+        <a href="Financeiro.html">Financeiro</a>
         <a href="veiculos.html">Veículos</a>
       </div>
     </div>
 
     <div class="desktop-nav">
       <a href="home.html" class="btn-sidebar active">Home</a>
-      <a href="index.html" class="btn-sidebar">Financeiro</a>
+      <a href="Financeiro.html" class="btn-sidebar">Financeiro</a>
       <a href="veiculos.html" class="btn-sidebar">Veículos</a>
     </div>
 

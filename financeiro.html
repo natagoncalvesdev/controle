@@ -1,0 +1,3168 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Controle Financeiro</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <style>
+    :root {
+      /* Tema Claro (Padrão) */
+      --bg-main: #f0f2f5;
+      --bg-section: #ffffff;
+      --text-primary: #1d1d2e;
+      --text-secondary: #6c7190;
+      --border-color: #eef0fa;
+      --sidebar-bg: #151728;
+      --sidebar-text: #f9f9ff;
+      --sidebar-item-bg: #1f2238;
+      --sidebar-item-hover: #2b2f4a;
+
+      /* Cores de destaque */
+      --accent: #ffc107;
+      --accent-2: #33c27f;
+      --accent-3: #ff6b6b;
+      --accent-blue: #2563eb;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      display: flex;
+      height: 100vh;
+      background: var(--bg-main);
+      color: var(--text-primary);
+    }
+
+    .sidebar {
+      position: fixed; /* Fixa a sidebar na tela */
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 280px; /* Mantém a largura original */
+      background: var(--sidebar-bg);
+      color: var(--sidebar-text);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      z-index: 10; /* Garante que fique acima de outros elementos */
+    }
+
+    .sidebar h1 {
+      font-size: 22px;
+      margin: 0;
+      letter-spacing: 0.05em;
+      text-align: center;
+    }
+
+    .period-controls {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .period-controls select {
+      background: var(--bg-section);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      min-width: 150px;
+    }
+
+    .ano-select {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .ano-select label {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-secondary);
+    }
+
+    .ano-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    select {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: var(--sidebar-item-bg);
+      color: var(--sidebar-text);
+    }
+
+    .btn-icon {
+      width: 42px;
+      border: none;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #1d1d2e;
+      font-size: 22px;
+      cursor: pointer;
+    }
+
+    .btn-icon:hover { opacity: 0.9; }
+
+    .months {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+    }
+
+    .month {
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: var(--sidebar-item-bg);
+      color: var(--sidebar-text);
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.2s ease;
+    }
+
+    .month:hover {
+      transform: translateX(4px);
+      background: var(--sidebar-item-hover);
+    }
+
+    .btn-sidebar {
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: var(--sidebar-item-bg);
+      color: var(--sidebar-text);
+      cursor: pointer;
+      transition: background 0.2s ease;
+      border: none;
+      font-size: 16px;
+    }
+
+    a.btn-sidebar {
+      text-decoration: none; /* Remove o sublinhado dos links */
+    }
+
+    .btn-sidebar:hover {
+      background: var(--sidebar-item-hover);
+    }
+
+    .btn-sidebar.active {
+      background: var(--accent-blue); /* Cor de destaque para a aba ativa */
+    }
+
+    .mobile-nav { display: none; } /* Oculto no desktop */
+
+    .desktop-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .mes-select-mobile {
+      display: none; /* Oculto por padrão */
+    }
+
+    .month.active {
+      background: var(--accent);
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .content {
+      flex: 1;
+      padding: 32px;
+      margin-left: 280px; /* Adiciona margem para não ficar atrás da sidebar */
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .header {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .header h2 {
+      margin: 0;
+      font-size: 26px;
+    }
+
+    .resumo {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--bg-section);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .card small {
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: var(--text-secondary);
+    }
+
+    .card strong {
+      font-size: 26px;
+    }
+
+    .card .toggle-icon {
+      display: inline-block;
+      margin-left: 8px;
+      font-size: 12px;
+      transition: transform 0.3s ease;
+    }
+    .card.expanded .toggle-icon { transform: rotate(180deg); }
+
+    .modal-open-icon {
+      display: inline-block;
+      margin-left: 5px;
+      font-weight: bold;
+      color: var(--text-secondary);
+      transition: transform 0.2s ease;
+    }
+
+    .card.green strong { color: var(--accent-2); }
+    .card.red strong { color: var(--accent-3); }
+    .card.yellow strong { color: var(--accent); }
+    .card.blue strong { color: #007bff; } /* Cor para o total reservado */
+
+    /* Estilos dinâmicos para o card de Saldo Disponível */
+    .card-saldo-positivo {
+    }
+    .card-saldo-positivo strong {
+      color: #1e8558 !important;
+    }
+
+    .card-saldo-aviso {
+    }
+    .card-saldo-aviso strong {
+      color: #b38600 !important;
+    }
+
+    .card-saldo-negativo {
+    }
+    .card-saldo-negativo strong {
+      color: #ba2f2f !important;
+    }
+
+    .section {
+      background: var(--bg-section);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .section h3 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .form-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .form-row input,
+    .form-row select {
+      flex: 1;
+      min-width: 160px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-main);
+    }
+
+    /* Garante que o select dentro das modais tenha a cor de texto correta */
+    .modal-content .form-row select {
+      color: var(--text-primary);
+    }
+
+    .form-row button {
+      flex-basis: 140px;
+      border: none;
+      border-radius: 10px;
+      background: #2563eb;
+      color: #ffffff;
+      padding: 12px; /* Aumenta a altura (deixa mais "gordo") */
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .form-row .form-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      /* Permite que os botões fiquem ao lado dos inputs */
+      min-width: fit-content;
+    }
+
+    .section-actions {
+      display: flex;
+      justify-content: flex-start;
+      gap: 12px;
+    }
+
+    .cartao-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 16px;
+      padding: 24px;
+      min-width: 280px;
+      max-width: 320px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 160px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+      color: white;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cartao-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .cartao-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+    }
+
+    .cartao-card.selecionado {
+      border: 3px solid var(--accent-blue);
+      box-shadow: 0 12px 32px rgba(37, 99, 235, 0.4);
+    }
+
+    .cartao-card.visa {
+      background: linear-gradient(135deg, #1a1f71 0%, #0d1142 100%);
+    }
+
+    .cartao-card.mastercard {
+      background: linear-gradient(135deg, #eb001b 0%, #c20018 100%);
+    }
+
+    .cartao-card.elo {
+      background: linear-gradient(135deg, #ffcb05 0%, #ffa000 100%);
+      color: #000;
+    }
+
+    .cartao-card.amex {
+      background: linear-gradient(135deg, #006fcf 0%, #0052a3 100%);
+    }
+
+    .cartao-card.hipercard {
+      background: linear-gradient(135deg, #df0f50 0%, #b00d42 100%);
+    }
+
+    .cartao-card.outro {
+      background: linear-gradient(135deg, #6c7190 0%, #4a4f6e 100%);
+    }
+
+    .cartao-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+    }
+
+    .cartao-bandeira {
+      width: 50px;
+      height: 32px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: bold;
+      color: white;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+    }
+
+    .cartao-bandeira.visa { background: rgba(255, 255, 255, 0.25); }
+    .cartao-bandeira.mastercard { background: rgba(255, 255, 255, 0.25); }
+    .cartao-bandeira.elo { background: rgba(0, 0, 0, 0.2); color: #fff; }
+    .cartao-bandeira.amex { background: rgba(255, 255, 255, 0.25); }
+    .cartao-bandeira.hipercard { background: rgba(255, 255, 255, 0.25); }
+    .cartao-bandeira.outro { background: rgba(255, 255, 255, 0.25); }
+
+    .cartao-numero {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .cartao-final {
+      font-size: 14px;
+      opacity: 0.9;
+      font-weight: 500;
+    }
+
+    .cartao-chip {
+      width: 40px;
+      height: 32px;
+      background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+      border-radius: 6px;
+      position: relative;
+      margin-bottom: 16px;
+    }
+
+    .cartao-chip::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 30px;
+      height: 24px;
+      background: linear-gradient(135deg, #c9a961 0%, #ffd700 100%);
+      border-radius: 4px;
+    }
+
+    .cartoes-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    @media (max-width: 768px) {
+      #cartoesContainerWrapper {
+        overflow: hidden;
+        margin-bottom: 16px;
+      }
+      
+      .cartoes-container {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 16px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+        padding: 0 20px;
+        margin-left: -20px;
+        margin-right: -20px;
+        padding-bottom: 16px;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      
+      .cartoes-container::-webkit-scrollbar {
+        display: none;
+      }
+      
+      .cartao-card {
+        min-width: calc(100% - 40px);
+        max-width: calc(100% - 40px);
+        scroll-snap-align: center;
+        flex-shrink: 0;
+        margin: 0 10px;
+      }
+      
+      .cartao-card:first-child {
+        margin-left: 20px;
+      }
+      
+      .cartao-card:last-child {
+        margin-right: 20px;
+      }
+      
+      .modal-content {
+        max-height: 85vh;
+      }
+      
+      #contasCartaoModalContent,
+      #comprasDebitoModalContent {
+        max-height: calc(85vh - 120px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-right: 4px;
+      }
+      
+      #contasCartaoModalContent table,
+      #comprasDebitoModalContent table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+    }
+
+    .btn-add {
+      border: none;
+      border-radius: 10px;
+      background: #2563eb;
+      color: #ffffff;
+      padding: 12px 20px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-add:hover { opacity: 0.9; }
+
+    .recorrente-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: 10px;
+      background-color: var(--accent);
+      color: var(--text-primary);
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none; /* Impede a seleção de texto */
+      justify-content: center;
+    }
+    .recorrente-toggle input[type="checkbox"] {
+      display: none; /* Oculta o checkbox padrão */
+    }
+    .checkbox-box {
+      width: 18px;
+      height: 18px;
+      background: rgba(29, 29, 46, 0.1);
+      border: 1px solid rgba(29, 29, 46, 0.3);
+      border-radius: 4px;
+      position: relative;
+    }
+    .recorrente-toggle input:checked + .checkbox-box {
+      background: #1d1d2e;
+      border-color: #1d1d2e;
+    }
+    .recorrente-toggle input:checked + .checkbox-box::after {
+      content: '✔';
+      color: var(--accent);
+      font-size: 14px;
+      position: absolute;
+      top: 50%; left: 50%; transform: translate(-50%, -50%);
+    }
+    .form-row button:hover { opacity: 0.9; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 12px 10px;
+      text-align: left;
+      vertical-align: middle; /* Garante alinhamento vertical consistente */
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-secondary);
+    }
+
+    tbody tr:hover {
+      background: var(--bg-main);
+    }
+
+    .btn-inline {
+      border: none;
+      background: none;
+      color: var(--accent-3);
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    table select {
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #d5d8e6;
+      background: var(--bg-section);
+      color: var(--text-primary);
+    }
+
+    .status-tag {
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-transform: uppercase;
+    }
+
+    .status-pendente {
+      background: rgba(255, 107, 107, 0.2);
+      color: #ba2f2f;
+    }
+
+    .status-pago {
+      background: rgba(51, 194, 127, 0.2);
+      color: #1e8558;
+    }
+
+    .row-pendente {
+      background: rgba(255, 107, 107, 0.1);
+    }
+
+    .row-pago {
+      background: rgba(51, 194, 127, 0.1);
+    }
+
+    .info-text {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .actions-cell {
+      display: flex;
+      gap: 10px;
+      align-items: center; /* Alinha os botões verticalmente */
+    }
+
+    .btn-icon-inline {
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 18px;
+      padding: 0;
+    }
+    .btn-icon-inline.edit {
+      color: var(--text-secondary);
+    }
+    .btn-icon-inline.edit:hover {
+      color: var(--accent-2);
+    }
+    .btn-icon-inline.copy {
+      color: var(--text-secondary);
+    }
+    .btn-icon-inline.copy:hover {
+      color: #2563eb;
+    }
+
+    td input {
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #aab1d3;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+    }
+
+    /* Estilos da Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: none; /* Oculto por padrão */
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: var(--bg-section);
+      padding: 24px;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 400px;
+      max-height: 90vh;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow: hidden;
+    }
+    
+    #contasCartaoModalContent,
+    #comprasDebitoModalContent {
+      overflow-y: auto;
+      max-height: calc(90vh - 150px);
+      -webkit-overflow-scrolling: touch;
+    }
+    .modal-content h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+    .modal-month-list {
+      max-height: 250px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border-top: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 0;
+    }
+    .modal-month-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .modal-month-item label {
+      flex: 1;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+    .modal-actions button {
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .modal-actions .btn-confirm { background: var(--accent-blue); color: #ffffff; }
+    .modal-actions .btn-cancel { background: var(--bg-main); color: var(--text-secondary); }
+    .modal-overlay.visible {
+      display: flex;
+    }
+    /* Modal de ações deve aparecer acima de outros modais */
+    #itemActionsModal {
+      z-index: 2000;
+    }
+    /* Modal de copiar deve aparecer acima de outros modais */
+    #copyModal {
+      z-index: 2000;
+    }
+
+    /* Modal financeiro deve aparecer acima de outros modais */
+    #financeiroModal {
+      z-index: 2000;
+    }
+
+    .collapsible-section, .hidden-section {
+      display: none; /* Escondido por padrão */
+      margin-top: -8px; /* Reduz o espaço quando expandido */
+      border-top-left-radius: 0; border-top-right-radius: 0;
+    }
+
+    /* Estilos do Dark Mode */
+    body.dark-mode {
+      --bg-main: #1f2238;
+      --bg-section: #151728;
+      --text-primary: #f9f9ff;
+      --text-secondary: #747b9a;
+      --border-color: #2b2f4a;
+    }
+
+    /* Estilos do Toggle de Dark Mode */
+    .theme-switch-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: auto; /* Empurra para o final da sidebar */
+      padding-top: 24px;
+      border-top: 1px solid var(--sidebar-item-bg);
+    }
+    .theme-switch {
+      display: inline-block;
+      height: 24px;
+      position: relative;
+      width: 50px;
+    }
+    .theme-switch input {
+      display:none;
+    }
+    .slider {
+      background-color: var(--sidebar-item-bg);
+      bottom: 0;
+      cursor: pointer;
+      left: 0;
+      position: absolute;
+      right: 0;
+      top: 0;
+      transition: .4s;
+      border-radius: 34px;
+    }
+    .slider:before {
+      content: "☀️";
+      font-size: 14px;
+      line-height: 18px;
+      text-align: center;
+      background-color: #fff;
+      bottom: 3px;
+      height: 18px;
+      left: 4px;
+      position: absolute;
+      transition: .4s;
+      width: 18px;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: var(--accent);
+    }
+    input:checked + .slider:before {
+      transform: translateX(26px);
+      content: "🌙";
+    }
+
+    @media (max-width: 768px) {
+      body { overflow-y: auto; } /* Adiciona rolagem ao corpo da página */
+      body { flex-direction: column; }
+
+      .sidebar {
+        width: 100%;
+        height: auto;
+        position: fixed;
+        top: 0;
+        left: 0;
+        flex-direction: row;
+        justify-content: space-between; /* Espaça o título e o menu */
+        align-items: center;
+        padding: 12px 16px;
+        gap: 16px;
+        z-index: 100;
+      }
+
+      /* Esconde elementos do desktop */
+      .sidebar h1 { font-size: 18px; } /* Deixa o título um pouco menor */
+      .desktop-nav { display: none; }
+      .footer-actions { display: none; }
+
+      /* Mostra e estiliza o menu mobile */
+      .mobile-nav {
+        display: block;
+        position: relative;
+      }
+      .mobile-nav-toggle {
+        background: var(--sidebar-item-bg);
+        color: var(--sidebar-text);
+        border: none;
+        padding: 10px 15px;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      .mobile-nav-menu {
+        display: none;
+        position: absolute;
+        top: 100%;
+        right: 0; /* Alinha o menu à direita */
+        background: var(--sidebar-item-hover);
+        border-radius: 8px;
+        padding: 8px;
+        margin-top: 5px;
+        width: 150px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      }
+      .selection-bar-mobile-section {
+        display: flex;
+        flex-direction: row; /* Ano e mês lado a lado */
+        gap: 16px;
+        width: 100%;
+        padding: 12px 16px; /* Padding para esta seção */
+        border-top: 1px solid var(--border-color); /* Separador visual */
+      }
+      .mobile-nav-menu a {
+        display: block;
+        color: var(--sidebar-text);
+        text-decoration: none;
+        padding: 10px;
+        border-radius: 6px;
+      }
+      .mobile-nav-menu a:hover {
+        background: var(--accent-blue);
+      }
+
+      .content {
+        padding: 16px;
+        overflow-y: visible;
+        margin-left: 0; /* Remove a margem lateral da sidebar */
+        margin-top: 80px; /* Espaço para a barra superior fixa */
+      }
+    }
+
+    .table-wrapper thead {
+      position: sticky;
+      top: 0;
+      background: var(--bg-section);
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar">
+    <h1>💰 Controle</h1>
+
+    <div class="mobile-nav">
+      <button class="mobile-nav-toggle" onclick="toggleMobileMenu()">☰ Menu</button>
+      <div class="mobile-nav-menu" id="mobileNavMenu">
+        <a href="home.html">Home</a>
+        <a href="index.html">Financeiro</a>
+        <a href="veiculos.html">Veículos</a>
+      </div>
+    </div>
+    
+    <div class="desktop-nav">     
+      <a href="home.html" class="btn-sidebar" style="text-align: center;">Home</a>
+      <a href="index.html" class="btn-sidebar active" style="text-align: center;">Financeiro</a>
+      <a href="veiculos.html" class="btn-sidebar" style="text-align: center;">Veículos</a>
+    </div>
+
+  </aside>
+
+  <main class="content">
+    <div class="header">
+      <h2 id="tituloMes">Carregando...</h2>
+      <div class="period-controls">
+        <select id="selectAno"></select>
+        <select id="selectMesMobile"></select>
+        <button class="btn-add" id="btnResumoAnual" onclick="irParaResumoAnual()">Ver resumo anual</button>
+      </div>
+      <div class="resumo">
+        <div class="card yellow">
+          <small>Total contas (inclui cartão)</small>
+          <strong id="totalContas">R$ 0,00</strong>
+          <span class="info-text">Contas manuais: <span id="totalContasSemCartao">R$ 0,00</span></span>
+          <span class="info-text">Cartão embutido: <span id="totalCartaoResumo">R$ 0,00</span></span>
+        </div>
+        <div class="card green" style="cursor: pointer;" onclick="abrirModalEntradas()">
+          <small>Total entradas <span class="modal-open-icon">↗</span></small>
+          <strong id="totalAdicionais">R$ 0,00</strong>
+        </div>
+        <div class="card red">
+          <small>Saldo disponível</small>
+          <strong id="saldoFinal">R$ 0,00</strong>
+        </div>
+        <div class="card blue">
+          <small>Total reservado</small>
+          <strong id="totalReservado">R$ 0,00</strong>
+        </div>
+      </div>
+    </div>
+
+    <section class="section">
+      <h3>Contas do mês</h3>
+      <div class="section-actions">
+        <button class="btn-add" onclick="abrirModalConta()">Adicionar Conta</button>
+      </div>
+      <div class="table-wrapper">
+        <table>
+        <thead>
+          <tr>
+            <th>Conta</th>
+            <th>Valor</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaContas"></tbody>
+        </table>
+      </div>
+      
+    </section>
+
+    <section class="section">
+      <h3>Débito</h3>
+      <div class="form-row">
+        <input id="debitoNome" placeholder="Descrição" />
+        <input id="debitoValor" type="number" placeholder="Valor em R$" step="0.01" />
+        <button class="btn-add" onclick="adicionarDebito()">Registrar</button>
+        <button class="btn-add" onclick="visualizarComprasDebito()">Ver Compras</button>
+      </div>
+      <!-- Área para mostrar compras do débito no desktop -->
+      <div id="comprasDebitoDesktop" style="display: none; margin-top: 16px;">
+        <!-- Conteúdo será populado via JS -->
+      </div>
+    </section>
+
+    <section class="section">
+      <h3>Cartão de crédito</h3>
+      <div class="section-actions">
+        <button class="btn-add" onclick="abrirModalGerenciarCartoes()">Gerenciar Cartões</button>
+      </div>
+      <div id="cartaoSelecionadoInfo" style="display: none; margin-bottom: 16px; padding: 12px; background: var(--bg-main); border-radius: 8px; text-align: center;">
+        <span id="cartaoSelecionadoNome"></span>
+      </div>
+      <div id="cartoesContainerWrapper">
+        <div id="cartoesContainer" class="cartoes-container">
+          <!-- Cartões cadastrados serão renderizados aqui -->
+        </div>
+      </div>
+      <div id="botoesCartaoSelecionado" class="section-actions" style="display: none; margin-top: 16px;">
+        <button id="btnAdiantarParcela" class="btn-add" onclick="abrirModalAdiantar()">Adiantar Parcela</button>
+        <button id="btnAdicionarCompra" class="btn-add" onclick="abrirModalCartao()">Adicionar Compra</button>
+      </div>
+      <div id="tabelaCartaoWrapper" class="table-wrapper" style="display: none;">
+        <table>
+          <thead>
+            <tr>
+            <th>Descrição</th>
+            <th>Valor</th>
+            <th>Parcelas</th>
+          </tr>
+          </thead>
+          <tbody id="tabelaCartao"></tbody>
+        </table>
+      </div>
+      <!-- Área para mostrar compras do cartão no desktop -->
+      <div id="comprasCartaoDesktop" style="display: none; margin-top: 16px;">
+        <!-- Conteúdo será populado via JS -->
+      </div>
+    </section>
+
+    
+
+    <section class="section">
+      <h3>Reservados (combustível, lazer, etc.)</h3>
+      <div class="section-actions">
+        <button class="btn-add" onclick="abrirModalReservado()">Adicionar Reservado</button>
+      </div>
+      <div class="table-wrapper">
+        <table>
+        <thead>
+          <tr>
+            <th>Descrição</th>
+            <th>Valor</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaReservado"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  
+
+  <!-- Modal para Copiar Itens -->
+  <div id="copyModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>Copiar item para outros meses</h3>
+      <div id="copyMonthList" class="modal-month-list">
+        <!-- A lista de meses será populada via JS -->
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="fecharModalCopia()">Cancelar</button>
+        <button class="btn-confirm" onclick="confirmarCopia()">Concluir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Ações do Item (Mobile) -->
+  <div id="itemActionsModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3 id="itemActionsModalTitle">Ações para o Item</h3>
+      <div id="itemActionsModalBody" style="display: flex; flex-direction: column; gap: 16px;">
+        <!-- Conteúdo dinâmico aqui -->
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="fecharModalAcoes()">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Modal para Entradas -->
+  <div id="entradasModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 550px;">
+      <h3>Entradas do Mês</h3>
+      <div class="form-row">
+        <input id="adicionalNomeModal" placeholder="Descrição da entrada" />
+        <input id="adicionalValorModal" type="number" placeholder="Valor em R$" />
+        <div class="form-actions">
+          <button onclick="adicionarAdicional()">Adicionar</button>
+        </div>
+      </div>
+      <div class="table-wrapper" style="margin-top: 16px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Descrição</th>
+              <th>Valor</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaAdicionaisModal"></tbody>
+        </table>
+      </div>
+      <div class="modal-actions"><button class="btn-cancel" onclick="fecharModalEntradas()">Fechar</button></div>
+    </div>
+  </div>
+
+  <!-- Modal para Contas -->
+  <div id="contaModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>Adicionar Conta</h3>
+      <div class="form-row">
+        <input id="contaNomeModal" placeholder="Descrição" />
+        <input id="contaValorModal" type="number" placeholder="Valor em R$" />
+        <select id="contaStatusModal">
+          <option value="pendente">Pendente</option>
+          <option value="pago">Pago</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="fecharModalConta()">Cancelar</button>
+        <button class="btn-confirm" onclick="adicionarConta()">Adicionar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Cartão -->
+  <div id="cartaoModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 550px;">
+      <h3>Adicionar Compra no Cartão</h3>
+      <div class="form-row">
+        <select id="cartaoSelecionadoModal">
+          <option value="">Selecione o cartão</option>
+        </select>
+        <input id="cartaoNomeModal" placeholder="Descrição (ex: Óculos)" />
+        <input id="cartaoValorModal" type="number" placeholder="Valor da parcela" />
+        <input id="cartaoTotalParcelasModal" type="number" placeholder="Total de Parcelas (ex: 10)" />
+        <label class="recorrente-toggle">
+          <input type="checkbox" id="cartaoRecorrenteModal"><span class="checkbox-box"></span><span>Recorrente</span>
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="fecharModalCartao()">Cancelar</button>
+        <button class="btn-confirm" onclick="adicionarCartao()">Adicionar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Reservados -->
+  <div id="reservadoModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>Adicionar Valor Reservado</h3>
+      <div class="form-row">
+        <input id="reservadoNomeModal" placeholder="Descrição" />
+        <input id="reservadoValorModal" type="number" placeholder="Valor em R$" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="fecharModalReservado()">Cancelar</button>
+        <button class="btn-confirm" onclick="adicionarReservado()">Adicionar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Adiantar Parcelas -->
+  <div id="anticipateModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>Adiantar parcelas para o mês atual</h3>
+      <div id="anticipateInstallmentList" class="modal-month-list">
+        <!-- A lista de parcelas será populada via JS -->
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="fecharModalAdiantar()">Cancelar</button>
+        <button class="btn-confirm" onclick="confirmarAdiantamento()">Concluir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Gerenciar Cartões -->
+  <div id="gerenciarCartoesModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 700px;">
+      <h3>Gerenciar Cartões</h3>
+      <div style="margin-bottom: 20px;">
+        <div class="section-actions" style="margin-bottom: 16px;">
+          <button class="btn-add" onclick="abrirFormularioNovoCartao()">+ Novo Cartão</button>
+        </div>
+        <div id="listaCartoesGerenciar" style="display: flex; flex-direction: column; gap: 12px;">
+          <!-- Lista de cartões será populada via JS -->
+        </div>
+      </div>
+      <div id="formularioCartao" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+        <h4 id="tituloFormularioCartao">Cadastrar Cartão</h4>
+        <div class="form-row">
+          <input id="cartaoNumeroModal" placeholder="Número do cartão (últimos 4 dígitos)" maxlength="4" />
+          <select id="cartaoBandeiraModal">
+            <option value="">Selecione a bandeira</option>
+            <option value="visa">Visa</option>
+            <option value="mastercard">Mastercard</option>
+            <option value="elo">Elo</option>
+            <option value="amex">American Express</option>
+            <option value="hipercard">Hipercard</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-cancel" onclick="cancelarFormularioCartao()">Cancelar</button>
+          <button class="btn-confirm" id="btnSalvarCartao" onclick="salvarCartao()">Cadastrar</button>
+        </div>
+      </div>
+      <div class="modal-actions" style="margin-top: 20px;">
+        <button class="btn-cancel" onclick="fecharModalGerenciarCartoes()">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Visualizar Contas do Cartão (Mobile) -->
+  <div id="contasCartaoModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3 id="contasCartaoModalTitulo">Contas do Cartão</h3>
+      <div id="contasCartaoModalContent">
+        <!-- Conteúdo será populado via JS -->
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="fecharModalContasCartao()">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Visualizar Compras do Débito (Mobile) -->
+  <div id="comprasDebitoModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>Compras no Débito</h3>
+      <div id="comprasDebitoModalContent">
+        <!-- Conteúdo será populado via JS -->
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="fecharModalComprasDebito()">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBVwUVoudM_IxWQgkLxlabinw4AXGgf1So",
+      authDomain: "controle-f1437.firebaseapp.com",
+      databaseURL: "https://controle-f1437-default-rtdb.firebaseio.com",
+      projectId: "controle-f1437",
+      storageBucket: "controle-f1437.firebasestorage.app",
+      messagingSenderId: "796244202232",
+      appId: "1:796244202232:web:4e98f9b9a3c34bd569e10d"
+};
+
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    const MESES = [
+      "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+      "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"
+    ];
+    const ANO_BASE = 2025;
+    const ANO_LIMITE = ANO_BASE + 10;
+
+    const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+    const formatar = valor => moeda.format(Number(valor) || 0);
+
+    let anoAtual = "";
+    let mesAtual = "";
+    let currentUser = null;
+    let unsubscribeMes = null;
+    let itemParaCopiar = null;
+    let parcelasParaAdiantar = [];
+
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobileNavMenu');
+      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    }
+
+    // Elementos para exibir o nome do usuário
+    const userNameDesktop = document.getElementById('user-name-desktop');
+    const userNameMobile = document.getElementById('user-name-mobile');
+
+    const selectAno = document.getElementById("selectAno");
+    const selectMesMobile = document.getElementById("selectMesMobile");
+    const financeiroModalSelectAno = document.querySelector("#financeiroModal #selectAno");
+
+    function popularListaAnos() {
+      selectAno.innerHTML = "";
+      for (let ano = ANO_BASE; ano <= ANO_LIMITE; ano++) {
+        const option = document.createElement("option");
+        option.value = String(ano);
+        option.textContent = String(ano);
+        selectAno.appendChild(option);
+      }
+      // Popula também o seletor de ano dentro do modal financeiro, se ele existir
+      if (financeiroModalSelectAno) {
+        financeiroModalSelectAno.innerHTML = selectAno.innerHTML;
+      }
+    }
+
+    function popularSeletorMeses() {
+      selectMesMobile.innerHTML = "";
+      MESES.forEach(mes => {
+        const option = document.createElement("option");
+        option.value = mes;
+        option.textContent = mes;
+        selectMesMobile.appendChild(option);
+      });
+    }
+
+    function irParaResumoAnual() {
+      const ano = anoAtual || String(new Date().getFullYear());
+      window.location.href = `resumo.html?ano=${encodeURIComponent(ano)}`;
+    }
+
+    async function inicializar() {
+      const hoje = new Date();
+      let anoCorrente = hoje.getFullYear();
+      const mesCorrente = MESES[hoje.getMonth()];
+
+      popularListaAnos();
+      popularSeletorMeses();
+
+      anoAtual = String(anoCorrente);
+      selectAno.value = anoAtual; // Define o valor no seletor
+      // Sincroniza o seletor do modal
+      if (financeiroModalSelectAno) {
+        financeiroModalSelectAno.value = anoAtual;
+      }
+
+      
+      await garantirEstruturaUsuario(anoAtual); // Garante que a estrutura do ano exista no DB
+      await selecionarMes(mesCorrente); // Seleciona o mês e ano atuais
+
+      selectAno.addEventListener("change", () => {
+        trocarAno();
+      });
+      selectMesMobile.addEventListener("change", (e) => {
+        selecionarMes(e.target.value);
+      });
+
+      // Adicionar navegação por swipe no mobile
+      adicionarNavegacaoSwipe();
+    }
+
+    function adicionarNavegacaoSwipe() {
+      // Só funciona no mobile
+      if (window.innerWidth > 768) return;
+
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let touchEndX = 0;
+      let touchEndY = 0;
+      let isSwiping = false;
+
+      const minSwipeDistance = 50; // Distância mínima para considerar um swipe
+
+      document.body.addEventListener('touchstart', (e) => {
+        // Ignora se estiver tocando em um input, textarea, select ou botão
+        const target = e.target;
+        if (target.tagName === 'INPUT' || 
+            target.tagName === 'TEXTAREA' || 
+            target.tagName === 'SELECT' || 
+            target.tagName === 'BUTTON' ||
+            target.closest('button') ||
+            target.closest('input') ||
+            target.closest('textarea') ||
+            target.closest('select') ||
+            target.closest('.modal-overlay') ||
+            target.closest('.cartoes-container')) {
+          return;
+        }
+
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        isSwiping = false;
+      }, { passive: true });
+
+      document.body.addEventListener('touchmove', (e) => {
+        if (touchStartX === 0) return;
+
+        const deltaX = Math.abs(e.touches[0].clientX - touchStartX);
+        const deltaY = Math.abs(e.touches[0].clientY - touchStartY);
+
+        // Só considera swipe se o movimento horizontal for maior que o vertical
+        if (deltaX > deltaY && deltaX > 10) {
+          isSwiping = true;
+        }
+      }, { passive: true });
+
+      document.body.addEventListener('touchend', (e) => {
+        if (!isSwiping || touchStartX === 0) {
+          touchStartX = 0;
+          touchStartY = 0;
+          return;
+        }
+
+        touchEndX = e.changedTouches[0].clientX;
+        touchEndY = e.changedTouches[0].clientY;
+
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = Math.abs(touchEndY - touchStartY);
+
+        // Verifica se é um swipe horizontal válido
+        if (Math.abs(deltaX) > minSwipeDistance && Math.abs(deltaX) > deltaY) {
+          if (deltaX > 0) {
+            // Swipe para direita - volta um mês
+            navegarMesAnterior();
+          } else {
+            // Swipe para esquerda - avança um mês
+            navegarProximoMes();
+          }
+        }
+
+        touchStartX = 0;
+        touchStartY = 0;
+        isSwiping = false;
+      }, { passive: true });
+    }
+
+    async function navegarMesAnterior() {
+      if (!mesAtual || !anoAtual) return;
+
+      const mesAtualIndex = MESES.indexOf(mesAtual);
+      let novoMesIndex = mesAtualIndex - 1;
+      let novoAno = Number(anoAtual);
+
+      if (novoMesIndex < 0) {
+        novoMesIndex = 11; // Dezembro
+        novoAno -= 1;
+      }
+
+      const novoMes = MESES[novoMesIndex];
+      
+      // Verifica se o ano está dentro dos limites
+      if (novoAno >= ANO_BASE && novoAno <= ANO_LIMITE) {
+        anoAtual = String(novoAno);
+        selectAno.value = anoAtual;
+        if (financeiroModalSelectAno) {
+          financeiroModalSelectAno.value = anoAtual;
+        }
+        // Garante a estrutura do ano antes de selecionar o mês
+        await garantirEstruturaUsuario(anoAtual);
+        await selecionarMes(novoMes);
+      }
+    }
+
+    async function navegarProximoMes() {
+      if (!mesAtual || !anoAtual) return;
+
+      const mesAtualIndex = MESES.indexOf(mesAtual);
+      let novoMesIndex = mesAtualIndex + 1;
+      let novoAno = Number(anoAtual);
+
+      if (novoMesIndex > 11) {
+        novoMesIndex = 0; // Janeiro
+        novoAno += 1;
+      }
+
+      const novoMes = MESES[novoMesIndex];
+      
+      // Verifica se o ano está dentro dos limites
+      if (novoAno >= ANO_BASE && novoAno <= ANO_LIMITE) {
+        anoAtual = String(novoAno);
+        selectAno.value = anoAtual;
+        if (financeiroModalSelectAno) {
+          financeiroModalSelectAno.value = anoAtual;
+        }
+        // Garante a estrutura do ano antes de selecionar o mês
+        await garantirEstruturaUsuario(anoAtual);
+        await selecionarMes(novoMes);
+      }
+    }
+
+    // Lógica de Autenticação e Proteção de Rota
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        currentUser = user;
+        // Busca o nome do usuário no Firestore
+        db.collection('users').doc(currentUser.uid).get().then(doc => {
+          if (doc.exists) {
+            const userData = doc.data();
+            displayUserName(userData.name || currentUser.email);
+
+            // Verifica se o usuário é administrador
+            if (userData.adm === true) {
+              // Lógica para administrador pode ser adicionada aqui no futuro
+            }
+          }
+        }).catch(error => {
+          // Em caso de erro, os botões de admin permanecem ocultos
+          console.error("Erro ao buscar dados do usuário:", error);
+          displayUserName(currentUser.email); // Fallback em caso de erro
+        });
+        inicializar();
+        // Carrega os cartões cadastrados
+        carregarCartoes();
+      } else {
+        // Se não houver usuário, redireciona para o login
+        window.location.href = 'login.html';
+      }
+    });
+
+    // Lógica do Dark Mode
+    const desktopToggle = document.getElementById('theme-toggle'); // Toggle na sidebar desktop
+    const mobileToggle = document.getElementById('theme-toggle-mobile'); // Toggle na barra superior mobile
+    const currentTheme = localStorage.getItem('theme');
+
+    if (currentTheme === 'dark') {
+      document.body.classList.add('dark-mode');
+      if (desktopToggle) desktopToggle.checked = true;
+      if (mobileToggle) mobileToggle.checked = true;
+    }
+
+    // Elementos para exibir o nome do usuário
+    // Note: user-name-desktop está dentro do theme-switch-wrapper desktop
+    // user-name-mobile está dentro do theme-switch-wrapper mobile
+    // Ambos são atualizados pela função displayUserName
+
+    function displayUserName(name) {
+      if (userNameDesktop) userNameDesktop.textContent = name;
+      if (userNameMobile) userNameMobile.textContent = name;
+      // Se desejar, pode também atualizar o texto do botão de sair, por exemplo:
+      // document.getElementById('logout-button').textContent = `Sair (${name})`;
+    }
+
+    function handleThemeChange(isDarkMode) {
+      document.body.classList.toggle('dark-mode');
+      const theme = isDarkMode ? 'dark' : 'light';
+      localStorage.setItem('theme', theme);
+      if (desktopToggle) desktopToggle.checked = isDarkMode;
+      if (mobileToggle) mobileToggle.checked = isDarkMode;
+    }
+
+    if (desktopToggle) {
+      desktopToggle.addEventListener('change', (e) => {
+        handleThemeChange(e.target.checked);
+      });
+    }
+    if (mobileToggle) {
+      mobileToggle.addEventListener('change', (e) => {
+        handleThemeChange(e.target.checked);
+      });
+    }
+
+    // NOVA FUNÇÃO para garantir a estrutura de dados do usuário
+    async function garantirEstruturaUsuario(ano) {
+      if (!currentUser || !/^[0-9]{4}$/.test(String(ano))) return;
+
+      const anoRef = db.collection('users').doc(currentUser.uid).collection('anos').doc(String(ano));
+      const anoDoc = await anoRef.get();
+
+      if (!anoDoc.exists) {
+        const batch = db.batch();
+        batch.set(anoRef, { ano: Number(ano) });
+        MESES.forEach(mesNome => {
+          const mesRef = anoRef.collection('meses').doc(mesNome);
+          batch.set(mesRef, { contas: [], adicionais: [], cartao: [], reservado: [], debito: [], cartaoStatus: 'pendente' });
+        });
+        await batch.commit();
+      }
+    }
+
+    function renderizarMeses() { // A lista de meses na sidebar não existe mais.
+      // Apenas garante que o seletor mobile esteja sincronizado.
+      if (selectMesMobile) selectMesMobile.value = mesAtual;
+    }
+
+    async function trocarAno() {
+      anoAtual = selectAno.value;
+      const mesParaManter = mesAtual || MESES[new Date().getMonth()];
+      if (unsubscribeMes) unsubscribeMes();
+      await garantirEstruturaUsuario(anoAtual);
+      await selecionarMes(mesParaManter);
+    }
+
+    async function selecionarMes(mes) {
+      if (!anoAtual) return;
+      mesAtual = mes;
+      document.getElementById("tituloMes").innerText = `${mesAtual} / ${anoAtual}`;
+      // Sincroniza os seletores
+      selectAno.value = anoAtual;
+      if (financeiroModalSelectAno) {
+        financeiroModalSelectAno.value = anoAtual;
+      }
+      selectMesMobile.value = mesAtual;
+      renderizarMeses();
+      await garantirEstruturaUsuario(anoAtual);
+      escutarMes(anoAtual, mesAtual);
+    }
+
+    // NOVA FUNÇÃO para escutar o mês do usuário logado
+    function escutarMes(ano, mes) {
+      if (unsubscribeMes) unsubscribeMes();
+      if (!currentUser) return;
+
+      const ref = db.collection('users').doc(currentUser.uid).collection('anos').doc(ano).collection('meses').doc(mes);
+      unsubscribeMes = ref.onSnapshot(doc => {
+        if (!doc.exists) {
+          // A função garantirEstruturaUsuario já deve ter criado isso.
+          return; 
+        }
+        renderizarDadosDoMes(doc.data());
+      }, error => {
+        console.error("Erro no listener do mês", error);
+        alert("Não foi possível ouvir atualizações do mês. Verifique sua conexão.");
+      });
+    }
+
+    function limparTabelas() {
+      document.getElementById("tabelaContas").innerHTML = "";
+      document.getElementById("tabelaAdicionaisModal").innerHTML = "";
+      document.getElementById("tabelaCartao").innerHTML = "";
+      document.getElementById("tabelaReservado").innerHTML = "";
+    }
+
+    function renderizarDadosDoMes(data) {
+      if (!data) {
+        data = { contas: [], adicionais: [], cartao: [], reservado: [] };
+      }
+      data.contas = data.contas || [];
+      data.adicionais = data.adicionais || [];
+      data.cartao = data.cartao || [];
+      data.reservado = data.reservado || [];
+      data.debito = data.debito || [];
+      const statusCartao = data.cartaoStatus || 'pendente';
+
+      // Ordena as contas manualmente em ordem alfabética
+      const contasOrdenadas = [...data.contas].sort((a, b) => a.nome.localeCompare(b.nome));
+
+      // Calcula o total de cada cartão individualmente e adiciona como itens separados
+      if (data.cartao && data.cartao.length > 0 && cartoesCache.length > 0) {
+        // Cria um mapa dos cartões para acesso rápido
+        const cartoesMap = {};
+        cartoesCache.forEach(cartao => {
+          cartoesMap[cartao.id] = cartao;
+        });
+
+        // Calcula o total para cada cartão
+        const totaisPorCartao = {};
+        data.cartao.forEach(item => {
+          const cartaoId = item.cartaoId;
+          if (cartaoId && cartoesMap[cartaoId]) {
+            if (!totaisPorCartao[cartaoId]) {
+              totaisPorCartao[cartaoId] = { total: 0, cartao: cartoesMap[cartaoId] };
+            }
+            totaisPorCartao[cartaoId].total += Number(item.valor || 0);
+          }
+        });
+
+        // Adiciona cada cartão como um item na lista de contas
+        Object.keys(totaisPorCartao).forEach(cartaoId => {
+          const { total, cartao } = totaisPorCartao[cartaoId];
+          if (total > 0) {
+            contasOrdenadas.push({
+              nome: `Cartão ${cartao.numero}`,
+              valor: total,
+              status: statusCartao,
+              isCartao: true,
+              cartaoId: cartaoId
+            });
+          }
+        });
+
+        // Reordena após adicionar os cartões
+        contasOrdenadas.sort((a, b) => a.nome.localeCompare(b.nome));
+      }
+
+      // Adiciona o item "Débito" sempre como pago
+      const totalDebito = data.debito.reduce((acc, item) => acc + Number(item.valor || 0), 0);
+      if (totalDebito > 0) {
+        contasOrdenadas.push({
+          nome: "Débito",
+          valor: totalDebito,
+          status: "pago",
+          isDebito: true
+        });
+        // Reordena após adicionar o débito
+        contasOrdenadas.sort((a, b) => a.nome.localeCompare(b.nome));
+      }
+
+      const tabelaContas = document.getElementById("tabelaContas");
+      tabelaContas.innerHTML = "";
+      contasOrdenadas.forEach((conta) => {
+        // Para itens que não são do cartão, encontramos o índice original para as ações funcionarem
+        const originalIndex = conta.isCartao ? -1 : data.contas.findIndex(c => c.nome === conta.nome && c.valor === conta.valor);
+
+        const status = conta.status || "pendente";
+        const tr = document.createElement('tr');
+        tr.className = `${status === "pago" ? "row-pago" : "row-pendente"}`;
+        tr.innerHTML = `
+            <td>${conta.nome}</td>
+            <td>${formatar(conta.valor)}</td>
+            <td>
+              <div class="status-tag ${status === "pago" ? "status-pago" : "status-pendente"}">
+                ${status === "pago" ? "Pago" : "Pendente"}
+              </div>
+            </td>
+        `;
+
+        if (conta.isCartao) { // Se for um item de cartão
+          tr.onclick = () => abrirModalAcoes('cartaoAgregado', -1, conta);
+        } else if (conta.isDebito) { // Se for débito, não permite ações
+          tr.onclick = null;
+        } else { // Se for uma conta normal
+          tr.onclick = () => abrirModalAcoes('contas', originalIndex, conta);
+        }
+        tabelaContas.appendChild(tr);
+      });
+
+      const tabelaAdicionais = document.getElementById("tabelaAdicionaisModal"); // Corrigido: Apenas uma declaração
+      tabelaAdicionais.innerHTML = "";
+      (data.adicionais || []).forEach((item, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${item.nome}</td>
+            <td>${formatar(item.valor)}</td>
+            <td class="actions-cell">
+              <button class="btn-icon-inline edit">✏️</button>
+              <button class="btn-icon-inline copy">❐</button>
+              <button class="btn-inline" onclick="removerItem('adicionais', ${index})">🗑️</button>
+            </td>
+        `;
+        // Adiciona event listener ao botão de editar - vai direto para o modal de edição
+        const editButton = tr.querySelector('.edit');
+        editButton.onclick = () => {
+          // Abre o modal de ações primeiro (necessário para ter os elementos)
+          const modal = document.getElementById('itemActionsModal');
+          modal.classList.add('visible');
+          // Chama diretamente a função de edição
+          mostrarEdicaoNoModal('adicionais', index, item);
+        };
+        // Adiciona event listener ao botão de copiar - fecha o modal de entradas antes de abrir o de copiar
+        const copyButton = tr.querySelector('.copy');
+        copyButton.onclick = () => {
+          fecharModalEntradas();
+          abrirModalCopia('adicionais', index);
+        };
+        tabelaAdicionais.appendChild(tr);
+      });
+
+      // Não renderiza a tabela de compras por padrão - só mostra quando clicar no cartão
+      const tabelaCartao = document.getElementById("tabelaCartao");
+      const tabelaCartaoWrapper = document.getElementById("tabelaCartaoWrapper");
+      tabelaCartao.innerHTML = "";
+      // Mantém a tabela escondida por padrão
+      if (tabelaCartaoWrapper) {
+        tabelaCartaoWrapper.style.display = 'none';
+      }
+
+      const tabelaReservado = document.getElementById("tabelaReservado");
+      tabelaReservado.innerHTML = "";
+      data.reservado.forEach((item, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `          
+          <td>${item.nome}</td>
+          <td>${formatar(item.valor)}</td>
+        `;
+        tr.onclick = () => abrirModalAcoes('reservado', index, item);
+        tabelaReservado.appendChild(tr);
+      });
+
+      atualizarResumo(data);
+    }
+
+    function getMesRef() {
+      if (!anoAtual || !mesAtual) {
+        return null;
+      }
+      if (!currentUser) return null;
+      return db.collection('users').doc(currentUser.uid).collection('anos').doc(anoAtual).collection('meses').doc(mesAtual);
+    }
+
+    async function carregarDadosRef(ref) {
+      const doc = await ref.get();
+      return doc.exists ? doc.data() : { contas: [], adicionais: [], cartao: [], reservado: [], debito: [], cartaoStatus: 'pendente' };
+    }
+
+    async function adicionarConta() {
+      const ref = getMesRef();
+      if (!ref) return;
+      const nomeInput = document.getElementById("contaNomeModal");
+      const valorInput = document.getElementById("contaValorModal");
+      const statusInput = document.getElementById("contaStatusModal");
+      const nome = nomeInput.value.trim();
+      const valor = Number(valorInput.value);
+      const status = statusInput.value;
+      if (!nome || !valor) return alert("Preencha descrição e valor.");
+      await ref.update({
+        contas: firebase.firestore.FieldValue.arrayUnion({ nome, valor, status })
+      });
+      nomeInput.value = "";
+      valorInput.value = "";
+      fecharModalConta();
+    }
+
+    async function adicionarAdicional() {
+      const ref = getMesRef();
+      if (!ref) return;
+      const nomeInput = document.getElementById("adicionalNomeModal");
+      const valorInput = document.getElementById("adicionalValorModal");
+      const nome = nomeInput.value.trim();
+      const valor = Number(valorInput.value);
+      if (!nome || !valor) return alert("Preencha descrição e valor.");
+      await ref.update({
+        adicionais: firebase.firestore.FieldValue.arrayUnion({ nome, valor })
+      });
+      nomeInput.value = "";
+      valorInput.value = "";
+      // Não fecha a modal de entradas para permitir adicionar múltiplos
+    }
+
+    async function adicionarReservado() {
+      const ref = getMesRef();
+      if (!ref) return;
+      const nomeInput = document.getElementById("reservadoNomeModal");
+      const valorInput = document.getElementById("reservadoValorModal");
+      const nome = nomeInput.value.trim();
+      const valor = Number(valorInput.value);
+      if (!nome || !valor) return alert("Preencha descrição e valor.");
+      await ref.update({
+        reservado: firebase.firestore.FieldValue.arrayUnion({ nome, valor })
+      });
+      nomeInput.value = "";
+      valorInput.value = "";
+      fecharModalReservado();
+    }
+
+    async function adicionarDebito() {
+      const ref = getMesRef();
+      if (!ref) return;
+      const nomeInput = document.getElementById("debitoNome");
+      const valorInput = document.getElementById("debitoValor");
+      const nome = nomeInput.value.trim();
+      const valor = Number(valorInput.value);
+      if (!nome || !valor) return alert("Preencha descrição e valor.");
+      await ref.update({
+        debito: firebase.firestore.FieldValue.arrayUnion({ nome, valor })
+      });
+      nomeInput.value = "";
+      valorInput.value = "";
+    }
+
+    function abrirModalDebito() {
+      document.getElementById('debitoNome').focus();
+    }
+
+    async function visualizarComprasDebito() {
+      if (!currentUser) return;
+
+      const ref = getMesRef();
+      if (!ref) return;
+
+      const doc = await ref.get();
+      const data = doc.exists ? doc.data() : { debito: [] };
+      const comprasDebito = data.debito || [];
+
+      const isMobile = window.innerWidth <= 768;
+
+      if (isMobile) {
+        // Modal para mobile
+        const content = document.getElementById('comprasDebitoModalContent');
+        content.innerHTML = '';
+        
+        if (comprasDebito.length === 0) {
+          content.innerHTML = '<p class="info-text">Nenhuma compra registrada no débito.</p>';
+        } else {
+          const table = document.createElement('table');
+          table.style.width = '100%';
+          table.style.marginTop = '16px';
+          table.innerHTML = `
+            <thead>
+              <tr>
+                <th>Descrição</th>
+                <th>Valor</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="comprasDebitoModalTableBody"></tbody>
+          `;
+          
+          const tbody = table.querySelector('#comprasDebitoModalTableBody');
+          comprasDebito.forEach((item, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${item.nome}</td>
+              <td>${formatar(item.valor)}</td>
+              <td>
+                <button class="btn-inline" onclick="removerItem('debito', ${index}); fecharModalComprasDebito();">🗑️ Remover</button>
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+          
+          content.appendChild(table);
+        }
+
+        document.getElementById('comprasDebitoModal').classList.add('visible');
+      } else {
+        // Visualização desktop - mostra na página mesmo
+        const comprasDiv = document.getElementById('comprasDebitoDesktop');
+        comprasDiv.innerHTML = '';
+        comprasDiv.style.display = 'block';
+        
+        // Título
+        const titulo = document.createElement('h4');
+        titulo.style.marginBottom = '16px';
+        titulo.style.display = 'flex';
+        titulo.style.justifyContent = 'space-between';
+        titulo.style.alignItems = 'center';
+        titulo.innerHTML = `
+          <span>Compras no Débito</span>
+          <button class="btn-cancel" onclick="fecharComprasDebitoDesktop()" style="padding: 6px 12px; font-size: 14px;">Fechar</button>
+        `;
+        comprasDiv.appendChild(titulo);
+        
+        if (comprasDebito.length === 0) {
+          const p = document.createElement('p');
+          p.className = 'info-text';
+          p.textContent = 'Nenhuma compra registrada no débito.';
+          comprasDiv.appendChild(p);
+        } else {
+          const table = document.createElement('table');
+          table.style.width = '100%';
+          table.style.marginTop = '16px';
+          table.innerHTML = `
+            <thead>
+              <tr>
+                <th>Descrição</th>
+                <th>Valor</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="comprasDebitoDesktopTableBody"></tbody>
+          `;
+          
+          const tbody = table.querySelector('#comprasDebitoDesktopTableBody');
+          comprasDebito.forEach((item, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${item.nome}</td>
+              <td>${formatar(item.valor)}</td>
+              <td>
+                <button class="btn-inline" onclick="removerItem('debito', ${index})">🗑️ Remover</button>
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+          
+          comprasDiv.appendChild(table);
+        }
+
+        comprasDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+
+    function fecharModalComprasDebito() {
+      document.getElementById('comprasDebitoModal').classList.remove('visible');
+    }
+
+    function fecharComprasDebitoDesktop() {
+      document.getElementById('comprasDebitoDesktop').style.display = 'none';
+      document.getElementById('comprasDebitoDesktop').innerHTML = '';
+    }
+
+    async function adicionarCartao() {
+      const ref = getMesRef();
+      if (!ref) return;
+      const cartaoIdInput = document.getElementById("cartaoSelecionadoModal");
+      const nomeInput = document.getElementById("cartaoNomeModal");
+      const valorInput = document.getElementById("cartaoValorModal");
+      const parcelasInput = document.getElementById("cartaoTotalParcelasModal");
+      const recorrenteInput = document.getElementById("cartaoRecorrenteModal");
+      
+      const cartaoId = cartaoIdInput.value;
+      const nome = nomeInput.value.trim();
+      const valor = Number(valorInput.value);
+      const isRecorrente = recorrenteInput.checked;
+      const totalParcelas = Number(parcelasInput.value) || 1;
+
+      if (!cartaoId) {
+        return alert("Por favor, selecione um cartão.");
+      }
+
+      if (!nome || !valor) {
+        return alert("Preencha descrição e valor da compra.");
+      }
+
+      const mesAtualIndex = MESES.indexOf(mesAtual);
+      const batch = db.batch();
+
+      if (isRecorrente) {
+        // Lógica para item recorrente
+        const novaCompra = { nome, valor, parcelas: "Recorrente", recorrente: true, cartaoId };
+        const anoFinal = ANO_LIMITE;
+
+        for (let ano = Number(anoAtual); ano <= anoFinal; ano++) {
+          await garantirEstruturaUsuario(String(ano));
+          const mesInicial = (ano === Number(anoAtual)) ? mesAtualIndex : 0;
+          for (let mesIdx = mesInicial; mesIdx < 12; mesIdx++) {
+            const mesNome = MESES[mesIdx];
+            const parcelaRef = db.collection('users').doc(currentUser.uid).collection('anos').doc(String(ano)).collection('meses').doc(mesNome);
+            batch.update(parcelaRef, { cartao: firebase.firestore.FieldValue.arrayUnion(novaCompra) });
+          }
+        }
+
+      } else {
+        // Lógica para parcelamento normal
+        if (totalParcelas < 1) {
+        return alert("O número de parcelas deve ser 1 ou maior.");
+        }
+
+        for (let i = 0; i < totalParcelas; i++) {
+          const targetMesIndex = (mesAtualIndex + i) % 12;
+          const targetAno = Number(anoAtual) + Math.floor((mesAtualIndex + i) / 12);
+          const targetMesNome = MESES[targetMesIndex];
+
+          if (targetAno > ANO_LIMITE) continue; // Não adiciona além do ano limite
+
+          // Garante que o ano e a estrutura de meses existam antes de adicionar
+          await garantirEstruturaUsuario(String(targetAno));
+
+          const parcelaRef = db.collection('users').doc(currentUser.uid).collection('anos').doc(String(targetAno)).collection('meses').doc(targetMesNome);
+          const novaCompra = {
+            nome,
+            valor,
+            parcelas: `${i + 1}/${totalParcelas}`,
+            cartaoId
+          };
+          batch.update(parcelaRef, { cartao: firebase.firestore.FieldValue.arrayUnion(novaCompra) });
+        }
+      }
+
+      await batch.commit();
+
+      nomeInput.value = "";
+      valorInput.value = "";
+      parcelasInput.value = "";
+      recorrenteInput.checked = false;
+      cartaoIdInput.value = "";
+      fecharModalCartao();
+    }
+
+    async function removerItem(tipo, indice) {      
+      const ref = getMesRef();
+      if (!ref) return;
+      const dados = await carregarDadosRef(ref);
+      const item = dados[tipo][indice];
+
+      if (!item) return;
+
+      // Lógica especial para remover itens recorrentes do cartão
+      if (tipo === 'cartao' && item.recorrente) {
+        if (!confirm("Esta é uma compra recorrente. Deseja excluir esta e TODAS as ocorrências futuras?")) {
+          return;
+        }
+
+        const batch = db.batch();
+        const mesAtualIndex = MESES.indexOf(mesAtual);
+
+        for (let ano = Number(anoAtual); ano <= ANO_LIMITE; ano++) {
+          const mesInicial = (ano === Number(anoAtual)) ? mesAtualIndex : 0;
+          for (let mesIdx = mesInicial; mesIdx < 12; mesIdx++) {
+            const mesNome = MESES[mesIdx];
+            const futureRef = db.collection('users').doc(currentUser.uid).collection('anos').doc(String(ano)).collection('meses').doc(mesNome);
+            // arrayRemove precisa do objeto exato para funcionar
+            batch.update(futureRef, { cartao: firebase.firestore.FieldValue.arrayRemove(item) });
+          }
+        }
+
+        await batch.commit();
+        alert("Compra recorrente removida de todos os meses futuros.");
+        return; // Finaliza a função aqui
+      }
+
+      // Lógica padrão para remover um único item
+      dados[tipo].splice(indice, 1);
+      await ref.set(dados);
+    }
+
+    async function atualizarStatusConta(indice, status) {
+      const ref = getMesRef();
+      if (!ref) return;
+      const doc = await ref.get();
+      if (!doc.exists) return;
+      const dados = doc.data();
+      dados.contas[indice].status = status;
+      await ref.update({ contas: dados.contas });
+    }
+
+    async function atualizarStatusCartao(status) {
+      const ref = getMesRef();
+      if (!ref) return;
+      await ref.update({ cartaoStatus: status });
+    }
+
+    async function abrirModalCopia(tipo, indice) {
+      const ref = getMesRef();
+      if (!ref) return;
+      const dados = await carregarDadosRef(ref);
+      const item = dados[tipo][indice];
+
+      if (!item) return;
+
+      itemParaCopiar = { tipo, item };
+
+      const lista = document.getElementById('copyMonthList');
+      lista.innerHTML = '';
+      const mesAtualIndex = MESES.indexOf(mesAtual);
+
+      for (let i = 1; i <= 12; i++) {
+        const targetMesIndex = (mesAtualIndex + i) % 12;
+        const targetAno = Number(anoAtual) + Math.floor((mesAtualIndex + i) / 12);
+        const targetMesNome = MESES[targetMesIndex];
+
+        const id = `check-${targetAno}-${targetMesNome}`;
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'modal-month-item';
+        itemDiv.innerHTML = `
+          <input type="checkbox" id="${id}" data-ano="${targetAno}" data-mes="${targetMesNome}">
+          <label for="${id}">${targetMesNome} / ${targetAno}</label>
+        `;
+        lista.appendChild(itemDiv);
+      }
+
+      document.getElementById('copyModal').classList.add('visible');
+    }
+
+    function fecharModalCopia() {
+      document.getElementById('copyModal').classList.remove('visible');
+      itemParaCopiar = null;
+    }
+
+    async function confirmarCopia() {
+      if (!itemParaCopiar) return;
+
+      const checkboxes = document.querySelectorAll('#copyMonthList input[type="checkbox"]:checked');
+      if (checkboxes.length === 0) {
+        return alert("Selecione pelo menos um mês.");
+      }
+
+      const batch = db.batch();
+      const { tipo, item } = itemParaCopiar;
+
+      // Para contas, o status padrão ao copiar é 'pendente'
+      const itemCopiado = (tipo === 'contas') ? { ...item, status: 'pendente' } : { ...item };
+
+      for (const check of checkboxes) {
+        const ano = check.dataset.ano;
+        const mes = check.dataset.mes;
+
+        await garantirEstruturaUsuario(ano);
+        const ref = db.collection('users').doc(currentUser.uid).collection('anos').doc(ano).collection('meses').doc(mes);
+        batch.update(ref, {
+          [tipo]: firebase.firestore.FieldValue.arrayUnion(itemCopiado)
+        });
+      }
+
+      await batch.commit();
+      alert(`${checkboxes.length} cópia(s) realizada(s) com sucesso!`);
+      fecharModalCopia();
+    }
+
+    function obterCartaoAtivo() {
+      // Se houver cartão selecionado, usa ele
+      if (cartaoSelecionado) {
+        return cartaoSelecionado;
+      }
+      
+      // No mobile, tenta encontrar o cartão centralizado
+      if (window.innerWidth <= 768) {
+        const container = document.getElementById('cartoesContainer');
+        if (container) {
+          const containerRect = container.getBoundingClientRect();
+          const containerCenter = containerRect.left + containerRect.width / 2;
+          
+          let cartaoMaisProximo = null;
+          let menorDistancia = Infinity;
+          
+          const cards = container.querySelectorAll('.cartao-card');
+          cards.forEach(card => {
+            const cardRect = card.getBoundingClientRect();
+            const cardCenter = cardRect.left + cardRect.width / 2;
+            const distancia = Math.abs(cardCenter - containerCenter);
+            
+            if (distancia < menorDistancia) {
+              menorDistancia = distancia;
+              const cartaoId = card.dataset.cartaoId;
+              cartaoMaisProximo = cartoesCache.find(c => c.id === cartaoId);
+            }
+          });
+          
+          if (cartaoMaisProximo) {
+            return cartaoMaisProximo;
+          }
+        }
+      }
+      
+      // Se não encontrou, usa o primeiro cartão disponível
+      if (cartoesCache.length > 0) {
+        return cartoesCache[0];
+      }
+      
+      return null;
+    }
+
+    async function abrirModalAdiantar() {
+      const cartaoAtivo = obterCartaoAtivo();
+      if (!cartaoAtivo) {
+        return alert('Por favor, cadastre um cartão primeiro.');
+      }
+      
+      // Seleciona o cartão se não estiver selecionado
+      if (!cartaoSelecionado || cartaoSelecionado.id !== cartaoAtivo.id) {
+        selecionarCartao(cartaoAtivo, false);
+      }
+      // Verifica se o mês selecionado é um mês passado
+      const hoje = new Date();
+      const anoCorrenteReal = hoje.getFullYear();
+      const mesCorrenteRealIndex = hoje.getMonth();
+
+      const anoSelecionado = Number(anoAtual);
+      const mesSelecionadoIndex = MESES.indexOf(mesAtual);
+
+      const isMesPassado = anoSelecionado < anoCorrenteReal || 
+                           (anoSelecionado === anoCorrenteReal && mesSelecionadoIndex < mesCorrenteRealIndex);
+
+      if (isMesPassado) {
+        return alert("Não é possível adiantar parcelas para um mês que já passou.");
+      }
+
+      const lista = document.getElementById('anticipateInstallmentList');
+      lista.innerHTML = 'Buscando parcelas futuras...';
+      document.getElementById('anticipateModal').classList.add('visible');
+
+      parcelasParaAdiantar = [];
+      const mesAtualIndex = MESES.indexOf(mesAtual);
+      let parcelasEncontradas = [];
+
+      // Busca por parcelas nos próximos 24 meses
+      for (let i = 1; i <= 24; i++) {
+        const targetMesIndex = (mesAtualIndex + i) % 12;
+        const targetAno = Number(anoAtual) + Math.floor((mesAtualIndex + i) / 12);
+        const targetMesNome = MESES[targetMesIndex];
+
+        const ref = db.collection('users').doc(currentUser.uid).collection('anos').doc(String(targetAno)).collection('meses').doc(targetMesNome);
+        const doc = await ref.get();
+
+        if (doc.exists && doc.data().cartao && doc.data().cartao.length > 0) {
+          doc.data().cartao.forEach((item, index) => {
+            // Filtra apenas parcelas do cartão ativo
+            if (item.cartaoId !== cartaoAtivo.id) return;
+            // Adiciona apenas itens parcelados e não recorrentes
+            if (item.parcelas && item.parcelas.includes('/') && item.parcelas !== '1/1' && !item.recorrente) {
+              parcelasEncontradas.push({
+                ...item,
+                source: { ano: String(targetAno), mes: targetMesNome, index: index }
+              });
+            }
+          });
+        }
+      }
+
+      lista.innerHTML = '';
+      if (parcelasEncontradas.length === 0) {
+        lista.innerHTML = 'Nenhuma parcela futura encontrada.';
+      } else {
+        parcelasParaAdiantar = parcelasEncontradas;
+        const comprasAgrupadas = parcelasEncontradas.reduce((acc, item, index) => {
+          if (!acc[item.nome]) {
+            acc[item.nome] = { valor: item.valor, parcelas: [] };
+          }
+          acc[item.nome].parcelas.push({ ...item, originalIndex: index });
+          return acc;
+        }, {});
+
+        Object.keys(comprasAgrupadas).forEach(nomeCompra => {
+          const compra = comprasAgrupadas[nomeCompra];
+          const totalAdiantamento = compra.parcelas.length * compra.valor;
+          const idCompra = `compra-group-${nomeCompra.replace(/\s+/g, '-')}`;
+
+          const compraDiv = document.createElement('div');
+          compraDiv.style.marginBottom = '15px';
+          compraDiv.innerHTML = `
+            <div class="modal-month-item" style="background: #f5f6ff; padding: 8px; border-radius: 8px;">
+              <input type="checkbox" id="${idCompra}" onchange="toggleParcelasGrupo('${idCompra}', this.checked)">
+              <label for="${idCompra}">
+                <strong>${nomeCompra}</strong>
+                <small style="display: block; color: var(--subtle);">
+                  Adiantar ${compra.parcelas.length} parcela(s) - Total: ${formatar(totalAdiantamento)}
+                </small>
+              </label>
+            </div>
+          `;
+
+          compra.parcelas.forEach(item => {
+            const idParcela = `anticipate-check-${item.originalIndex}`;
+            const parcelaDiv = document.createElement('div');
+            parcelaDiv.className = 'modal-month-item';
+            parcelaDiv.style.paddingLeft = '25px';
+            parcelaDiv.innerHTML = `
+              <input type="checkbox" class="${idCompra}" id="${idParcela}" data-index="${item.originalIndex}">
+              <label for="${idParcela}">
+                Parcela ${item.parcelas} - ${formatar(item.valor)}
+                <small style="display: block; color: var(--subtle);">Origem: ${item.source.mes}/${item.source.ano}</small>
+              </label>
+            `;
+            compraDiv.appendChild(parcelaDiv);
+          });
+          lista.appendChild(compraDiv);
+        });
+      }
+    }
+
+    function fecharModalAdiantar() {
+      document.getElementById('anticipateModal').classList.remove('visible');
+      parcelasParaAdiantar = [];
+    }
+
+    function toggleParcelasGrupo(className, isChecked) {
+      document.querySelectorAll(`input.${className}`).forEach(checkbox => {
+        checkbox.checked = isChecked;
+      });
+    }
+
+    function abrirModalAdicional() {
+      document.getElementById('adicionalModal').classList.add('visible');
+    }
+    function fecharModalAdicional() {
+      document.getElementById('adicionalModal').classList.remove('visible');
+    }
+    function abrirModalConta() {
+      document.getElementById('contaModal').classList.add('visible');
+    }
+    function fecharModalConta() {
+      document.getElementById('contaModal').classList.remove('visible');
+    }
+
+    function abrirModalConta() {
+      document.getElementById('contaModal').classList.add('visible');
+    }
+
+    async function abrirModalCartao() {
+      const cartaoAtivo = obterCartaoAtivo();
+      if (!cartaoAtivo) {
+        return alert('Por favor, cadastre um cartão primeiro.');
+      }
+      
+      // Seleciona o cartão se não estiver selecionado
+      if (!cartaoSelecionado || cartaoSelecionado.id !== cartaoAtivo.id) {
+        selecionarCartao(cartaoAtivo, false);
+      }
+
+      // Define o cartão selecionado no select
+      const selectCartao = document.getElementById('cartaoSelecionadoModal');
+      selectCartao.innerHTML = '';
+      const option = document.createElement('option');
+      option.value = cartaoAtivo.id;
+      const bandeiraNome = cartaoAtivo.bandeira.charAt(0).toUpperCase() + cartaoAtivo.bandeira.slice(1);
+      option.textContent = `${bandeiraNome} - Final ${cartaoAtivo.numero}`;
+      option.selected = true;
+      selectCartao.appendChild(option);
+      selectCartao.disabled = true; // Desabilita para não permitir mudança
+      
+      document.getElementById('cartaoModal').classList.add('visible');
+    }
+    function fecharModalCartao() {
+      document.getElementById('cartaoModal').classList.remove('visible');
+      // Limpa os campos (exceto o cartão selecionado)
+      document.getElementById('cartaoNomeModal').value = '';
+      document.getElementById('cartaoValorModal').value = '';
+      document.getElementById('cartaoTotalParcelasModal').value = '';
+      document.getElementById('cartaoRecorrenteModal').checked = false;
+      // Reabilita o select
+      const selectCartao = document.getElementById('cartaoSelecionadoModal');
+      if (selectCartao) {
+        selectCartao.disabled = false;
+      }
+    }
+
+    function abrirModalReservado() {
+      document.getElementById('reservadoModal').classList.add('visible');
+    }
+    function fecharModalReservado() {
+      document.getElementById('reservadoModal').classList.remove('visible');
+    }
+
+    // Funções para gerenciar cartões
+    let cartaoEditando = null;
+
+    async function abrirModalGerenciarCartoes() {
+      document.getElementById('gerenciarCartoesModal').classList.add('visible');
+      document.getElementById('formularioCartao').style.display = 'none';
+      await carregarListaCartoesGerenciar();
+    }
+
+    function fecharModalGerenciarCartoes() {
+      document.getElementById('gerenciarCartoesModal').classList.remove('visible');
+      cancelarFormularioCartao();
+    }
+
+    async function carregarListaCartoesGerenciar() {
+      if (!currentUser) return;
+      const listaDiv = document.getElementById('listaCartoesGerenciar');
+      listaDiv.innerHTML = '';
+
+      const cartoesRef = db.collection('users').doc(currentUser.uid).collection('cartoes');
+      const snapshot = await cartoesRef.get();
+
+      if (snapshot.empty) {
+        listaDiv.innerHTML = '<p class="info-text">Nenhum cartão cadastrado.</p>';
+        return;
+      }
+
+      snapshot.forEach(doc => {
+        const cartao = { id: doc.id, ...doc.data() };
+        const bandeiraNome = cartao.bandeira.charAt(0).toUpperCase() + cartao.bandeira.slice(1);
+        
+        const cardDiv = document.createElement('div');
+        cardDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-main); border-radius: 8px;';
+        cardDiv.innerHTML = `
+          <div>
+            <strong>${bandeiraNome}</strong> - Final ${cartao.numero}
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn-icon-inline edit" onclick="editarCartao('${cartao.id}')">✏️ Editar</button>
+            <button class="btn-inline" onclick="excluirCartao('${cartao.id}')">🗑️ Excluir</button>
+          </div>
+        `;
+        listaDiv.appendChild(cardDiv);
+      });
+    }
+
+    function abrirFormularioNovoCartao() {
+      cartaoEditando = null;
+      document.getElementById('tituloFormularioCartao').textContent = 'Cadastrar Cartão';
+      document.getElementById('btnSalvarCartao').textContent = 'Cadastrar';
+      document.getElementById('cartaoNumeroModal').value = '';
+      document.getElementById('cartaoBandeiraModal').value = '';
+      document.getElementById('formularioCartao').style.display = 'block';
+    }
+
+    async function editarCartao(cartaoId) {
+      if (!currentUser) return;
+      
+      const cartaoRef = db.collection('users').doc(currentUser.uid).collection('cartoes').doc(cartaoId);
+      const doc = await cartaoRef.get();
+      
+      if (!doc.exists) {
+        return alert('Cartão não encontrado.');
+      }
+
+      const cartao = doc.data();
+      cartaoEditando = { id: cartaoId, ...cartao };
+      
+      document.getElementById('tituloFormularioCartao').textContent = 'Editar Cartão';
+      document.getElementById('btnSalvarCartao').textContent = 'Salvar';
+      document.getElementById('cartaoNumeroModal').value = cartao.numero;
+      document.getElementById('cartaoBandeiraModal').value = cartao.bandeira;
+      document.getElementById('formularioCartao').style.display = 'block';
+    }
+
+    function cancelarFormularioCartao() {
+      cartaoEditando = null;
+      document.getElementById('formularioCartao').style.display = 'none';
+      document.getElementById('cartaoNumeroModal').value = '';
+      document.getElementById('cartaoBandeiraModal').value = '';
+    }
+
+    async function salvarCartao() {
+      if (!currentUser) return;
+      const numero = document.getElementById('cartaoNumeroModal').value.trim();
+      const bandeira = document.getElementById('cartaoBandeiraModal').value;
+
+      if (!numero || numero.length !== 4 || !/^\d+$/.test(numero)) {
+        return alert('Por favor, informe os últimos 4 dígitos do cartão.');
+      }
+
+      if (!bandeira) {
+        return alert('Por favor, selecione a bandeira do cartão.');
+      }
+
+      try {
+        if (cartaoEditando) {
+          // Editar cartão existente
+          const cartaoRef = db.collection('users').doc(currentUser.uid).collection('cartoes').doc(cartaoEditando.id);
+          await cartaoRef.update({
+            numero: numero,
+            bandeira: bandeira
+          });
+          
+          // Se o cartão editado estava selecionado, atualiza a seleção
+          if (cartaoSelecionado && cartaoSelecionado.id === cartaoEditando.id) {
+            cartaoSelecionado.numero = numero;
+            cartaoSelecionado.bandeira = bandeira;
+            atualizarInterfaceCartaoSelecionado();
+          }
+        } else {
+          // Cadastrar novo cartão
+          const cartoesRef = db.collection('users').doc(currentUser.uid).collection('cartoes');
+          await cartoesRef.add({
+            numero: numero,
+            bandeira: bandeira,
+            dataCriacao: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
+        
+        cancelarFormularioCartao();
+        await carregarListaCartoesGerenciar();
+      } catch (error) {
+        console.error('Erro ao salvar cartão:', error);
+        alert('Erro ao salvar cartão. Tente novamente.');
+      }
+    }
+
+    async function excluirCartao(cartaoId) {
+      if (!currentUser) return;
+      
+      if (!confirm('Tem certeza que deseja excluir este cartão? Esta ação não pode ser desfeita.')) {
+        return;
+      }
+
+      try {
+        const cartaoRef = db.collection('users').doc(currentUser.uid).collection('cartoes').doc(cartaoId);
+        await cartaoRef.delete();
+        
+        // Se o cartão excluído estava selecionado, deseleciona
+        if (cartaoSelecionado && cartaoSelecionado.id === cartaoId) {
+          deselecionarCartao();
+        }
+        
+        await carregarListaCartoesGerenciar();
+      } catch (error) {
+        console.error('Erro ao excluir cartão:', error);
+        alert('Erro ao excluir cartão. Tente novamente.');
+      }
+    }
+
+    // Função para identificar bandeira pelo número (se necessário)
+    function identificarBandeira(numero) {
+      // Esta função pode ser expandida para identificar automaticamente
+      // Por enquanto, retorna null pois o usuário seleciona manualmente
+      return null;
+    }
+
+    // Função para carregar e renderizar cartões
+    let unsubscribeCartoes = null;
+    async function carregarCartoes() {
+      if (!currentUser) return;
+      
+      if (unsubscribeCartoes) unsubscribeCartoes();
+      
+      const cartoesRef = db.collection('users').doc(currentUser.uid).collection('cartoes');
+      unsubscribeCartoes = cartoesRef.onSnapshot(snapshot => {
+        cartoesCache = [];
+        snapshot.forEach(doc => {
+          cartoesCache.push({ id: doc.id, ...doc.data() });
+        });
+        renderizarCartoes(cartoesCache);
+      }, error => {
+        console.error('Erro ao carregar cartões:', error);
+      });
+    }
+
+    let cartaoSelecionado = null;
+    let cartoesCache = []; // Cache dos cartões carregados
+
+    function renderizarCartoes(cartoes) {
+      const container = document.getElementById('cartoesContainer');
+      
+      container.innerHTML = '';
+
+      if (cartoes.length === 0) {
+        container.style.display = 'none';
+        return;
+      }
+
+      container.style.display = 'flex';
+
+      cartoes.forEach((cartao, index) => {
+        const card = document.createElement('div');
+        const isSelecionado = cartaoSelecionado && cartaoSelecionado.id === cartao.id;
+        card.className = `cartao-card ${cartao.bandeira} ${isSelecionado ? 'selecionado' : ''}`;
+        card.dataset.cartaoId = cartao.id;
+        card.onclick = (e) => {
+          e.stopPropagation();
+          selecionarCartao(cartao);
+        };
+        
+        const bandeiraNome = cartao.bandeira.charAt(0).toUpperCase() + cartao.bandeira.slice(1);
+        const bandeiraAbrev = cartao.bandeira === 'mastercard' ? 'MC' : 
+                              cartao.bandeira === 'amex' ? 'AX' :
+                              cartao.bandeira === 'hipercard' ? 'HC' :
+                              cartao.bandeira.toUpperCase().substring(0, 2);
+        
+        card.innerHTML = `
+          <div class="cartao-card-header">
+            <div class="cartao-chip"></div>
+            <div class="cartao-bandeira ${cartao.bandeira}">${bandeiraAbrev}</div>
+          </div>
+          <div>
+            <div class="cartao-numero">**** **** **** ${cartao.numero}</div>
+            <div class="cartao-final">${bandeiraNome}</div>
+          </div>
+        `;
+        
+        container.appendChild(card);
+      });
+
+      // Adicionar funcionalidade de swipe e detecção de cartão centralizado no mobile
+      if (window.innerWidth <= 768) {
+        adicionarSwipeECentralizacao(container, cartoes);
+        // Mostrar botões sempre que houver cartões no mobile
+        if (cartoes.length > 0) {
+          const botoesDiv = document.getElementById('botoesCartaoSelecionado');
+          if (botoesDiv) {
+            botoesDiv.style.display = 'flex';
+          }
+        }
+      } else {
+        // No desktop, só mostra se houver cartão selecionado
+        atualizarInterfaceCartaoSelecionado();
+      }
+    }
+
+    function adicionarSwipeECentralizacao(container, cartoes) {
+      let isScrolling = false;
+      let scrollTimeout = null;
+
+      // Detectar qual cartão está centralizado
+      function detectarCartaoCentralizado() {
+        const containerRect = container.getBoundingClientRect();
+        const containerCenter = containerRect.left + containerRect.width / 2;
+        
+        let cartaoMaisProximo = null;
+        let menorDistancia = Infinity;
+        
+        const cards = container.querySelectorAll('.cartao-card');
+        cards.forEach(card => {
+          const cardRect = card.getBoundingClientRect();
+          const cardCenter = cardRect.left + cardRect.width / 2;
+          const distancia = Math.abs(cardCenter - containerCenter);
+          
+          if (distancia < menorDistancia) {
+            menorDistancia = distancia;
+            cartaoMaisProximo = card;
+          }
+        });
+        
+        if (cartaoMaisProximo) {
+          const cartaoId = cartaoMaisProximo.dataset.cartaoId;
+          const cartao = cartoes.find(c => c.id === cartaoId);
+          if (cartao && (!cartaoSelecionado || cartaoSelecionado.id !== cartao.id)) {
+            // Não abre o modal automaticamente, apenas atualiza a seleção
+            selecionarCartao(cartao, false);
+          }
+        }
+      }
+
+      // Detectar scroll
+      container.addEventListener('scroll', () => {
+        isScrolling = true;
+        clearTimeout(scrollTimeout);
+        
+        scrollTimeout = setTimeout(() => {
+          isScrolling = false;
+          detectarCartaoCentralizado();
+        }, 150);
+      }, { passive: true });
+
+      // Detectar quando o scroll termina
+      container.addEventListener('scrollend', () => {
+        detectarCartaoCentralizado();
+      }, { passive: true });
+
+      // Detectar toque inicial para swipe
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let isDragging = false;
+
+      container.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        isDragging = false;
+      }, { passive: true });
+
+      container.addEventListener('touchmove', (e) => {
+        if (!isDragging) {
+          const deltaX = Math.abs(e.touches[0].clientX - touchStartX);
+          const deltaY = Math.abs(e.touches[0].clientY - touchStartY);
+          if (deltaX > deltaY && deltaX > 10) {
+            isDragging = true;
+          }
+        }
+      }, { passive: true });
+
+      container.addEventListener('touchend', () => {
+        if (isDragging) {
+          setTimeout(() => {
+            detectarCartaoCentralizado();
+          }, 100);
+        }
+        isDragging = false;
+      }, { passive: true });
+
+      // Não detectar cartão centralizado ao carregar automaticamente
+      // Apenas quando o usuário interagir com o scroll
+    }
+
+    function selecionarCartao(cartao, abrirVisualizacao = true) {
+      cartaoSelecionado = cartao;
+      atualizarInterfaceCartaoSelecionado();
+      
+      // Só visualiza as contas se for uma seleção manual (clique do usuário)
+      if (abrirVisualizacao) {
+        visualizarContasCartao(cartao);
+      }
+      
+      // Centralizar cartão no carrossel no mobile
+      if (window.innerWidth <= 768) {
+        centralizarCartao(cartao.id);
+      }
+    }
+
+    function centralizarCartao(cartaoId) {
+      const container = document.getElementById('cartoesContainer');
+      const card = container.querySelector(`[data-cartao-id="${cartaoId}"]`);
+      
+      if (card) {
+        const containerRect = container.getBoundingClientRect();
+        const cardRect = card.getBoundingClientRect();
+        const scrollLeft = container.scrollLeft;
+        const cardOffsetLeft = card.offsetLeft;
+        const cardWidth = card.offsetWidth;
+        const containerWidth = container.offsetWidth;
+        
+        // Calcular a posição para centralizar
+        const targetScroll = cardOffsetLeft - (containerWidth / 2) + (cardWidth / 2);
+        
+        container.scrollTo({
+          left: targetScroll,
+          behavior: 'smooth'
+        });
+      }
+    }
+
+    function deselecionarCartao() {
+      cartaoSelecionado = null;
+      atualizarInterfaceCartaoSelecionado();
+      document.getElementById('comprasCartaoDesktop').style.display = 'none';
+      document.getElementById('comprasCartaoDesktop').innerHTML = '';
+    }
+
+    function atualizarInterfaceCartaoSelecionado() {
+      const infoDiv = document.getElementById('cartaoSelecionadoInfo');
+      const nomeSpan = document.getElementById('cartaoSelecionadoNome');
+      const botoesDiv = document.getElementById('botoesCartaoSelecionado');
+      const container = document.getElementById('cartoesContainer');
+      const isMobile = window.innerWidth <= 768;
+
+      if (cartaoSelecionado) {
+        const bandeiraNome = cartaoSelecionado.bandeira.charAt(0).toUpperCase() + cartaoSelecionado.bandeira.slice(1);
+        nomeSpan.textContent = `${bandeiraNome} - Final ${cartaoSelecionado.numero}`;
+        infoDiv.style.display = 'block';
+        
+        // No mobile, botões sempre aparecem se houver cartões. No desktop, só se houver selecionado
+        if (isMobile) {
+          // Verifica se há cartões cadastrados
+          const cartoes = container ? container.querySelectorAll('.cartao-card') : [];
+          botoesDiv.style.display = cartoes.length > 0 ? 'flex' : 'none';
+        } else {
+          botoesDiv.style.display = 'flex';
+        }
+        
+        // Atualizar classe selecionado nos cartões
+        if (container) {
+          const cards = container.querySelectorAll('.cartao-card');
+          cards.forEach(card => {
+            if (card.dataset.cartaoId === cartaoSelecionado.id) {
+              card.classList.add('selecionado');
+            } else {
+              card.classList.remove('selecionado');
+            }
+          });
+        }
+      } else {
+        infoDiv.style.display = 'none';
+        
+        // No mobile, botões aparecem sempre que houver cartões. No desktop, só se houver selecionado
+        if (isMobile) {
+          const cartoes = container ? container.querySelectorAll('.cartao-card') : [];
+          botoesDiv.style.display = cartoes.length > 0 ? 'flex' : 'none';
+        } else {
+          botoesDiv.style.display = 'none';
+        }
+        
+        // Remover classe selecionado de todos os cartões
+        if (container) {
+          const cards = container.querySelectorAll('.cartao-card');
+          cards.forEach(card => card.classList.remove('selecionado'));
+        }
+      }
+    }
+
+    // Função para visualizar contas do cartão
+    async function visualizarContasCartao(cartao) {
+      if (!currentUser) return;
+
+      const ref = getMesRef();
+      if (!ref) return;
+
+      const doc = await ref.get();
+      const data = doc.exists ? doc.data() : { cartao: [] };
+      // Filtra apenas as compras deste cartão específico
+      const todasCompras = data.cartao || [];
+      const contasCartao = todasCompras.filter(compra => compra.cartaoId === cartao.id);
+      
+      // Armazena todasCompras em uma variável acessível para as funções internas
+      window.todasComprasAtual = todasCompras;
+
+      const isMobile = window.innerWidth <= 768;
+
+      if (isMobile) {
+        // Modal para mobile
+        document.getElementById('contasCartaoModalTitulo').textContent = 
+          `${cartao.bandeira.charAt(0).toUpperCase() + cartao.bandeira.slice(1)} - Final ${cartao.numero}`;
+        
+        const content = document.getElementById('contasCartaoModalContent');
+        content.innerHTML = '';
+        
+        if (contasCartao.length === 0) {
+          content.innerHTML = '<p class="info-text">Nenhuma conta cadastrada para este cartão.</p>';
+        } else {
+          const table = document.createElement('table');
+          table.style.width = '100%';
+          table.style.marginTop = '16px';
+          table.innerHTML = `
+            <thead>
+              <tr>
+                <th>Descrição</th>
+                <th>Valor</th>
+                <th>Parcelas</th>
+              </tr>
+            </thead>
+            <tbody id="contasCartaoModalTableBody"></tbody>
+          `;
+          
+          const tbody = table.querySelector('#contasCartaoModalTableBody');
+          contasCartao.forEach((item, indexFiltrado) => {
+            // Encontra o índice original no array completo
+            const indexOriginal = window.todasComprasAtual.findIndex(c => 
+              c.nome === item.nome && 
+              c.valor === item.valor && 
+              c.parcelas === item.parcelas &&
+              c.cartaoId === item.cartaoId
+            );
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${item.nome}</td>
+              <td>${formatar(item.valor)}</td>
+              <td>${item.parcelas || '-'}</td>
+            `;
+            tr.onclick = () => abrirModalAcoes('cartao', indexOriginal >= 0 ? indexOriginal : indexFiltrado, item);
+            tbody.appendChild(tr);
+          });
+          
+          content.appendChild(table);
+        }
+
+        document.getElementById('contasCartaoModal').classList.add('visible');
+      } else {
+        // Visualização desktop - mostra na página mesmo
+        const comprasDiv = document.getElementById('comprasCartaoDesktop');
+        comprasDiv.innerHTML = '';
+        comprasDiv.style.display = 'block';
+        
+        // Título
+        const titulo = document.createElement('h4');
+        titulo.style.marginBottom = '16px';
+        titulo.style.display = 'flex';
+        titulo.style.justifyContent = 'space-between';
+        titulo.style.alignItems = 'center';
+        titulo.innerHTML = `
+          <span>${cartao.bandeira.charAt(0).toUpperCase() + cartao.bandeira.slice(1)} - Final ${cartao.numero}</span>
+          <button class="btn-cancel" onclick="fecharComprasCartaoDesktop()" style="padding: 6px 12px; font-size: 14px;">Fechar</button>
+        `;
+        comprasDiv.appendChild(titulo);
+        
+        if (contasCartao.length === 0) {
+          const p = document.createElement('p');
+          p.className = 'info-text';
+          p.textContent = 'Nenhuma conta cadastrada para este cartão.';
+          comprasDiv.appendChild(p);
+        } else {
+          const table = document.createElement('table');
+          table.style.width = '100%';
+          table.style.marginTop = '16px';
+          table.innerHTML = `
+            <thead>
+              <tr>
+                <th>Descrição</th>
+                <th>Valor</th>
+                <th>Parcelas</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="contasCartaoDesktopTableBody"></tbody>
+          `;
+          
+          const tbody = table.querySelector('#contasCartaoDesktopTableBody');
+          contasCartao.forEach((item, indexFiltrado) => {
+            // Encontra o índice original no array completo
+            const indexOriginal = window.todasComprasAtual.findIndex(c => 
+              c.nome === item.nome && 
+              c.valor === item.valor && 
+              c.parcelas === item.parcelas &&
+              c.cartaoId === item.cartaoId
+            );
+            const indexFinal = indexOriginal >= 0 ? indexOriginal : indexFiltrado;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${item.nome}</td>
+              <td>${formatar(item.valor)}</td>
+              <td>${item.parcelas || '-'}</td>
+              <td>
+                <button class="btn-icon-inline edit" id="editBtnCartao${indexFiltrado}">✏️ Editar</button>
+                <button class="btn-inline" onclick="removerItem('cartao', ${indexFinal})">🗑️ Remover</button>
+              </td>
+            `;
+            // Adiciona evento de clique para editar
+            tr.querySelector(`#editBtnCartao${indexFiltrado}`).onclick = () => abrirModalAcoes('cartao', indexFinal, item);
+            tbody.appendChild(tr);
+          });
+          
+          comprasDiv.appendChild(table);
+        }
+
+        comprasDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+
+    function fecharModalContasCartao() {
+      document.getElementById('contasCartaoModal').classList.remove('visible');
+    }
+
+    function fecharComprasCartaoDesktop() {
+      document.getElementById('comprasCartaoDesktop').style.display = 'none';
+      document.getElementById('comprasCartaoDesktop').innerHTML = '';
+    }
+
+    function abrirModalEntradas() {
+      document.getElementById('entradasModal').classList.add('visible');
+    }
+    function fecharModalEntradas() {
+      document.getElementById('entradasModal').classList.remove('visible');
+    }
+
+    function atualizarResumo(data) {
+      let totalContasManuais = 0;
+      let totalAdicionais = 0;
+      let totalCartao = 0;
+      let totalReservado = 0;
+      let totalDebito = 0;
+
+      if (data) {
+        totalContasManuais = data.contas.reduce((acc, item) => acc + Number(item.valor || 0), 0);
+        totalAdicionais = data.adicionais.reduce((acc, item) => acc + Number(item.valor || 0), 0);
+        totalCartao = data.cartao.reduce((acc, item) => acc + Number(item.valor || 0), 0);
+        totalReservado = data.reservado.reduce((acc, item) => acc + Number(item.valor || 0), 0);
+        totalDebito = (data.debito || []).reduce((acc, item) => acc + Number(item.valor || 0), 0);
+      }
+
+      const totalContas = totalContasManuais + totalCartao + totalDebito;
+      const saldo = totalAdicionais - totalContas - totalReservado;
+
+      document.getElementById("totalContas").innerText = formatar(totalContas);
+      document.getElementById("totalContasSemCartao").innerText = formatar(totalContasManuais);
+      document.getElementById("totalCartaoResumo").innerText = formatar(totalCartao);
+      document.getElementById("totalAdicionais").innerText = formatar(totalAdicionais);
+      document.getElementById("totalReservado").innerText = formatar(totalReservado);
+      document.getElementById("saldoFinal").innerText = formatar(saldo);
+
+      // Atualiza a cor do card de saldo
+      const saldoCard = document.getElementById("saldoFinal").parentElement;
+      saldoCard.classList.remove('card-saldo-positivo', 'card-saldo-aviso', 'card-saldo-negativo');
+
+      if (saldo < 0) {
+        saldoCard.classList.add('card-saldo-negativo');
+      } else if (saldo < 100) {
+        saldoCard.classList.add('card-saldo-aviso');
+      } else {
+        saldoCard.classList.add('card-saldo-positivo');
+      }
+    }
+
+    async function confirmarAdiantamento() {
+      const checkboxes = document.querySelectorAll('#anticipateInstallmentList input[type="checkbox"]:checked:not([id^="compra-group-"])');
+      if (checkboxes.length === 0) {
+        return alert("Selecione pelo menos uma parcela para adiantar.");
+      }
+
+      const batch = db.batch();
+      const refMesAtual = getMesRef();
+
+      for (const check of checkboxes) {
+        const index = Number(check.dataset.index);
+        const parcela = parcelasParaAdiantar[index];
+        if (!parcela) continue;
+
+        const { source, ...itemOriginal } = parcela;
+        const refMesOrigem = db.collection('users').doc(currentUser.uid).collection("anos").doc(source.ano).collection("meses").doc(source.mes);
+
+        // 1. Remove do mês de origem (Ajuste para o novo modelo de dados)
+        // O objeto para remover não deve conter a propriedade 'source'
+        batch.update(refMesOrigem, {
+          cartao: firebase.firestore.FieldValue.arrayRemove(itemOriginal)
+        });
+
+        // 2. Adiciona ao mês atual
+        batch.update(refMesAtual, {
+          cartao: firebase.firestore.FieldValue.arrayUnion(itemOriginal)
+        });
+      }
+
+      await batch.commit();
+      alert(`${checkboxes.length} parcela(s) adiantada(s) com sucesso!`);
+      fecharModalAdiantar();
+    }
+
+    function abrirModalAcoes(tipo, index, item) {
+      const modal = document.getElementById('itemActionsModal');
+      const modalTitle = document.getElementById('itemActionsModalTitle');
+      const modalBody = document.getElementById('itemActionsModalBody');
+
+      modalTitle.textContent = `Ações para: ${item.nome}`;
+      modalBody.innerHTML = ''; // Limpa o corpo do modal
+
+      if (tipo === 'contas') {
+        modalBody.innerHTML = `
+          <div class="form-row">
+            <label for="modalStatusSelect">Mudar Status</label>
+            <select id="modalStatusSelect" onchange="atualizarStatusConta(${index}, this.value)">
+              <option value="pendente" ${item.status === "pendente" ? "selected" : ""}>Pendente</option>
+              <option value="pago" ${item.status === "pago" ? "selected" : ""}>Pago</option>
+            </select>
+          </div>
+          <div class="section-actions" style="justify-content: center;">
+            <button class="btn-icon-inline edit" id="modalEditButton">✏️ Editar</button>
+            <button class="btn-icon-inline copy" onclick="abrirModalCopia('contas', ${index}); fecharModalAcoes();">❐ Copiar</button>
+            <button class="btn-inline" onclick="removerItem('contas', ${index}); fecharModalAcoes();">🗑️ Remover</button>
+          </div>
+        `;
+      } else if (tipo === 'cartaoAgregado') { // Caso especial para itens de cartão na tabela de contas
+        modalTitle.textContent = `Ações para: ${item.nome}`;
+        modalBody.innerHTML = `
+          <div class="form-row">
+            <label for="modalStatusSelect">Mudar Status do Cartão</label>
+            <select id="modalStatusSelect" onchange="atualizarStatusCartao(this.value)">
+              <option value="pendente" ${item.status === "pendente" ? "selected" : ""}>Pendente</option>
+              <option value="pago" ${item.status === "pago" ? "selected" : ""}>Pago</option>
+            </select>
+          </div>
+        `;
+      } else if (tipo === 'cartao') {
+        modalBody.innerHTML = `
+          <div class="section-actions" style="justify-content: center;">
+            <button class="btn-icon-inline edit" id="modalEditButton">✏️ Editar</button>
+            <button class="btn-inline" onclick="removerItem('cartao', ${index}); fecharModalAcoes();">🗑️ Remover</button>
+          </div>
+        `;
+      } else if (tipo === 'adicionais' || tipo === 'reservado') {
+        // Ações para Entradas e Reservados
+        // A edição acontece no modal, e a remoção/cópia também
+        modalBody.innerHTML = `
+          <div class="section-actions" style="justify-content: center;">
+            <button class="btn-icon-inline edit" id="modalEditButton">✏️ Editar</button>
+            <button class="btn-icon-inline copy" onclick="abrirModalCopia('${tipo}', ${index}); fecharModalAcoes();">❐ Copiar</button>
+            <button class="btn-inline" onclick="removerItem('${tipo}', ${index}); fecharModalAcoes();">🗑️ Remover</button>
+          </div>
+        `;
+      }
+
+      // Adiciona o evento de clique ao botão de editar programaticamente
+      const editButton = document.getElementById('modalEditButton');
+      if (editButton) {
+        editButton.onclick = () => mostrarEdicaoNoModal(tipo, index, item);
+      }
+
+      modal.classList.add('visible');
+    }
+
+    function fecharModalAcoes() {
+      document.getElementById('itemActionsModal').classList.remove('visible');
+    }
+
+    function mostrarEdicaoNoModal(tipo, index, item) {
+      if (tipo === 'cartao' && ((item.parcelas && item.parcelas.includes('/')) || item.recorrente)) {
+        alert("Não é possível editar um item parcelado ou recorrente. Por favor, remova a compra e adicione novamente se necessário.");
+        return;
+      }
+
+      const modalTitle = document.getElementById('itemActionsModalTitle');
+      const modalBody = document.getElementById('itemActionsModalBody');
+
+      modalTitle.textContent = `Editando: ${item.nome}`;
+      modalBody.innerHTML = `
+        <div class="form-row">
+          <input id="editNomeInput" type="text" value="${item.nome}" placeholder="Descrição">
+        </div>
+        <div class="form-row">
+          <input id="editValorInput" type="number" step="0.01" value="${item.valor}" placeholder="Valor">
+        </div>
+        <div class="section-actions" style="justify-content: center;">
+          <button class="btn-add" style="background-color: var(--accent-2);" onclick="salvarEdicaoDoModal('${tipo}', ${index})">✔️ Salvar</button>
+        </div>
+      `;
+    }
+
+    async function salvarEdicaoDoModal(tipo, index) {
+      const novoNome = document.getElementById('editNomeInput').value.trim();
+      const novoValor = Number(document.getElementById('editValorInput').value);
+
+      if (!novoNome || isNaN(novoValor)) {
+        return alert("Descrição e valor são obrigatórios e o valor deve ser um número.");
+      }
+
+      const ref = getMesRef();
+      if (!ref) return;
+      const dados = await carregarDadosRef(ref);
+      const item = dados[tipo][index];
+
+      dados[tipo][index] = {
+        ...item,
+        nome: novoNome,
+        valor: novoValor
+      };
+
+      await ref.update({ [tipo]: dados[tipo] });
+      fecharModalAcoes(); // Fecha o modal após salvar
+    }
+
+    // Adiciona a funcionalidade de fechar modais ao clicar no overlay
+    document.addEventListener('DOMContentLoaded', () => {
+      const modalOverlays = document.querySelectorAll('.modal-overlay');
+      modalOverlays.forEach(overlay => {
+        overlay.addEventListener('click', function(event) {
+          if (event.target === this) { // 'this' é o próprio overlay
+            this.classList.remove('visible');
+          }
+        });
+      });
+    });
+  </script>
+</body>
+
+</html>
+ 
