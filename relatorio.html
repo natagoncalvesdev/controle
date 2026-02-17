@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Relatório - Controle Financeiro</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
+  <link rel="stylesheet" href="sidebar.css">
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="sidebar.js"></script>
+  <style>
+    :root {
+      --bg-main: #f0f2f5;
+      --bg-section: #ffffff;
+      --text-primary: #1d1d2e;
+      --text-secondary: #6c7190;
+      --border-color: #eef0fa;
+      --sidebar-bg: #151728;
+      --sidebar-text: #f9f9ff;
+      --sidebar-item-bg: #1f2238;
+      --sidebar-item-hover: #2b2f4a;
+      --accent: #ffc107;
+      --accent-2: #33c27f;
+      --accent-3: #ff6b6b;
+      --accent-blue: #2563eb;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      display: flex;
+      height: 100vh;
+      background: var(--bg-main);
+      color: var(--text-primary);
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 280px;
+      background: var(--sidebar-bg);
+      color: var(--sidebar-text);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      z-index: 10;
+    }
+
+    .sidebar h1 {
+      font-size: 22px;
+      margin: 0;
+      letter-spacing: 0.05em;
+      text-align: center;
+    }
+
+    .desktop-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .btn-sidebar {
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: var(--sidebar-item-bg);
+      color: var(--sidebar-text);
+      cursor: pointer;
+      transition: background 0.2s ease;
+      border: none;
+      font-size: 16px;
+      text-align: center;
+      text-decoration: none;
+    }
+
+    .btn-sidebar:hover {
+      background: var(--sidebar-item-hover);
+    }
+
+    .btn-sidebar.active {
+      background: var(--accent-blue);
+    }
+
+    .mobile-nav { display: none; }
+
+    .content {
+      flex: 1;
+      padding: 32px;
+      margin-left: 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      overflow-y: auto;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .header h2 {
+      margin: 0;
+      font-size: 26px;
+    }
+
+    .section {
+      background: var(--bg-section);
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .section h3 {
+      margin-top: 0;
+      margin-bottom: 16px;
+      font-size: 20px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    input, select {
+      padding: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--bg-section);
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    select {
+      min-width: 150px;
+    }
+
+    .btn-add {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      background: var(--accent-blue);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s ease;
+    }
+
+    .btn-add:hover {
+      opacity: 0.9;
+    }
+
+    .btn-remove {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      background: var(--accent-3);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s ease;
+    }
+
+    .btn-remove:hover {
+      opacity: 0.9;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      background: var(--bg-main);
+      font-weight: 600;
+      color: var(--text-secondary);
+      font-size: 14px;
+      text-transform: uppercase;
+    }
+
+    tr:hover {
+      background: var(--bg-main);
+    }
+
+    .categoria-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    .categoria-item span {
+      font-weight: 500;
+    }
+
+    .relatorio-categoria {
+      margin-bottom: 24px;
+      padding: 16px;
+      background: var(--bg-main);
+      border-radius: 8px;
+    }
+
+    .relatorio-categoria h4 {
+      margin-top: 0;
+      color: var(--accent-blue);
+    }
+
+    .total-categoria {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-top: 8px;
+    }
+
+    .filtros {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-overlay.visible {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--bg-section);
+      padding: 24px;
+      border-radius: 12px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .modal-content h3 {
+      margin-top: 0;
+      margin-bottom: 16px;
+    }
+
+    .chart-container {
+      margin-top: 24px;
+      padding: 16px;
+      background: var(--bg-section);
+      border-radius: 8px;
+      height: 400px;
+      position: relative;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        flex-direction: column;
+        overflow-y: auto;
+      }
+
+      .sidebar {
+        width: 100%;
+        height: auto;
+        position: fixed;
+        top: 0;
+        left: 0;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        gap: 16px;
+        z-index: 100;
+      }
+
+      .sidebar h1 {
+        font-size: 18px;
+      }
+
+      .desktop-nav {
+        display: none;
+      }
+
+      .mobile-nav {
+        display: block;
+        position: relative;
+      }
+
+      .mobile-nav-toggle {
+        background: var(--sidebar-item-bg);
+        color: var(--sidebar-text);
+        border: none;
+        padding: 10px 15px;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+
+      .mobile-nav-menu {
+        display: none;
+        position: absolute;
+        top: 100%;
+        right: 0;
+        background: var(--sidebar-item-hover);
+        border-radius: 8px;
+        padding: 8px;
+        margin-top: 5px;
+        width: 150px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      }
+
+      .mobile-nav-menu a {
+        display: block;
+        color: var(--sidebar-text);
+        text-decoration: none;
+        padding: 10px;
+        border-radius: 6px;
+      }
+
+      .mobile-nav-menu a:hover {
+        background: var(--accent-blue);
+      }
+
+      .content {
+        padding: 16px;
+        margin-left: 0;
+        margin-top: 80px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="content">
+    <div class="header">
+      <h2>Relatório</h2>
+      <div class="header-actions">
+        <button class="btn-add" onclick="abrirModalCategorias()">Categoria</button>
+        <button class="btn-add" onclick="irParaResumoAnual()">Resumo Anual</button>
+      </div>
+    </div>
+
+    <!-- Modal de Categorias -->
+    <div id="modalCategorias" class="modal-overlay">
+      <div class="modal-content">
+        <h3>Administrar Categorias</h3>
+        <div class="form-row">
+          <input type="text" id="novaCategoria" placeholder="Nome da categoria" />
+          <button class="btn-add" onclick="adicionarCategoria()">Adicionar Categoria</button>
+        </div>
+        <div id="listaCategorias" style="margin-top: 16px;">
+          <!-- Categorias serão listadas aqui -->
+        </div>
+        <div style="margin-top: 20px; text-align: center;">
+          <button class="btn-add" onclick="fecharModalCategorias()" style="background: var(--text-secondary);">Fechar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Filtros</h3>
+      <div class="filtros">
+        <select id="selectAno">
+          <!-- Anos serão populados via JS -->
+        </select>
+        <select id="selectMes">
+          <option value="">Todos os meses</option>
+          <!-- Meses serão populados via JS -->
+        </select>
+        <select id="selectCategoria">
+          <option value="">Todas as categorias</option>
+          <!-- Categorias serão populadas via JS -->
+        </select>
+        <button class="btn-add" onclick="carregarRelatorios()">Filtrar</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Gráfico por Categoria</h3>
+      <div class="chart-container">
+        <canvas id="graficoCategorias"></canvas>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Relatórios</h3>
+      <div id="relatorios">
+        <p style="color: var(--text-secondary); text-align: center; padding: 40px;">
+          Selecione os filtros acima e clique em "Filtrar" para visualizar os relatórios por categoria.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBVwUVoudM_IxWQgkLxlabinw4AXGgf1So",
+      authDomain: "controle-f1437.firebaseapp.com",
+      databaseURL: "https://controle-f1437-default-rtdb.firebaseio.com",
+      projectId: "controle-f1437",
+      storageBucket: "controle-f1437.firebasestorage.app",
+      messagingSenderId: "796244202232",
+      appId: "1:796244202232:web:4e98f9b9a3c34bd569e10d"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    const MESES = [
+      "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+      "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"
+    ];
+    const ANO_BASE = 2025;
+    const ANO_LIMITE = ANO_BASE + 10;
+
+    const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+    const formatar = valor => moeda.format(Number(valor) || 0);
+
+    let currentUser = null;
+    let categoriasCache = [];
+    let graficoCategorias = null;
+
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobileNavMenu');
+      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function abrirModalCategorias() {
+      document.getElementById('modalCategorias').classList.add('visible');
+      renderizarListaCategorias();
+    }
+
+    function fecharModalCategorias() {
+      document.getElementById('modalCategorias').classList.remove('visible');
+    }
+
+    function irParaResumoAnual() {
+      const selectAno = document.getElementById("selectAno");
+      const ano = selectAno.value || String(new Date().getFullYear());
+      window.location.href = `resumo.html?ano=${encodeURIComponent(ano)}`;
+    }
+
+    function popularListaAnos() {
+      const selectAno = document.getElementById("selectAno");
+      selectAno.innerHTML = "";
+      for (let ano = ANO_BASE; ano <= ANO_LIMITE; ano++) {
+        const option = document.createElement("option");
+        option.value = String(ano);
+        option.textContent = String(ano);
+        selectAno.appendChild(option);
+      }
+      const hoje = new Date();
+      let anoCorrente = hoje.getFullYear();
+      if (anoCorrente < ANO_BASE || anoCorrente > ANO_LIMITE) {
+        anoCorrente = ANO_BASE;
+      }
+      selectAno.value = String(anoCorrente);
+    }
+
+    function popularListaMeses() {
+      const selectMes = document.getElementById("selectMes");
+      MESES.forEach(mes => {
+        const option = document.createElement("option");
+        option.value = mes;
+        option.textContent = mes;
+        selectMes.appendChild(option);
+      });
+    }
+
+    async function carregarCategorias() {
+      if (!currentUser) return;
+      try {
+        const categoriasRef = db.collection('users').doc(currentUser.uid).collection('categorias');
+        const snapshot = await categoriasRef.get();
+        categoriasCache = [];
+        snapshot.forEach(doc => {
+          categoriasCache.push({ id: doc.id, nome: doc.data().nome });
+        });
+        categoriasCache.sort((a, b) => a.nome.localeCompare(b.nome));
+        renderizarListaCategorias();
+        popularSelectCategoria();
+      } catch (error) {
+        console.error("Erro ao carregar categorias:", error);
+      }
+    }
+
+    function renderizarListaCategorias() {
+      const lista = document.getElementById("listaCategorias");
+      lista.innerHTML = "";
+      if (categoriasCache.length === 0) {
+        lista.innerHTML = '<p style="color: var(--text-secondary);">Nenhuma categoria cadastrada.</p>';
+        return;
+      }
+      categoriasCache.forEach(cat => {
+        const div = document.createElement("div");
+        div.className = "categoria-item";
+        div.innerHTML = `
+          <span>${cat.nome}</span>
+          <button class="btn-remove" onclick="removerCategoria('${cat.id}')">Remover</button>
+        `;
+        lista.appendChild(div);
+      });
+    }
+
+    function popularSelectCategoria() {
+      const select = document.getElementById("selectCategoria");
+      const valorAtual = select.value;
+      select.innerHTML = '<option value="">Todas as categorias</option><option value="Sem categoria">Sem categoria</option>';
+      categoriasCache.forEach(cat => {
+        const option = document.createElement("option");
+        option.value = cat.nome;
+        option.textContent = cat.nome;
+        select.appendChild(option);
+      });
+      if (valorAtual) {
+        select.value = valorAtual;
+      }
+    }
+
+    async function adicionarCategoria() {
+      if (!currentUser) return;
+      const input = document.getElementById("novaCategoria");
+      const nome = input.value.trim();
+      if (!nome) {
+        return alert("Por favor, digite o nome da categoria.");
+      }
+      if (categoriasCache.some(cat => cat.nome.toLowerCase() === nome.toLowerCase())) {
+        return alert("Esta categoria já existe.");
+      }
+      try {
+        const categoriasRef = db.collection('users').doc(currentUser.uid).collection('categorias');
+        await categoriasRef.add({ nome: nome });
+        input.value = "";
+        await carregarCategorias();
+        renderizarListaCategorias();
+      } catch (error) {
+        console.error("Erro ao adicionar categoria:", error);
+        alert("Erro ao adicionar categoria. Tente novamente.");
+      }
+    }
+
+    async function removerCategoria(categoriaId) {
+      if (!currentUser) return;
+      if (!confirm("Tem certeza que deseja remover esta categoria?")) {
+        return;
+      }
+      try {
+        const categoriaRef = db.collection('users').doc(currentUser.uid).collection('categorias').doc(categoriaId);
+        await categoriaRef.delete();
+        await carregarCategorias();
+        renderizarListaCategorias();
+      } catch (error) {
+        console.error("Erro ao remover categoria:", error);
+        alert("Erro ao remover categoria. Tente novamente.");
+      }
+    }
+
+    async function carregarRelatorios() {
+      if (!currentUser) return;
+      const selectAno = document.getElementById("selectAno");
+      const selectMes = document.getElementById("selectMes");
+      const selectCategoria = document.getElementById("selectCategoria");
+      const ano = selectAno.value;
+      const mes = selectMes.value;
+      const categoriaFiltro = selectCategoria.value;
+
+      if (!ano) {
+        return alert("Por favor, selecione um ano.");
+      }
+
+      const relatoriosDiv = document.getElementById("relatorios");
+      relatoriosDiv.innerHTML = "<p>Carregando...</p>";
+
+      try {
+        const relatoriosPorCategoria = {};
+        const mesesParaProcessar = mes ? [mes] : MESES;
+
+        for (const mesNome of mesesParaProcessar) {
+          const mesRef = db.collection('users').doc(currentUser.uid).collection('anos').doc(ano).collection('meses').doc(mesNome);
+          const doc = await mesRef.get();
+          if (!doc.exists) continue;
+
+          const data = doc.data();
+          const tipos = ['contas', 'cartao', 'reservado', 'debito'];
+
+          tipos.forEach(tipo => {
+            const itens = data[tipo] || [];
+            itens.forEach((item, index) => {
+              const categoria = item.categoria || "Sem categoria";
+              if (categoriaFiltro && categoria !== categoriaFiltro) return;
+
+              if (!relatoriosPorCategoria[categoria]) {
+                relatoriosPorCategoria[categoria] = {
+                  total: 0,
+                  itens: [],
+                  mes: mesNome
+                };
+              }
+              relatoriosPorCategoria[categoria].total += Number(item.valor || 0);
+              relatoriosPorCategoria[categoria].itens.push({
+                ...item,
+                tipo: tipo,
+                mes: mesNome,
+                ano: ano,
+                index: index // Índice do item no array
+              });
+            });
+          });
+        }
+
+        renderizarRelatorios(relatoriosPorCategoria);
+        atualizarGrafico(relatoriosPorCategoria);
+      } catch (error) {
+        console.error("Erro ao carregar relatórios:", error);
+        relatoriosDiv.innerHTML = "<p style='color: var(--accent-3);'>Erro ao carregar relatórios.</p>";
+      }
+    }
+
+    function atualizarGrafico(relatoriosPorCategoria) {
+      const ctx = document.getElementById('graficoCategorias');
+      if (!ctx) return;
+
+      // Destrói o gráfico anterior se existir
+      if (graficoCategorias) {
+        graficoCategorias.destroy();
+      }
+
+      const categorias = Object.keys(relatoriosPorCategoria).filter(cat => cat !== "Sem categoria");
+      const valores = categorias.map(cat => relatoriosPorCategoria[cat].total);
+
+      if (categorias.length === 0) {
+        // Se não houver categorias, mostra um gráfico vazio
+        graficoCategorias = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: [],
+            datasets: []
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false
+          }
+        });
+        return;
+      }
+
+      // Cores para o gráfico
+      const cores = [
+        'rgba(37, 99, 235, 0.8)',
+        'rgba(51, 194, 127, 0.8)',
+        'rgba(255, 193, 7, 0.8)',
+        'rgba(255, 107, 107, 0.8)',
+        'rgba(156, 39, 176, 0.8)',
+        'rgba(255, 152, 0, 0.8)',
+        'rgba(0, 188, 212, 0.8)',
+        'rgba(76, 175, 80, 0.8)',
+        'rgba(244, 67, 54, 0.8)',
+        'rgba(63, 81, 181, 0.8)'
+      ];
+
+      graficoCategorias = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: categorias,
+          datasets: [{
+            label: 'Valor Gasto (R$)',
+            data: valores,
+            backgroundColor: cores.slice(0, categorias.length),
+            borderColor: cores.slice(0, categorias.length).map(cor => cor.replace('0.8', '1')),
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return formatar(context.parsed.y);
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: function(value) {
+                  return formatar(value);
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderizarRelatorios(relatoriosPorCategoria) {
+      const relatoriosDiv = document.getElementById("relatorios");
+      relatoriosDiv.innerHTML = "";
+
+      const categorias = Object.keys(relatoriosPorCategoria).sort();
+      if (categorias.length === 0) {
+        relatoriosDiv.innerHTML = "<p style='color: var(--text-secondary);'>Nenhum dado encontrado para os filtros selecionados.</p>";
+        return;
+      }
+
+      let totalGeral = 0;
+      let temItensSemCategoria = false;
+      let itensSemCategoria = [];
+
+      categorias.forEach(categoria => {
+        const dados = relatoriosPorCategoria[categoria];
+        totalGeral += dados.total;
+
+        const div = document.createElement("div");
+        div.className = "relatorio-categoria";
+        
+        const ehSemCategoria = categoria === "Sem categoria";
+        if (ehSemCategoria) {
+          temItensSemCategoria = true;
+          itensSemCategoria = dados.itens;
+        }
+        
+        const colunaCategoria = ehSemCategoria ? "<th>Categoria</th>" : "";
+        
+        div.innerHTML = `
+          <h4>${categoria}</h4>
+          <div class="total-categoria">Total: ${formatar(dados.total)}</div>
+          <table style="margin-top: 12px;">
+            <thead>
+              <tr>
+                <th>Descrição</th>
+                <th>Tipo</th>
+                <th>Mês</th>
+                <th>Valor</th>
+                ${colunaCategoria}
+              </tr>
+            </thead>
+            <tbody>
+              ${dados.itens.map((item, itemIndex) => {
+                const selectCategoria = ehSemCategoria ? `
+                  <td>
+                    <select id="categoriaSelect_${item.ano}_${item.mes}_${item.tipo}_${item.index}" style="padding: 6px; border: 1px solid var(--border-color); border-radius: 6px; width: 100%;">
+                      <option value="">Selecione uma categoria</option>
+                      ${categoriasCache.map(cat => `<option value="${cat.nome}">${cat.nome}</option>`).join('')}
+                    </select>
+                  </td>
+                ` : '';
+                return `
+                  <tr>
+                    <td>${item.nome || '-'}</td>
+                    <td>${item.tipo === 'contas' ? 'Conta' : item.tipo === 'cartao' ? 'Cartão' : item.tipo === 'reservado' ? 'Reservado' : 'Débito'}</td>
+                    <td>${item.mes || '-'}</td>
+                    <td>${formatar(item.valor || 0)}</td>
+                    ${selectCategoria}
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+          ${ehSemCategoria ? `
+            <div style="margin-top: 16px; text-align: center;">
+              <button class="btn-add" onclick="salvarTodasCategorias()" style="padding: 12px 24px; font-size: 16px;">Salvar Alterações</button>
+            </div>
+          ` : ''}
+        `;
+        relatoriosDiv.appendChild(div);
+      });
+
+      const totalDiv = document.createElement("div");
+      totalDiv.style.cssText = "margin-top: 24px; padding: 16px; background: var(--accent-blue); color: #fff; border-radius: 8px; font-size: 20px; font-weight: 600;";
+      totalDiv.textContent = `Total Geral: ${formatar(totalGeral)}`;
+      relatoriosDiv.appendChild(totalDiv);
+    }
+
+    async function salvarTodasCategorias() {
+      if (!currentUser) return;
+
+      // Coleta todas as alterações
+      const alteracoes = [];
+      const selects = document.querySelectorAll('select[id^="categoriaSelect_"]');
+      
+      selects.forEach(select => {
+        const categoria = select.value.trim();
+        if (categoria) {
+          const id = select.id;
+          const partes = id.replace('categoriaSelect_', '').split('_');
+          const ano = partes[0];
+          const mes = partes[1];
+          const tipo = partes[2];
+          const index = parseInt(partes[3]);
+          
+          alteracoes.push({ ano, mes, tipo, index, categoria });
+        }
+      });
+
+      if (alteracoes.length === 0) {
+        return alert("Nenhuma categoria selecionada para salvar.");
+      }
+
+      try {
+        // Agrupa alterações por mês para otimizar as atualizações
+        const alteracoesPorMes = {};
+        alteracoes.forEach(alt => {
+          const chave = `${alt.ano}_${alt.mes}`;
+          if (!alteracoesPorMes[chave]) {
+            alteracoesPorMes[chave] = [];
+          }
+          alteracoesPorMes[chave].push(alt);
+        });
+
+        // Atualiza cada mês
+        const batch = db.batch();
+        for (const chave in alteracoesPorMes) {
+          const [ano, mes] = chave.split('_');
+          const mesRef = db.collection('users').doc(currentUser.uid).collection('anos').doc(ano).collection('meses').doc(mes);
+          const doc = await mesRef.get();
+          
+          if (!doc.exists) {
+            console.warn(`Mês ${mes}/${ano} não encontrado.`);
+            continue;
+          }
+
+          const data = doc.data();
+          const alteracoesDoMes = alteracoesPorMes[chave];
+          
+          // Agrupa alterações por tipo
+          const alteracoesPorTipo = {};
+          alteracoesDoMes.forEach(alt => {
+            if (!alteracoesPorTipo[alt.tipo]) {
+              alteracoesPorTipo[alt.tipo] = [];
+            }
+            alteracoesPorTipo[alt.tipo].push(alt);
+          });
+
+          // Atualiza cada tipo de item
+          for (const tipo in alteracoesPorTipo) {
+            const itens = [...(data[tipo] || [])];
+            alteracoesPorTipo[tipo].forEach(alt => {
+              if (alt.index >= 0 && alt.index < itens.length) {
+                itens[alt.index] = { ...itens[alt.index], categoria: alt.categoria };
+              }
+            });
+            batch.update(mesRef, { [tipo]: itens });
+          }
+        }
+
+        await batch.commit();
+        alert(`${alteracoes.length} categoria(s) salva(s) com sucesso!`);
+        
+        // Recarrega os relatórios
+        await carregarRelatorios();
+      } catch (error) {
+        console.error("Erro ao salvar categorias:", error);
+        alert("Erro ao salvar categorias. Tente novamente.");
+      }
+    }
+
+    // Fechar modal ao clicar fora
+    document.addEventListener('click', (e) => {
+      const modal = document.getElementById('modalCategorias');
+      if (e.target === modal) {
+        fecharModalCategorias();
+      }
+    });
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        currentUser = user;
+        popularListaAnos();
+        popularListaMeses();
+        carregarCategorias();
+      } else {
+        window.location.href = 'login.html';
+      }
+    });
+  </script>
+</body>
+</html>
+

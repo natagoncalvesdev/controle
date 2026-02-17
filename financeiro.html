@@ -5,9 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Controle Financeiro</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
+  <link rel="stylesheet" href="sidebar.css">
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="sidebar.js"></script>
   <style>
     :root {
       /* Tema Claro (Padrão) */
@@ -917,25 +919,6 @@
   </style>
 </head>
 <body>
-  <aside class="sidebar">
-    <h1>💰 Controle</h1>
-
-    <div class="mobile-nav">
-      <button class="mobile-nav-toggle" onclick="toggleMobileMenu()">☰ Menu</button>
-      <div class="mobile-nav-menu" id="mobileNavMenu">
-        <a href="index.html">Home</a>
-        <a href="financeiro.html">Financeiro</a>
-        <a href="veiculos.html">Veículos</a>
-      </div>
-    </div>
-    
-    <div class="desktop-nav">     
-      <a href="index.html" class="btn-sidebar" style="text-align: center;">Home</a>
-      <a href="financeiro.html" class="btn-sidebar active" style="text-align: center;">Financeiro</a>
-      <a href="veiculos.html" class="btn-sidebar" style="text-align: center;">Veículos</a>
-    </div>
-
-  </aside>
 
   <main class="content">
     <div class="header">
@@ -943,7 +926,6 @@
       <div class="period-controls">
         <select id="selectAno"></select>
         <select id="selectMesMobile"></select>
-        <button class="btn-add" id="btnResumoAnual" onclick="irParaResumoAnual()">Ver resumo anual</button>
       </div>
       <div class="resumo">
         <div class="card yellow">
@@ -992,6 +974,9 @@
       <div class="form-row">
         <input id="debitoNome" placeholder="Descrição" />
         <input id="debitoValor" type="number" placeholder="Valor em R$" step="0.01" />
+        <select id="debitoCategoria">
+          <option value="">Selecione uma categoria</option>
+        </select>
         <button class="btn-add" onclick="adicionarDebito()">Registrar</button>
         <button class="btn-add" onclick="visualizarComprasDebito()">Ver Compras</button>
       </div>
@@ -1126,6 +1111,9 @@
           <option value="pendente">Pendente</option>
           <option value="pago">Pago</option>
         </select>
+        <select id="contaCategoriaModal">
+          <option value="">Selecione uma categoria</option>
+        </select>
       </div>
       <div class="modal-actions">
         <button class="btn-cancel" onclick="fecharModalConta()">Cancelar</button>
@@ -1145,6 +1133,9 @@
         <input id="cartaoNomeModal" placeholder="Descrição (ex: Óculos)" />
         <input id="cartaoValorModal" type="number" placeholder="Valor da parcela" />
         <input id="cartaoTotalParcelasModal" type="number" placeholder="Total de Parcelas (ex: 10)" />
+        <select id="cartaoCategoriaModal">
+          <option value="">Selecione uma categoria</option>
+        </select>
         <label class="recorrente-toggle">
           <input type="checkbox" id="cartaoRecorrenteModal"><span class="checkbox-box"></span><span>Recorrente</span>
         </label>
@@ -1163,6 +1154,9 @@
       <div class="form-row">
         <input id="reservadoNomeModal" placeholder="Descrição" />
         <input id="reservadoValorModal" type="number" placeholder="Valor em R$" />
+        <select id="reservadoCategoriaModal">
+          <option value="">Selecione uma categoria</option>
+        </select>
       </div>
       <div class="modal-actions">
         <button class="btn-cancel" onclick="fecharModalReservado()">Cancelar</button>
@@ -1506,6 +1500,8 @@
         inicializar();
         // Carrega os cartões cadastrados
         carregarCartoes();
+        // Carrega as categorias
+        carregarCategorias();
       } else {
         // Se não houver usuário, redireciona para o login
         window.location.href = 'login.html';
@@ -1774,6 +1770,51 @@
       atualizarResumo(data);
     }
 
+    // Função para carregar categorias do Firebase
+    let categoriasCache = [];
+    async function carregarCategorias() {
+      if (!currentUser) return;
+      try {
+        const categoriasRef = db.collection('users').doc(currentUser.uid).collection('categorias');
+        const snapshot = await categoriasRef.get();
+        categoriasCache = [];
+        snapshot.forEach(doc => {
+          categoriasCache.push({ id: doc.id, nome: doc.data().nome });
+        });
+        categoriasCache.sort((a, b) => a.nome.localeCompare(b.nome));
+        popularSelectsCategoria();
+      } catch (error) {
+        console.error("Erro ao carregar categorias:", error);
+      }
+    }
+
+    // Função para popular todos os selects de categoria
+    function popularSelectsCategoria() {
+      const selects = [
+        'contaCategoriaModal',
+        'cartaoCategoriaModal',
+        'reservadoCategoriaModal',
+        'debitoCategoria'
+      ];
+      
+      selects.forEach(selectId => {
+        const select = document.getElementById(selectId);
+        if (select) {
+          const valorAtual = select.value;
+          select.innerHTML = '<option value="">Selecione uma categoria</option>';
+          categoriasCache.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat.nome;
+            option.textContent = cat.nome;
+            select.appendChild(option);
+          });
+          if (valorAtual) {
+            select.value = valorAtual;
+          }
+        }
+      });
+    }
+
     function getMesRef() {
       if (!anoAtual || !mesAtual) {
         return null;
@@ -1793,15 +1834,18 @@
       const nomeInput = document.getElementById("contaNomeModal");
       const valorInput = document.getElementById("contaValorModal");
       const statusInput = document.getElementById("contaStatusModal");
+      const categoriaInput = document.getElementById("contaCategoriaModal");
       const nome = nomeInput.value.trim();
       const valor = Number(valorInput.value);
       const status = statusInput.value;
+      const categoria = categoriaInput.value.trim() || "";
       if (!nome || !valor) return alert("Preencha descrição e valor.");
       await ref.update({
-        contas: firebase.firestore.FieldValue.arrayUnion({ nome, valor, status })
+        contas: firebase.firestore.FieldValue.arrayUnion({ nome, valor, status, categoria })
       });
       nomeInput.value = "";
       valorInput.value = "";
+      categoriaInput.value = "";
       fecharModalConta();
     }
 
@@ -1826,14 +1870,17 @@
       if (!ref) return;
       const nomeInput = document.getElementById("reservadoNomeModal");
       const valorInput = document.getElementById("reservadoValorModal");
+      const categoriaInput = document.getElementById("reservadoCategoriaModal");
       const nome = nomeInput.value.trim();
       const valor = Number(valorInput.value);
+      const categoria = categoriaInput.value.trim() || "";
       if (!nome || !valor) return alert("Preencha descrição e valor.");
       await ref.update({
-        reservado: firebase.firestore.FieldValue.arrayUnion({ nome, valor })
+        reservado: firebase.firestore.FieldValue.arrayUnion({ nome, valor, categoria })
       });
       nomeInput.value = "";
       valorInput.value = "";
+      categoriaInput.value = "";
       fecharModalReservado();
     }
 
@@ -1842,14 +1889,17 @@
       if (!ref) return;
       const nomeInput = document.getElementById("debitoNome");
       const valorInput = document.getElementById("debitoValor");
+      const categoriaInput = document.getElementById("debitoCategoria");
       const nome = nomeInput.value.trim();
       const valor = Number(valorInput.value);
+      const categoria = categoriaInput.value.trim() || "";
       if (!nome || !valor) return alert("Preencha descrição e valor.");
       await ref.update({
-        debito: firebase.firestore.FieldValue.arrayUnion({ nome, valor })
+        debito: firebase.firestore.FieldValue.arrayUnion({ nome, valor, categoria })
       });
       nomeInput.value = "";
       valorInput.value = "";
+      categoriaInput.value = "";
     }
 
     function abrirModalDebito() {
@@ -1982,12 +2032,14 @@
       const valorInput = document.getElementById("cartaoValorModal");
       const parcelasInput = document.getElementById("cartaoTotalParcelasModal");
       const recorrenteInput = document.getElementById("cartaoRecorrenteModal");
+      const categoriaInput = document.getElementById("cartaoCategoriaModal");
       
       const cartaoId = cartaoIdInput.value;
       const nome = nomeInput.value.trim();
       const valor = Number(valorInput.value);
       const isRecorrente = recorrenteInput.checked;
       const totalParcelas = Number(parcelasInput.value) || 1;
+      const categoria = categoriaInput.value.trim() || "";
 
       if (!cartaoId) {
         return alert("Por favor, selecione um cartão.");
@@ -2002,7 +2054,7 @@
 
       if (isRecorrente) {
         // Lógica para item recorrente
-        const novaCompra = { nome, valor, parcelas: "Recorrente", recorrente: true, cartaoId };
+        const novaCompra = { nome, valor, parcelas: "Recorrente", recorrente: true, cartaoId, categoria };
         const anoFinal = ANO_LIMITE;
 
         for (let ano = Number(anoAtual); ano <= anoFinal; ano++) {
@@ -2036,7 +2088,8 @@
             nome,
             valor,
             parcelas: `${i + 1}/${totalParcelas}`,
-            cartaoId
+            cartaoId,
+            categoria
           };
           batch.update(parcelaRef, { cartao: firebase.firestore.FieldValue.arrayUnion(novaCompra) });
         }
@@ -2047,6 +2100,7 @@
       nomeInput.value = "";
       valorInput.value = "";
       parcelasInput.value = "";
+      categoriaInput.value = "";
       recorrenteInput.checked = false;
       cartaoIdInput.value = "";
       fecharModalCartao();
@@ -2341,14 +2395,11 @@
       document.getElementById('adicionalModal').classList.remove('visible');
     }
     function abrirModalConta() {
+      popularSelectsCategoria();
       document.getElementById('contaModal').classList.add('visible');
     }
     function fecharModalConta() {
       document.getElementById('contaModal').classList.remove('visible');
-    }
-
-    function abrirModalConta() {
-      document.getElementById('contaModal').classList.add('visible');
     }
 
     async function abrirModalCartao() {
@@ -2373,6 +2424,7 @@
       selectCartao.appendChild(option);
       selectCartao.disabled = true; // Desabilita para não permitir mudança
       
+      popularSelectsCategoria();
       document.getElementById('cartaoModal').classList.add('visible');
     }
     function fecharModalCartao() {
@@ -2390,6 +2442,7 @@
     }
 
     function abrirModalReservado() {
+      popularSelectsCategoria();
       document.getElementById('reservadoModal').classList.add('visible');
     }
     function fecharModalReservado() {
