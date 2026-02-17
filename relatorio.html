@@ -299,6 +299,21 @@
     }
 
     @media (max-width: 768px) {
+      .chart-container {
+        height: 350px;
+        padding: 16px;
+      }
+
+      table {
+        font-size: 12px;
+      }
+
+      th, td {
+        padding: 8px 4px;
+      }
+    }
+
+    @media (max-width: 768px) {
       body {
         flex-direction: column;
         overflow-y: auto;
@@ -690,6 +705,10 @@
         return;
       }
 
+      // Detecta se é mobile
+      const isMobile = window.innerWidth <= 768;
+      const tipoGrafico = isMobile ? 'doughnut' : 'bar';
+
       // Cores modernas e vibrantes com gradiente
       const coresBase = [
         { bg: 'rgba(37, 99, 235, 0.9)', border: 'rgba(37, 99, 235, 1)' },
@@ -714,8 +733,8 @@
       const total = valores.reduce((acc, val) => acc + val, 0);
       const percentuais = valores.map(val => total > 0 ? ((val / total) * 100).toFixed(1) : 0);
 
-      graficoCategorias = new Chart(ctx, {
-        type: 'bar',
+      const configBase = {
+        type: tipoGrafico,
         data: {
           labels: categorias,
           datasets: [{
@@ -723,16 +742,14 @@
             data: valores,
             backgroundColor: backgrounds,
             borderColor: borders,
-            borderWidth: 2,
-            borderRadius: 8,
-            borderSkipped: false,
+            borderWidth: 2
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           layout: {
-            padding: {
+            padding: isMobile ? 5 : {
               top: 10,
               bottom: 10,
               left: 10,
@@ -745,13 +762,13 @@
             },
             tooltip: {
               backgroundColor: 'rgba(0, 0, 0, 0.8)',
-              padding: 12,
+              padding: isMobile ? 10 : 12,
               titleFont: {
-                size: 14,
+                size: isMobile ? 12 : 14,
                 weight: 'bold'
               },
               bodyFont: {
-                size: 13
+                size: isMobile ? 11 : 13
               },
               borderColor: 'rgba(255, 255, 255, 0.1)',
               borderWidth: 1,
@@ -759,7 +776,12 @@
               displayColors: true,
               callbacks: {
                 label: function(context) {
-                  const value = context.parsed.y;
+                  let value;
+                  if (tipoGrafico === 'doughnut') {
+                    value = context.parsed;
+                  } else {
+                    value = context.parsed.y;
+                  }
                   const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
                   return `${formatar(value)} (${percent}%)`;
                 },
@@ -769,38 +791,45 @@
               }
             }
           },
-          scales: {
-            x: {
-              grid: {
-                display: false
+          ...(tipoGrafico === 'bar' ? {
+            scales: {
+              x: {
+                grid: {
+                  display: false
+                },
+                ticks: {
+                  font: {
+                    size: isMobile ? 9 : 11,
+                    weight: '500'
+                  },
+                  color: 'rgba(0, 0, 0, 0.7)',
+                  maxRotation: isMobile ? 45 : 0,
+                  minRotation: isMobile ? 45 : 0
+                }
               },
-              ticks: {
-                font: {
-                  size: 11,
-                  weight: '500'
+              y: {
+                beginAtZero: true,
+                grid: {
+                  color: 'rgba(0, 0, 0, 0.05)',
+                  lineWidth: 1
                 },
-                color: 'rgba(0, 0, 0, 0.7)'
-              }
-            },
-            y: {
-              beginAtZero: true,
-              grid: {
-                color: 'rgba(0, 0, 0, 0.05)',
-                lineWidth: 1
-              },
-              ticks: {
-                callback: function(value) {
-                  return formatar(value);
-                },
-                font: {
-                  size: 11,
-                  weight: '500'
-                },
-                color: 'rgba(0, 0, 0, 0.7)',
-                padding: 8
+                ticks: {
+                  callback: function(value) {
+                    return formatar(value);
+                  },
+                  font: {
+                    size: isMobile ? 9 : 11,
+                    weight: '500'
+                  },
+                  color: 'rgba(0, 0, 0, 0.7)',
+                  padding: isMobile ? 4 : 8
+                }
               }
             }
-          },
+          } : {
+            // Opções específicas para doughnut (mobile)
+            cutout: '60%'
+          }),
           animation: {
             duration: 1000,
             easing: 'easeOutQuart'
@@ -810,7 +839,9 @@
             mode: 'index'
           }
         }
-      });
+      };
+
+      graficoCategorias = new Chart(ctx, configBase);
     }
 
     function renderizarRelatorios(relatoriosPorCategoria) {
@@ -849,7 +880,6 @@
             <thead>
               <tr>
                 <th>Descrição</th>
-                <th>Tipo</th>
                 <th>Mês</th>
                 <th>Valor</th>
                 ${colunaCategoria}
@@ -865,11 +895,11 @@
                     </select>
                   </td>
                 ` : '';
+                const mesAbreviado = item.mes ? item.mes.substring(0, 3) : '-';
                 return `
                   <tr>
                     <td>${item.nome || '-'}</td>
-                    <td>${item.tipo === 'contas' ? 'Conta' : item.tipo === 'cartao' ? 'Cartão' : item.tipo === 'reservado' ? 'Reservado' : 'Débito'}</td>
-                    <td>${item.mes || '-'}</td>
+                    <td>${mesAbreviado}</td>
                     <td>${formatar(item.valor || 0)}</td>
                     ${selectCategoria}
                   </tr>

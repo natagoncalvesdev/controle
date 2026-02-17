@@ -479,8 +479,9 @@
         tbody.innerHTML = '';
         linhasMensais.forEach(linha => {
           const tr = document.createElement('tr');
+          const mesAbreviado = linha.mes ? linha.mes.substring(0, 3) : '-';
           tr.innerHTML = `
-            <td>${linha.mes}</td>
+            <td>${mesAbreviado}</td>
             <td>${formatar(linha.totalContas)}</td>
             <td>${formatar(linha.totalCartao)}</td>
             <td>${formatar(linha.totalEntradas)}</td>
