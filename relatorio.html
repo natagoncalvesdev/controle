@@ -289,11 +289,13 @@
 
     .chart-container {
       margin-top: 24px;
-      padding: 16px;
-      background: var(--bg-section);
-      border-radius: 8px;
-      height: 400px;
+      padding: 24px;
+      background: linear-gradient(135deg, var(--bg-section) 0%, #f8f9fa 100%);
+      border-radius: 12px;
+      height: 450px;
       position: relative;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+      border: 1px solid var(--border-color);
     }
 
     @media (max-width: 768px) {
@@ -688,56 +690,124 @@
         return;
       }
 
-      // Cores para o gráfico
-      const cores = [
-        'rgba(37, 99, 235, 0.8)',
-        'rgba(51, 194, 127, 0.8)',
-        'rgba(255, 193, 7, 0.8)',
-        'rgba(255, 107, 107, 0.8)',
-        'rgba(156, 39, 176, 0.8)',
-        'rgba(255, 152, 0, 0.8)',
-        'rgba(0, 188, 212, 0.8)',
-        'rgba(76, 175, 80, 0.8)',
-        'rgba(244, 67, 54, 0.8)',
-        'rgba(63, 81, 181, 0.8)'
+      // Cores modernas e vibrantes com gradiente
+      const coresBase = [
+        { bg: 'rgba(37, 99, 235, 0.9)', border: 'rgba(37, 99, 235, 1)' },
+        { bg: 'rgba(51, 194, 127, 0.9)', border: 'rgba(51, 194, 127, 1)' },
+        { bg: 'rgba(255, 193, 7, 0.9)', border: 'rgba(255, 193, 7, 1)' },
+        { bg: 'rgba(255, 107, 107, 0.9)', border: 'rgba(255, 107, 107, 1)' },
+        { bg: 'rgba(156, 39, 176, 0.9)', border: 'rgba(156, 39, 176, 1)' },
+        { bg: 'rgba(255, 152, 0, 0.9)', border: 'rgba(255, 152, 0, 1)' },
+        { bg: 'rgba(0, 188, 212, 0.9)', border: 'rgba(0, 188, 212, 1)' },
+        { bg: 'rgba(76, 175, 80, 0.9)', border: 'rgba(76, 175, 80, 1)' },
+        { bg: 'rgba(244, 67, 54, 0.9)', border: 'rgba(244, 67, 54, 1)' },
+        { bg: 'rgba(63, 81, 181, 0.9)', border: 'rgba(63, 81, 181, 1)' },
+        { bg: 'rgba(233, 30, 99, 0.9)', border: 'rgba(233, 30, 99, 1)' },
+        { bg: 'rgba(0, 150, 136, 0.9)', border: 'rgba(0, 150, 136, 1)' }
       ];
+
+      const coresUsadas = coresBase.slice(0, categorias.length);
+      const backgrounds = coresUsadas.map(c => c.bg);
+      const borders = coresUsadas.map(c => c.border);
+
+      // Calcula percentuais para exibir nos tooltips
+      const total = valores.reduce((acc, val) => acc + val, 0);
+      const percentuais = valores.map(val => total > 0 ? ((val / total) * 100).toFixed(1) : 0);
 
       graficoCategorias = new Chart(ctx, {
         type: 'bar',
         data: {
           labels: categorias,
           datasets: [{
-            label: 'Valor Gasto (R$)',
+            label: 'Valor Gasto',
             data: valores,
-            backgroundColor: cores.slice(0, categorias.length),
-            borderColor: cores.slice(0, categorias.length).map(cor => cor.replace('0.8', '1')),
-            borderWidth: 2
+            backgroundColor: backgrounds,
+            borderColor: borders,
+            borderWidth: 2,
+            borderRadius: 8,
+            borderSkipped: false,
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          layout: {
+            padding: {
+              top: 10,
+              bottom: 10,
+              left: 10,
+              right: 10
+            }
+          },
           plugins: {
             legend: {
               display: false
             },
             tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              padding: 12,
+              titleFont: {
+                size: 14,
+                weight: 'bold'
+              },
+              bodyFont: {
+                size: 13
+              },
+              borderColor: 'rgba(255, 255, 255, 0.1)',
+              borderWidth: 1,
+              cornerRadius: 8,
+              displayColors: true,
               callbacks: {
                 label: function(context) {
-                  return formatar(context.parsed.y);
+                  const value = context.parsed.y;
+                  const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                  return `${formatar(value)} (${percent}%)`;
+                },
+                afterLabel: function(context) {
+                  return `Categoria: ${context.label}`;
                 }
               }
             }
           },
           scales: {
+            x: {
+              grid: {
+                display: false
+              },
+              ticks: {
+                font: {
+                  size: 11,
+                  weight: '500'
+                },
+                color: 'rgba(0, 0, 0, 0.7)'
+              }
+            },
             y: {
               beginAtZero: true,
+              grid: {
+                color: 'rgba(0, 0, 0, 0.05)',
+                lineWidth: 1
+              },
               ticks: {
                 callback: function(value) {
                   return formatar(value);
-                }
+                },
+                font: {
+                  size: 11,
+                  weight: '500'
+                },
+                color: 'rgba(0, 0, 0, 0.7)',
+                padding: 8
               }
             }
+          },
+          animation: {
+            duration: 1000,
+            easing: 'easeOutQuart'
+          },
+          interaction: {
+            intersect: false,
+            mode: 'index'
           }
         }
       });
