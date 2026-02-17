@@ -520,12 +520,17 @@
 
     function popularListaMeses() {
       const selectMes = document.getElementById("selectMes");
+      selectMes.innerHTML = '<option value="">Todos os meses</option>';
       MESES.forEach(mes => {
         const option = document.createElement("option");
         option.value = mes;
         option.textContent = mes;
         selectMes.appendChild(option);
       });
+      // Define o mês atual como padrão
+      const hoje = new Date();
+      const mesAtual = MESES[hoje.getMonth()];
+      selectMes.value = mesAtual;
     }
 
     async function carregarCategorias() {
@@ -1013,12 +1018,14 @@
       }
     });
 
-    auth.onAuthStateChanged(user => {
+    auth.onAuthStateChanged(async user => {
       if (user) {
         currentUser = user;
         popularListaAnos();
         popularListaMeses();
-        carregarCategorias();
+        await carregarCategorias();
+        // Carrega automaticamente o relatório do mês atual
+        await carregarRelatorios();
       } else {
         window.location.href = 'login.html';
       }
