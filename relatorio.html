@@ -298,10 +298,64 @@
       border: 1px solid var(--border-color);
     }
 
+    .chart-legend-mobile {
+      display: none;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .chart-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px;
+      margin-bottom: 8px;
+      border-radius: 8px;
+      background: var(--bg-main);
+    }
+
+    .chart-legend-color {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .chart-legend-info {
+      flex: 1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chart-legend-name {
+      font-weight: 600;
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+
+    .chart-legend-value {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .chart-legend-percent {
+      font-size: 12px;
+      color: var(--accent-blue);
+      font-weight: 600;
+    }
+
     @media (max-width: 768px) {
       .chart-container {
         height: 350px;
         padding: 16px;
+      }
+
+      .chart-legend-mobile {
+        display: block;
       }
 
       table {
@@ -439,6 +493,9 @@
       <h3>Gráfico por Categoria</h3>
       <div class="chart-container">
         <canvas id="graficoCategorias"></canvas>
+      </div>
+      <div id="chartLegendMobile" class="chart-legend-mobile">
+        <!-- Legenda será populada via JS no mobile -->
       </div>
     </div>
 
@@ -847,6 +904,40 @@
       };
 
       graficoCategorias = new Chart(ctx, configBase);
+
+      // Se for mobile, adiciona a legenda abaixo do gráfico
+      if (isMobile) {
+        atualizarLegendaMobile(categorias, valores, backgrounds, total);
+      } else {
+        document.getElementById('chartLegendMobile').innerHTML = '';
+      }
+    }
+
+    function atualizarLegendaMobile(categorias, valores, cores, total) {
+      const legendDiv = document.getElementById('chartLegendMobile');
+      if (!legendDiv) return;
+
+      legendDiv.innerHTML = '';
+
+      categorias.forEach((categoria, index) => {
+        const valor = valores[index];
+        const cor = cores[index];
+        const percent = total > 0 ? ((valor / total) * 100).toFixed(1) : 0;
+
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'chart-legend-item';
+        itemDiv.innerHTML = `
+          <div class="chart-legend-color" style="background-color: ${cor};"></div>
+          <div class="chart-legend-info">
+            <span class="chart-legend-name">${categoria}</span>
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <span class="chart-legend-value">${formatar(valor)}</span>
+              <span class="chart-legend-percent">${percent}%</span>
+            </div>
+          </div>
+        `;
+        legendDiv.appendChild(itemDiv);
+      });
     }
 
     function renderizarRelatorios(relatoriosPorCategoria) {
