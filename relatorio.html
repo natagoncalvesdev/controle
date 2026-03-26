@@ -1107,9 +1107,13 @@
 
       try {
         const relatoriosPorCategoria = {};
+        const totaisMensaisCategoriaFiltrada = {};
         const mesesParaProcessar = mes ? [mes] : MESES;
 
         for (const mesNome of mesesParaProcessar) {
+          if (!totaisMensaisCategoriaFiltrada[mesNome]) {
+            totaisMensaisCategoriaFiltrada[mesNome] = 0;
+          }
           const mesRef = db.collection('users').doc(currentUser.uid).collection('anos').doc(ano).collection('meses').doc(mesNome);
           const doc = await mesRef.get();
           if (!doc.exists) continue;
@@ -1130,7 +1134,11 @@
                   mes: mesNome
                 };
               }
-              relatoriosPorCategoria[categoria].total += Number(item.valor || 0);
+              const valorItem = Number(item.valor || 0);
+              relatoriosPorCategoria[categoria].total += valorItem;
+              if (categoriaFiltro && categoria === categoriaFiltro) {
+                totaisMensaisCategoriaFiltrada[mesNome] += valorItem;
+              }
               relatoriosPorCategoria[categoria].itens.push({
                 ...item,
                 tipo: tipo,
@@ -1143,14 +1151,19 @@
         }
 
         renderizarRelatorios(relatoriosPorCategoria, mes);
-        atualizarGrafico(relatoriosPorCategoria);
+        atualizarGrafico(relatoriosPorCategoria, {
+          ano,
+          mesSelecionado: mes,
+          categoriaSelecionada: categoriaFiltro,
+          totaisMensaisCategoriaFiltrada
+        });
       } catch (error) {
         console.error("Erro ao carregar relatórios:", error);
         relatoriosDiv.innerHTML = "<p style='color: var(--accent-3);'>Erro ao carregar relatórios.</p>";
       }
     }
 
-    function atualizarGrafico(relatoriosPorCategoria) {
+    function atualizarGrafico(relatoriosPorCategoria, contexto = {}) {
       const ctx = document.getElementById('graficoCategorias');
       if (!ctx) return;
 
@@ -1161,8 +1174,19 @@
 
       const categorias = Object.keys(relatoriosPorCategoria).filter(cat => cat !== "Sem categoria");
       const valores = categorias.map(cat => relatoriosPorCategoria[cat].total);
+      const mostrarPorMesDaCategoria = !contexto.mesSelecionado && !!contexto.categoriaSelecionada;
 
-      if (categorias.length === 0) {
+      let labelsGrafico = categorias;
+      let valoresGrafico = valores;
+      let tituloDataset = 'Valor Gasto';
+
+      if (mostrarPorMesDaCategoria) {
+        labelsGrafico = MESES;
+        valoresGrafico = MESES.map(mesNome => Number(contexto.totaisMensaisCategoriaFiltrada?.[mesNome] || 0));
+        tituloDataset = `Valor Gasto - ${contexto.categoriaSelecionada}`;
+      }
+
+      if (labelsGrafico.length === 0) {
         // Se não houver categorias, mostra um gráfico vazio
         graficoCategorias = new Chart(ctx, {
           type: 'bar',
@@ -1198,13 +1222,12 @@
         { bg: 'rgba(0, 150, 136, 0.9)', border: 'rgba(0, 150, 136, 1)' }
       ];
 
-      const coresUsadas = coresBase.slice(0, categorias.length);
+      const coresUsadas = coresBase.slice(0, labelsGrafico.length);
       const backgrounds = coresUsadas.map(c => c.bg);
       const borders = coresUsadas.map(c => c.border);
 
       // Calcula percentuais para exibir nos tooltips
-      const total = valores.reduce((acc, val) => acc + val, 0);
-      const percentuais = valores.map(val => total > 0 ? ((val / total) * 100).toFixed(1) : 0);
+      const total = valoresGrafico.reduce((acc, val) => acc + val, 0);
 
       // Para desktop, cria gradientes mais bonitos
       let backgroundsFinal = backgrounds;
@@ -1228,10 +1251,10 @@
       const configBase = {
         type: tipoGrafico,
         data: {
-          labels: categorias,
+          labels: labelsGrafico,
           datasets: [{
-            label: 'Valor Gasto',
-            data: valores,
+            label: tituloDataset,
+            data: valoresGrafico,
             backgroundColor: backgroundsFinal,
             borderColor: bordersFinal,
             borderWidth: isMobile ? 2 : 3,
@@ -1289,9 +1312,15 @@
                     value = context.parsed.y;
                   }
                   const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                  if (mostrarPorMesDaCategoria) {
+                    return `${formatar(value)} (${percent}% do período)`;
+                  }
                   return `${formatar(value)} (${percent}%)`;
                 },
                 afterLabel: function(context) {
+                  if (mostrarPorMesDaCategoria) {
+                    return `Mês: ${context.label}`;
+                  }
                   return `Categoria: ${context.label}`;
                 }
               }
@@ -1365,7 +1394,7 @@
 
       // Se for mobile, adiciona a legenda abaixo do gráfico
       if (isMobile) {
-        atualizarLegendaMobile(categorias, valores, backgrounds, total);
+        atualizarLegendaMobile(labelsGrafico, valoresGrafico, backgrounds, total);
       } else {
         document.getElementById('chartLegendMobile').innerHTML = '';
       }
