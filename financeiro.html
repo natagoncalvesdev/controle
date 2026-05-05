@@ -2046,11 +2046,7 @@
         // Adiciona event listener ao botão de editar - vai direto para o modal de edição
         const editButton = tr.querySelector('.edit');
         editButton.onclick = () => {
-          // Abre o modal de ações primeiro (necessário para ter os elementos)
-          const modal = document.getElementById('itemActionsModal');
-          modal.classList.add('visible');
-          // Chama diretamente a função de edição
-          mostrarEdicaoNoModal('adicionais', index, item);
+          abrirEdicaoDiretaNoModal('adicionais', index, item);
         };
         // Adiciona event listener ao botão de copiar - fecha o modal de entradas antes de abrir o de copiar
         const copyButton = tr.querySelector('.copy');
@@ -2262,9 +2258,14 @@
               <td>${item.nome}</td>
               <td>${formatar(item.valor)}</td>
               <td>
+                <button class="btn-icon-inline edit" id="editBtnDebitoModal${index}">✏️</button>
                 <button class="btn-inline" onclick="removerItem('debito', ${index}); fecharModalComprasDebito();">🗑️ Remover</button>
               </td>
             `;
+            tr.querySelector(`#editBtnDebitoModal${index}`).onclick = () => {
+              fecharModalComprasDebito();
+              abrirEdicaoDiretaNoModal('debito', index, item);
+            };
             tbody.appendChild(tr);
           });
           
@@ -2317,9 +2318,11 @@
               <td>${item.nome}</td>
               <td>${formatar(item.valor)}</td>
               <td>
+                <button class="btn-icon-inline edit" id="editBtnDebito${index}">✏️ Editar</button>
                 <button class="btn-inline" onclick="removerItem('debito', ${index})">🗑️ Remover</button>
               </td>
             `;
+            tr.querySelector(`#editBtnDebito${index}`).onclick = () => abrirEdicaoDiretaNoModal('debito', index, item);
             tbody.appendChild(tr);
           });
           
@@ -3307,7 +3310,7 @@
               </td>
             `;
             // Adiciona evento de clique para editar
-            tr.querySelector(`#editBtnCartao${indexFiltrado}`).onclick = () => abrirModalAcoes('cartao', indexFinal, item);
+            tr.querySelector(`#editBtnCartao${indexFiltrado}`).onclick = () => abrirEdicaoDiretaNoModal('cartao', indexFinal, item);
             tbody.appendChild(tr);
           });
           
@@ -3447,6 +3450,13 @@
             <button class="btn-inline" onclick="removerItem('cartao', ${index}); fecharModalAcoes();">🗑️ Remover</button>
           </div>
         `;
+      } else if (tipo === 'debito') {
+        modalBody.innerHTML = `
+          <div class="section-actions" style="justify-content: center;">
+            <button class="btn-icon-inline edit" id="modalEditButton">✏️ Editar</button>
+            <button class="btn-inline" onclick="removerItem('debito', ${index}); fecharModalAcoes();">🗑️ Remover</button>
+          </div>
+        `;
       } else if (tipo === 'adicionais' || tipo === 'reservado') {
         // Ações para Entradas e Reservados
         // A edição acontece no modal, e a remoção/cópia também
@@ -3472,12 +3482,13 @@
       document.getElementById('itemActionsModal').classList.remove('visible');
     }
 
-    function mostrarEdicaoNoModal(tipo, index, item) {
-      if (tipo === 'cartao' && ((item.parcelas && item.parcelas.includes('/')) || item.recorrente)) {
-        alert("Não é possível editar um item parcelado ou recorrente. Por favor, remova a compra e adicione novamente se necessário.");
-        return;
-      }
+    function abrirEdicaoDiretaNoModal(tipo, index, item) {
+      const modal = document.getElementById('itemActionsModal');
+      modal.classList.add('visible');
+      mostrarEdicaoNoModal(tipo, index, item);
+    }
 
+    function mostrarEdicaoNoModal(tipo, index, item) {
       const modalTitle = document.getElementById('itemActionsModalTitle');
       const modalBody = document.getElementById('itemActionsModalBody');
 
