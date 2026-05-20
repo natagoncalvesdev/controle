@@ -622,6 +622,51 @@
       background: linear-gradient(135deg, #6c7190 0%, #4a4f6e 100%);
     }
 
+    .cartao-card.vale {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    }
+
+    .cartao-vale-resumo {
+      display: none;
+      margin-bottom: 16px;
+      padding: 16px;
+      background: var(--bg-main);
+      border-radius: 8px;
+      gap: 12px;
+    }
+
+    .cartao-vale-resumo.visible {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .cartao-vale-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+    }
+
+    .cartao-vale-stats > div {
+      text-align: center;
+      min-width: 120px;
+    }
+
+    .cartao-vale-stats small {
+      display: block;
+      color: var(--subtle);
+      margin-bottom: 4px;
+    }
+
+    .cartao-vale-stats strong {
+      font-size: 1.15rem;
+    }
+
+    .status-disponivel {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
     .cartao-card-header {
       display: flex;
       justify-content: space-between;
@@ -1339,7 +1384,7 @@
       <button type="button" class="financeiro-tab-btn active" role="tab" aria-selected="true" aria-controls="tabPanelMes" data-tab="mes" id="tabBtnMes">Mês</button>
       <button type="button" class="financeiro-tab-btn" role="tab" aria-selected="false" aria-controls="tabPanelContas" data-tab="contas" id="tabBtnContas">Contas do mês</button>
       <button type="button" class="financeiro-tab-btn" role="tab" aria-selected="false" aria-controls="tabPanelDebito" data-tab="debito" id="tabBtnDebito">Débito</button>
-      <button type="button" class="financeiro-tab-btn" role="tab" aria-selected="false" aria-controls="tabPanelCartao" data-tab="cartao" id="tabBtnCartao">Cartão de crédito</button>
+      <button type="button" class="financeiro-tab-btn" role="tab" aria-selected="false" aria-controls="tabPanelCartao" data-tab="cartao" id="tabBtnCartao">Cartões</button>
       <button type="button" class="financeiro-tab-btn" role="tab" aria-selected="false" aria-controls="tabPanelReservados" data-tab="reservados" id="tabBtnReservados">Reservados</button>
     </nav>
 
@@ -1411,12 +1456,28 @@
 
     <div id="tabPanelCartao" class="financeiro-tab-panel" role="tabpanel" aria-labelledby="tabBtnCartao">
     <section class="section">
-      <h3>Cartão de crédito</h3>
+      <h3>Cartões</h3>
       <div class="section-actions">
         <button class="btn-add" onclick="abrirModalGerenciarCartoes()">Gerenciar Cartões</button>
       </div>
       <div id="cartaoSelecionadoInfo" style="display: none; margin-bottom: 16px; padding: 12px; background: var(--bg-main); border-radius: 8px; text-align: center;">
         <span id="cartaoSelecionadoNome"></span>
+      </div>
+      <div id="cartaoValeResumo" class="cartao-vale-resumo">
+        <div class="cartao-vale-stats">
+          <div>
+            <small>Saldo disponível</small>
+            <strong id="valeSaldoDisponivel">R$ 0,00</strong>
+          </div>
+          <div>
+            <small>Gasto no mês</small>
+            <strong id="valeGastoMes">R$ 0,00</strong>
+          </div>
+        </div>
+        <div class="form-row" style="margin-top: 8px;">
+          <input id="valeCargaInput" type="number" step="0.01" placeholder="Valor carregado no mês (R$)" />
+          <button class="btn-add" type="button" onclick="definirValeCarga()">Definir saldo do mês</button>
+        </div>
       </div>
       <div id="cartoesContainerWrapper">
         <div id="cartoesContainer" class="cartoes-container">
@@ -1557,14 +1618,16 @@
           <option value="">Selecione o cartão</option>
         </select>
         <input id="cartaoNomeModal" placeholder="Descrição (ex: Óculos)" />
-        <input id="cartaoValorModal" type="number" placeholder="Valor da parcela" />
-        <input id="cartaoTotalParcelasModal" type="number" placeholder="Total de Parcelas (ex: 10)" />
+        <input id="cartaoValorModal" type="number" step="0.01" placeholder="Valor da parcela" />
+        <div id="cartaoCamposCredito">
+          <input id="cartaoTotalParcelasModal" type="number" placeholder="Total de Parcelas (ex: 10)" />
+          <label class="recorrente-toggle">
+            <input type="checkbox" id="cartaoRecorrenteModal"><span class="checkbox-box"></span><span>Recorrente</span>
+          </label>
+        </div>
         <select id="cartaoCategoriaModal">
           <option value="">Selecione uma categoria</option>
         </select>
-        <label class="recorrente-toggle">
-          <input type="checkbox" id="cartaoRecorrenteModal"><span class="checkbox-box"></span><span>Recorrente</span>
-        </label>
       </div>
       <div class="modal-actions">
         <button class="btn-cancel" onclick="fecharModalCartao()">Cancelar</button>
@@ -1620,6 +1683,12 @@
       <div id="formularioCartao" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
         <h4 id="tituloFormularioCartao">Cadastrar Cartão</h4>
         <div class="form-row">
+          <select id="cartaoTipoModal" onchange="atualizarFormularioTipoCartao()">
+            <option value="credito">Cartão de crédito</option>
+            <option value="vale">Cartão vale / alimentação</option>
+          </select>
+        </div>
+        <div class="form-row" id="cartaoCamposCreditoGerenciar">
           <input id="cartaoNumeroModal" placeholder="Número do cartão (últimos 4 dígitos)" maxlength="4" />
           <select id="cartaoBandeiraModal">
             <option value="">Selecione a bandeira</option>
@@ -1630,6 +1699,9 @@
             <option value="hipercard">Hipercard</option>
             <option value="outro">Outro</option>
           </select>
+        </div>
+        <div class="form-row" id="cartaoCamposValeGerenciar" style="display: none;">
+          <input id="cartaoNomeValeModal" placeholder="Nome do cartão (ex: Alelo, VR)" />
         </div>
         <div class="modal-actions">
           <button class="btn-cancel" onclick="cancelarFormularioCartao()">Cancelar</button>
@@ -1694,6 +1766,56 @@
 
     const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
     const formatar = valor => moeda.format(Number(valor) || 0);
+
+    function isCartaoVale(cartao) {
+      return cartao && cartao.tipo === 'vale';
+    }
+
+    function isCartaoCredito(cartao) {
+      return cartao && cartao.tipo !== 'vale';
+    }
+
+    function nomeContaVale(cartao) {
+      const nome = (cartao.nome || '').trim();
+      return nome ? `Cartão Vale — ${nome}` : 'Cartão Vale';
+    }
+
+    function rotuloCartao(cartao) {
+      if (isCartaoVale(cartao)) {
+        return nomeContaVale(cartao);
+      }
+      const bandeiraNome = (cartao.bandeira || '').charAt(0).toUpperCase() + (cartao.bandeira || '').slice(1);
+      return `${bandeiraNome} - Final ${cartao.numero}`;
+    }
+
+    function calcularValeMes(data, cartaoId) {
+      const carga = Number((data.valeCarga && data.valeCarga[cartaoId]) || 0);
+      const gastos = (data.cartao || [])
+        .filter(c => c.cartaoId === cartaoId)
+        .reduce((acc, item) => acc + Number(item.valor || 0), 0);
+      return { carga, gastos, saldo: carga - gastos };
+    }
+
+    function atualizarFormularioTipoCartao() {
+      const tipo = document.getElementById('cartaoTipoModal').value;
+      const camposCredito = document.getElementById('cartaoCamposCreditoGerenciar');
+      const camposVale = document.getElementById('cartaoCamposValeGerenciar');
+      if (camposCredito) camposCredito.style.display = tipo === 'vale' ? 'none' : '';
+      if (camposVale) camposVale.style.display = tipo === 'vale' ? '' : 'none';
+    }
+
+    function atualizarCamposModalCompraCartao(cartao) {
+      const camposCredito = document.getElementById('cartaoCamposCredito');
+      const valorInput = document.getElementById('cartaoValorModal');
+      if (!camposCredito || !valorInput) return;
+      if (cartao && isCartaoVale(cartao)) {
+        camposCredito.style.display = 'none';
+        valorInput.placeholder = 'Valor da compra (R$)';
+      } else {
+        camposCredito.style.display = '';
+        valorInput.placeholder = 'Valor da parcela';
+      }
+    }
 
     let anoAtual = "";
     let mesAtual = "";
@@ -2073,7 +2195,7 @@
         batch.set(anoRef, { ano: Number(ano) });
         MESES.forEach(mesNome => {
           const mesRef = anoRef.collection('meses').doc(mesNome);
-          batch.set(mesRef, { contas: [], adicionais: [], cartao: [], reservado: [], debito: [], cartaoStatus: 'pendente' });
+          batch.set(mesRef, { contas: [], adicionais: [], cartao: [], reservado: [], debito: [], cartaoStatus: 'pendente', valeCarga: {} });
         });
         await batch.commit();
       }
@@ -2141,32 +2263,31 @@
       data.cartao = data.cartao || [];
       data.reservado = data.reservado || [];
       data.debito = data.debito || [];
+      data.valeCarga = data.valeCarga || {};
       const statusCartao = data.cartaoStatus || 'pendente';
 
       // Ordena as contas manualmente em ordem alfabética
       const contasOrdenadas = [...data.contas].sort((a, b) => a.nome.localeCompare(b.nome));
 
-      // Calcula o total de cada cartão individualmente e adiciona como itens separados
-      if (data.cartao && data.cartao.length > 0 && cartoesCache.length > 0) {
-        // Cria um mapa dos cartões para acesso rápido
-        const cartoesMap = {};
-        cartoesCache.forEach(cartao => {
-          cartoesMap[cartao.id] = cartao;
-        });
+      const cartoesMap = {};
+      cartoesCache.forEach(cartao => {
+        cartoesMap[cartao.id] = cartao;
+      });
 
-        // Calcula o total para cada cartão
+      // Cartões de crédito: total de parcelas no mês
+      if (data.cartao && data.cartao.length > 0 && cartoesCache.length > 0) {
         const totaisPorCartao = {};
         data.cartao.forEach(item => {
           const cartaoId = item.cartaoId;
-          if (cartaoId && cartoesMap[cartaoId]) {
+          const cartao = cartaoId && cartoesMap[cartaoId];
+          if (cartao && isCartaoCredito(cartao)) {
             if (!totaisPorCartao[cartaoId]) {
-              totaisPorCartao[cartaoId] = { total: 0, cartao: cartoesMap[cartaoId] };
+              totaisPorCartao[cartaoId] = { total: 0, cartao };
             }
             totaisPorCartao[cartaoId].total += Number(item.valor || 0);
           }
         });
 
-        // Adiciona cada cartão como um item na lista de contas
         Object.keys(totaisPorCartao).forEach(cartaoId => {
           const { total, cartao } = totaisPorCartao[cartaoId];
           if (total > 0) {
@@ -2179,8 +2300,21 @@
             });
           }
         });
+      }
 
-        // Reordena após adicionar os cartões
+      // Cartões vale: saldo disponível no mês
+      cartoesCache.filter(isCartaoVale).forEach(cartao => {
+        const { saldo } = calcularValeMes(data, cartao.id);
+        contasOrdenadas.push({
+          nome: nomeContaVale(cartao),
+          valor: saldo,
+          status: 'disponivel',
+          isVale: true,
+          cartaoId: cartao.id
+        });
+      });
+
+      if (cartoesCache.length > 0) {
         contasOrdenadas.sort((a, b) => a.nome.localeCompare(b.nome));
       }
 
@@ -2205,18 +2339,30 @@
 
         const status = conta.status || "pendente";
         const tr = document.createElement('tr');
-        tr.className = `${status === "pago" ? "row-pago" : "row-pendente"}`;
+        if (conta.isVale) {
+          tr.className = 'row-pago';
+        } else {
+          tr.className = `${status === "pago" ? "row-pago" : "row-pendente"}`;
+        }
+        const statusLabel = conta.isVale
+          ? 'Disponível'
+          : (status === "pago" ? "Pago" : "Pendente");
+        const statusClass = conta.isVale
+          ? 'status-disponivel'
+          : (status === "pago" ? "status-pago" : "status-pendente");
         tr.innerHTML = `
             <td>${conta.nome}</td>
             <td>${formatar(conta.valor)}</td>
             <td>
-              <div class="status-tag ${status === "pago" ? "status-pago" : "status-pendente"}">
-                ${status === "pago" ? "Pago" : "Pendente"}
+              <div class="status-tag ${statusClass}">
+                ${statusLabel}
               </div>
             </td>
         `;
 
-        if (conta.isCartao) { // Se for um item de cartão
+        if (conta.isVale) {
+          tr.onclick = null;
+        } else if (conta.isCartao) { // Se for um item de cartão de crédito
           tr.onclick = () => abrirModalAcoes('cartaoAgregado', -1, conta);
         } else if (conta.isDebito) { // Se for débito, não permite ações
           tr.onclick = null;
@@ -2276,6 +2422,7 @@
 
       dadosMesAtual = data;
       atualizarListagensComprasAbertas(data);
+      atualizarPainelVale(data);
 
       atualizarResumo(data);
     }
@@ -2335,7 +2482,7 @@
 
     async function carregarDadosRef(ref) {
       const doc = await ref.get();
-      return doc.exists ? doc.data() : { contas: [], adicionais: [], cartao: [], reservado: [], debito: [], cartaoStatus: 'pendente' };
+      return doc.exists ? doc.data() : { contas: [], adicionais: [], cartao: [], reservado: [], debito: [], cartaoStatus: 'pendente', valeCarga: {} };
     }
 
     async function adicionarConta() {
@@ -2571,8 +2718,10 @@
       const cartaoId = cartaoIdInput.value;
       const nome = nomeInput.value.trim();
       const valor = Number(valorInput.value);
-      const isRecorrente = recorrenteInput.checked;
-      const totalParcelas = Number(parcelasInput.value) || 1;
+      const cartao = cartoesCache.find(c => c.id === cartaoId);
+      const isVale = cartao && isCartaoVale(cartao);
+      const isRecorrente = !isVale && recorrenteInput.checked;
+      const totalParcelas = isVale ? 1 : (Number(parcelasInput.value) || 1);
       const categoria = categoriaInput.value.trim() || "";
 
       if (!cartaoId) {
@@ -2581,6 +2730,24 @@
 
       if (!nome || !valor) {
         return alert("Preencha descrição e valor da compra.");
+      }
+
+      if (isVale) {
+        await ref.update({
+          cartao: firebase.firestore.FieldValue.arrayUnion({
+            nome,
+            valor,
+            parcelas: 'À vista',
+            cartaoId,
+            categoria
+          })
+        });
+        nomeInput.value = "";
+        valorInput.value = "";
+        categoriaInput.value = "";
+        fecharModalCartao();
+        if (cartaoSelecionado) await visualizarComprasCartao();
+        return;
       }
 
       const mesAtualIndex = MESES.indexOf(mesAtual);
@@ -2811,6 +2978,10 @@
       if (!cartaoAtivo) {
         return alert('Por favor, cadastre um cartão primeiro.');
       }
+
+      if (isCartaoVale(cartaoAtivo)) {
+        return alert('Adiantar parcela só está disponível para cartões de crédito.');
+      }
       
       // Seleciona o cartão se não estiver selecionado
       if (!cartaoSelecionado || cartaoSelecionado.id !== cartaoAtivo.id) {
@@ -2955,12 +3126,14 @@
       selectCartao.innerHTML = '';
       const option = document.createElement('option');
       option.value = cartaoAtivo.id;
-      const bandeiraNome = cartaoAtivo.bandeira.charAt(0).toUpperCase() + cartaoAtivo.bandeira.slice(1);
-      option.textContent = `${bandeiraNome} - Final ${cartaoAtivo.numero}`;
+      option.textContent = rotuloCartao(cartaoAtivo);
       option.selected = true;
       selectCartao.appendChild(option);
       selectCartao.disabled = true; // Desabilita para não permitir mudança
       
+      atualizarCamposModalCompraCartao(cartaoAtivo);
+      document.getElementById('cartaoModal').querySelector('h3').textContent =
+        isCartaoVale(cartaoAtivo) ? 'Adicionar Compra no Vale' : 'Adicionar Compra no Cartão';
       popularSelectsCategoria();
       document.getElementById('cartaoModal').classList.add('visible');
     }
@@ -3015,13 +3188,15 @@
 
       snapshot.forEach(doc => {
         const cartao = { id: doc.id, ...doc.data() };
-        const bandeiraNome = cartao.bandeira.charAt(0).toUpperCase() + cartao.bandeira.slice(1);
+        const rotulo = rotuloCartao(cartao);
+        const tipoLabel = isCartaoVale(cartao) ? 'Vale' : 'Crédito';
         
         const cardDiv = document.createElement('div');
         cardDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-main); border-radius: 8px;';
         cardDiv.innerHTML = `
           <div>
-            <strong>${bandeiraNome}</strong> - Final ${cartao.numero}
+            <strong>${rotulo}</strong>
+            <small style="display: block; color: var(--subtle);">${tipoLabel}</small>
           </div>
           <div style="display: flex; gap: 8px;">
             <button class="btn-icon-inline edit" onclick="editarCartao('${cartao.id}')">✏️ Editar</button>
@@ -3036,8 +3211,11 @@
       cartaoEditando = null;
       document.getElementById('tituloFormularioCartao').textContent = 'Cadastrar Cartão';
       document.getElementById('btnSalvarCartao').textContent = 'Cadastrar';
+      document.getElementById('cartaoTipoModal').value = 'credito';
       document.getElementById('cartaoNumeroModal').value = '';
       document.getElementById('cartaoBandeiraModal').value = '';
+      document.getElementById('cartaoNomeValeModal').value = '';
+      atualizarFormularioTipoCartao();
       document.getElementById('formularioCartao').style.display = 'block';
     }
 
@@ -3056,8 +3234,11 @@
       
       document.getElementById('tituloFormularioCartao').textContent = 'Editar Cartão';
       document.getElementById('btnSalvarCartao').textContent = 'Salvar';
-      document.getElementById('cartaoNumeroModal').value = cartao.numero;
-      document.getElementById('cartaoBandeiraModal').value = cartao.bandeira;
+      document.getElementById('cartaoTipoModal').value = isCartaoVale(cartao) ? 'vale' : 'credito';
+      document.getElementById('cartaoNumeroModal').value = cartao.numero || '';
+      document.getElementById('cartaoBandeiraModal').value = cartao.bandeira || '';
+      document.getElementById('cartaoNomeValeModal').value = cartao.nome || '';
+      atualizarFormularioTipoCartao();
       document.getElementById('formularioCartao').style.display = 'block';
     }
 
@@ -3066,42 +3247,51 @@
       document.getElementById('formularioCartao').style.display = 'none';
       document.getElementById('cartaoNumeroModal').value = '';
       document.getElementById('cartaoBandeiraModal').value = '';
+      document.getElementById('cartaoNomeValeModal').value = '';
+      document.getElementById('cartaoTipoModal').value = 'credito';
+      atualizarFormularioTipoCartao();
     }
 
     async function salvarCartao() {
       if (!currentUser) return;
+      const tipo = document.getElementById('cartaoTipoModal').value;
       const numero = document.getElementById('cartaoNumeroModal').value.trim();
       const bandeira = document.getElementById('cartaoBandeiraModal').value;
+      const nomeVale = document.getElementById('cartaoNomeValeModal').value.trim();
 
-      if (!numero || numero.length !== 4 || !/^\d+$/.test(numero)) {
-        return alert('Por favor, informe os últimos 4 dígitos do cartão.');
+      if (tipo === 'vale') {
+        if (!nomeVale) {
+          return alert('Informe um nome para o cartão vale (ex: Alelo, VR).');
+        }
+      } else {
+        if (!numero || numero.length !== 4 || !/^\d+$/.test(numero)) {
+          return alert('Por favor, informe os últimos 4 dígitos do cartão.');
+        }
+        if (!bandeira) {
+          return alert('Por favor, selecione a bandeira do cartão.');
+        }
       }
 
-      if (!bandeira) {
-        return alert('Por favor, selecione a bandeira do cartão.');
-      }
+      const dadosCartao = tipo === 'vale'
+        ? { tipo: 'vale', nome: nomeVale, bandeira: 'vale', numero: '' }
+        : { tipo: 'credito', numero, bandeira, nome: '' };
 
       try {
         if (cartaoEditando) {
           // Editar cartão existente
           const cartaoRef = db.collection('users').doc(currentUser.uid).collection('cartoes').doc(cartaoEditando.id);
-          await cartaoRef.update({
-            numero: numero,
-            bandeira: bandeira
-          });
+          await cartaoRef.update(dadosCartao);
           
           // Se o cartão editado estava selecionado, atualiza a seleção
           if (cartaoSelecionado && cartaoSelecionado.id === cartaoEditando.id) {
-            cartaoSelecionado.numero = numero;
-            cartaoSelecionado.bandeira = bandeira;
+            Object.assign(cartaoSelecionado, dadosCartao);
             atualizarInterfaceCartaoSelecionado();
           }
         } else {
           // Cadastrar novo cartão
           const cartoesRef = db.collection('users').doc(currentUser.uid).collection('cartoes');
           await cartoesRef.add({
-            numero: numero,
-            bandeira: bandeira,
+            ...dadosCartao,
             dataCriacao: firebase.firestore.FieldValue.serverTimestamp()
           });
         }
@@ -3158,6 +3348,9 @@
           cartoesCache.push({ id: doc.id, ...doc.data() });
         });
         renderizarCartoes(cartoesCache);
+        if (dadosMesAtual) {
+          renderizarDadosDoMes(dadosMesAtual);
+        }
       }, error => {
         console.error('Erro ao carregar cartões:', error);
       });
@@ -3178,32 +3371,47 @@
 
       container.style.display = 'flex';
 
-      cartoes.forEach((cartao, index) => {
+      cartoes.forEach((cartao) => {
         const card = document.createElement('div');
         const isSelecionado = cartaoSelecionado && cartaoSelecionado.id === cartao.id;
-        card.className = `cartao-card ${cartao.bandeira} ${isSelecionado ? 'selecionado' : ''}`;
+        const classeBandeira = isCartaoVale(cartao) ? 'vale' : cartao.bandeira;
+        card.className = `cartao-card ${classeBandeira} ${isSelecionado ? 'selecionado' : ''}`;
         card.dataset.cartaoId = cartao.id;
         card.onclick = (e) => {
           e.stopPropagation();
           selecionarCartao(cartao);
         };
-        
-        const bandeiraNome = cartao.bandeira.charAt(0).toUpperCase() + cartao.bandeira.slice(1);
-        const bandeiraAbrev = cartao.bandeira === 'mastercard' ? 'MC' : 
-                              cartao.bandeira === 'amex' ? 'AX' :
-                              cartao.bandeira === 'hipercard' ? 'HC' :
-                              cartao.bandeira.toUpperCase().substring(0, 2);
-        
-        card.innerHTML = `
-          <div class="cartao-card-header">
-            <div class="cartao-chip"></div>
-            <div class="cartao-bandeira ${cartao.bandeira}">${bandeiraAbrev}</div>
-          </div>
-          <div>
-            <div class="cartao-numero">**** **** **** ${cartao.numero}</div>
-            <div class="cartao-final">${bandeiraNome}</div>
-          </div>
-        `;
+
+        if (isCartaoVale(cartao)) {
+          const nomeExibicao = (cartao.nome || 'Vale').trim();
+          card.innerHTML = `
+            <div class="cartao-card-header">
+              <div class="cartao-chip"></div>
+              <div class="cartao-bandeira vale">VA</div>
+            </div>
+            <div>
+              <div class="cartao-numero">${nomeExibicao}</div>
+              <div class="cartao-final">Cartão vale / alimentação</div>
+            </div>
+          `;
+        } else {
+          const bandeiraNome = cartao.bandeira.charAt(0).toUpperCase() + cartao.bandeira.slice(1);
+          const bandeiraAbrev = cartao.bandeira === 'mastercard' ? 'MC' : 
+                                cartao.bandeira === 'amex' ? 'AX' :
+                                cartao.bandeira === 'hipercard' ? 'HC' :
+                                cartao.bandeira.toUpperCase().substring(0, 2);
+          
+          card.innerHTML = `
+            <div class="cartao-card-header">
+              <div class="cartao-chip"></div>
+              <div class="cartao-bandeira ${cartao.bandeira}">${bandeiraAbrev}</div>
+            </div>
+            <div>
+              <div class="cartao-numero">**** **** **** ${cartao.numero}</div>
+              <div class="cartao-final">${bandeiraNome}</div>
+            </div>
+          `;
+        }
         
         container.appendChild(card);
       });
@@ -3353,17 +3561,58 @@
       document.getElementById('comprasCartaoDesktop').innerHTML = '';
     }
 
+    function atualizarPainelVale(data) {
+      const painel = document.getElementById('cartaoValeResumo');
+      if (!painel) return;
+
+      if (!cartaoSelecionado || !isCartaoVale(cartaoSelecionado)) {
+        painel.classList.remove('visible');
+        return;
+      }
+
+      const mesData = data || dadosMesAtual || { cartao: [], valeCarga: {} };
+      const { carga, gastos, saldo } = calcularValeMes(mesData, cartaoSelecionado.id);
+
+      document.getElementById('valeSaldoDisponivel').textContent = formatar(saldo);
+      document.getElementById('valeGastoMes').textContent = formatar(gastos);
+      const cargaInput = document.getElementById('valeCargaInput');
+      if (cargaInput && document.activeElement !== cargaInput) {
+        cargaInput.value = carga > 0 ? carga : '';
+      }
+      painel.classList.add('visible');
+    }
+
+    async function definirValeCarga() {
+      if (!cartaoSelecionado || !isCartaoVale(cartaoSelecionado)) {
+        return alert('Selecione um cartão vale.');
+      }
+      const ref = getMesRef();
+      if (!ref) return;
+      const valor = Number(document.getElementById('valeCargaInput').value);
+      if (!valor || valor <= 0) {
+        return alert('Informe o valor carregado no mês.');
+      }
+      const doc = await ref.get();
+      const valeCarga = (doc.exists && doc.data().valeCarga) ? { ...doc.data().valeCarga } : {};
+      valeCarga[cartaoSelecionado.id] = valor;
+      await ref.update({ valeCarga });
+    }
+
     function atualizarInterfaceCartaoSelecionado() {
       const infoDiv = document.getElementById('cartaoSelecionadoInfo');
       const nomeSpan = document.getElementById('cartaoSelecionadoNome');
       const botoesDiv = document.getElementById('botoesCartaoSelecionado');
+      const btnAdiantar = document.getElementById('btnAdiantarParcela');
       const container = document.getElementById('cartoesContainer');
       const isMobile = window.innerWidth <= 768;
 
       if (cartaoSelecionado) {
-        const bandeiraNome = cartaoSelecionado.bandeira.charAt(0).toUpperCase() + cartaoSelecionado.bandeira.slice(1);
-        nomeSpan.textContent = `${bandeiraNome} - Final ${cartaoSelecionado.numero}`;
+        nomeSpan.textContent = rotuloCartao(cartaoSelecionado);
         infoDiv.style.display = 'block';
+        if (btnAdiantar) {
+          btnAdiantar.style.display = isCartaoVale(cartaoSelecionado) ? 'none' : '';
+        }
+        atualizarPainelVale(dadosMesAtual);
         
         // No mobile, botões sempre aparecem se houver cartões. No desktop, só se houver selecionado
         if (isMobile) {
@@ -3387,6 +3636,8 @@
         }
       } else {
         infoDiv.style.display = 'none';
+        document.getElementById('cartaoValeResumo')?.classList.remove('visible');
+        if (btnAdiantar) btnAdiantar.style.display = '';
         
         // No mobile, botões aparecem sempre que houver cartões. No desktop, só se houver selecionado
         if (isMobile) {
@@ -3416,7 +3667,8 @@
 
     function renderizarListagemCartao(cartao, contasCartao) {
       const isMobile = window.innerWidth <= 768;
-      const tituloCartao = `${cartao.bandeira.charAt(0).toUpperCase() + cartao.bandeira.slice(1)} - Final ${cartao.numero}`;
+      const tituloCartao = rotuloCartao(cartao);
+      const colParcelas = isCartaoVale(cartao) ? '' : '<th>Parcelas</th>';
 
       if (isMobile) {
         document.getElementById('contasCartaoModalTitulo').textContent = tituloCartao;
@@ -3435,7 +3687,7 @@
               <tr>
                 <th>Descrição</th>
                 <th>Valor</th>
-                <th>Parcelas</th>
+                ${colParcelas}
               </tr>
             </thead>
             <tbody id="contasCartaoModalTableBody"></tbody>
@@ -3445,10 +3697,11 @@
           contasCartao.forEach((item, indexFiltrado) => {
             const indexFinal = encontrarIndiceCompraCartao(item, indexFiltrado);
             const tr = document.createElement('tr');
+            const celulaParcelas = isCartaoVale(cartao) ? '' : `<td>${item.parcelas || '-'}</td>`;
             tr.innerHTML = `
               <td>${item.nome}</td>
               <td>${formatar(item.valor)}</td>
-              <td>${item.parcelas || '-'}</td>
+              ${celulaParcelas}
             `;
             tr.onclick = () => abrirModalAcoes('cartao', indexFinal, item);
             tbody.appendChild(tr);
@@ -3482,7 +3735,7 @@
               <tr>
                 <th>Descrição</th>
                 <th>Valor</th>
-                <th>Parcelas</th>
+                ${colParcelas}
                 <th>Ações</th>
               </tr>
             </thead>
@@ -3493,10 +3746,11 @@
           contasCartao.forEach((item, indexFiltrado) => {
             const indexFinal = encontrarIndiceCompraCartao(item, indexFiltrado);
             const tr = document.createElement('tr');
+            const celulaParcelas = isCartaoVale(cartao) ? '' : `<td>${item.parcelas || '-'}</td>`;
             tr.innerHTML = `
               <td>${item.nome}</td>
               <td>${formatar(item.valor)}</td>
-              <td>${item.parcelas || '-'}</td>
+              ${celulaParcelas}
               <td>
                 <button class="btn-icon-inline edit" id="editBtnCartao${indexFiltrado}">✏️ Editar</button>
                 <button class="btn-inline" onclick="removerItem('cartao', ${indexFinal})">🗑️ Remover</button>
@@ -3593,7 +3847,13 @@
       if (data) {
         totalContasManuais = data.contas.reduce((acc, item) => acc + Number(item.valor || 0), 0);
         totalAdicionais = data.adicionais.reduce((acc, item) => acc + Number(item.valor || 0), 0);
-        totalCartao = data.cartao.reduce((acc, item) => acc + Number(item.valor || 0), 0);
+        const cartoesMapResumo = {};
+        cartoesCache.forEach(c => { cartoesMapResumo[c.id] = c; });
+        totalCartao = data.cartao.reduce((acc, item) => {
+          const cartao = item.cartaoId && cartoesMapResumo[item.cartaoId];
+          if (cartao && isCartaoVale(cartao)) return acc;
+          return acc + Number(item.valor || 0);
+        }, 0);
         totalReservado = data.reservado.reduce((acc, item) => acc + Number(item.valor || 0), 0);
         totalDebito = (data.debito || []).reduce((acc, item) => acc + Number(item.valor || 0), 0);
       }
