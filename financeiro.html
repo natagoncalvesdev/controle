@@ -253,14 +253,20 @@
       gap: 28px;
     }
 
-    .header {
+    .header,
+    .financeiro-period-bar {
       display: flex;
       flex-direction: column;
       gap: 16px;
       margin-bottom: 8px;
     }
 
-    .header h2 {
+    .financeiro-period-bar {
+      margin-bottom: 0;
+    }
+
+    .header h2,
+    .financeiro-period-bar h2 {
       margin: 0;
       font-size: 32px;
       font-weight: 700;
@@ -391,6 +397,91 @@
       font-weight: 600;
       color: var(--text-primary);
       letter-spacing: -0.01em;
+    }
+
+    /* Abas do financeiro (desktop) */
+    .financeiro-tabs {
+      display: none;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 6px;
+      background: var(--bg-section);
+      border-radius: 14px;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .financeiro-tab-btn {
+      flex: 1 1 auto;
+      min-width: 0;
+      padding: 12px 18px;
+      border: none;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      white-space: nowrap;
+    }
+
+    .financeiro-tab-btn:hover {
+      color: var(--text-primary);
+      background: rgba(66, 153, 225, 0.08);
+    }
+
+    .financeiro-tab-btn.active {
+      color: #ffffff;
+      background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-blue-hover) 100%);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .financeiro-tab-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    @media (min-width: 769px) {
+      .btn-somente-mobile {
+        display: none !important;
+      }
+
+      .financeiro-period-bar {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding-bottom: 4px;
+      }
+
+      .financeiro-period-bar h2 {
+        margin: 0;
+        flex: 1 1 auto;
+      }
+
+      .financeiro-period-bar .period-controls {
+        flex: 0 0 auto;
+      }
+
+      .financeiro-tabs {
+        display: flex;
+      }
+
+      .financeiro-tab-panel {
+        display: none;
+      }
+
+      .financeiro-tab-panel.active {
+        display: flex;
+      }
+
+      .financeiro-tab-panel .section h3 {
+        display: none;
+      }
     }
 
     .form-row {
@@ -1236,34 +1327,48 @@
 <body>
 
   <main class="content">
-    <div class="header">
+    <div class="financeiro-period-bar">
       <h2 id="tituloMes">Carregando...</h2>
       <div class="period-controls">
         <select id="selectAno"></select>
         <select id="selectMesMobile"></select>
       </div>
-      <div class="resumo">
-        <div class="card yellow">
-          <small>Total contas (inclui cartão)</small>
-          <strong id="totalContas">R$ 0,00</strong>
-          <span class="info-text">Contas manuais: <span id="totalContasSemCartao">R$ 0,00</span></span>
-          <span class="info-text">Cartão embutido: <span id="totalCartaoResumo">R$ 0,00</span></span>
-        </div>
-        <div class="card green" style="cursor: pointer;" onclick="abrirModalEntradas()">
-          <small>Total entradas <span class="modal-open-icon">↗</span></small>
-          <strong id="totalAdicionais">R$ 0,00</strong>
-        </div>
-        <div class="card red">
-          <small>Saldo disponível</small>
-          <strong id="saldoFinal">R$ 0,00</strong>
-        </div>
-        <div class="card blue">
-          <small>Total reservado</small>
-          <strong id="totalReservado">R$ 0,00</strong>
+    </div>
+
+    <nav class="financeiro-tabs" role="tablist" aria-label="Seções do financeiro">
+      <button type="button" class="financeiro-tab-btn active" role="tab" aria-selected="true" aria-controls="tabPanelMes" data-tab="mes" id="tabBtnMes">Mês</button>
+      <button type="button" class="financeiro-tab-btn" role="tab" aria-selected="false" aria-controls="tabPanelContas" data-tab="contas" id="tabBtnContas">Contas do mês</button>
+      <button type="button" class="financeiro-tab-btn" role="tab" aria-selected="false" aria-controls="tabPanelDebito" data-tab="debito" id="tabBtnDebito">Débito</button>
+      <button type="button" class="financeiro-tab-btn" role="tab" aria-selected="false" aria-controls="tabPanelCartao" data-tab="cartao" id="tabBtnCartao">Cartão de crédito</button>
+      <button type="button" class="financeiro-tab-btn" role="tab" aria-selected="false" aria-controls="tabPanelReservados" data-tab="reservados" id="tabBtnReservados">Reservados</button>
+    </nav>
+
+    <div id="tabPanelMes" class="financeiro-tab-panel active" role="tabpanel" aria-labelledby="tabBtnMes">
+      <div class="header">
+        <div class="resumo">
+          <div class="card yellow">
+            <small>Total contas (inclui cartão)</small>
+            <strong id="totalContas">R$ 0,00</strong>
+            <span class="info-text">Contas manuais: <span id="totalContasSemCartao">R$ 0,00</span></span>
+            <span class="info-text">Cartão embutido: <span id="totalCartaoResumo">R$ 0,00</span></span>
+          </div>
+          <div class="card green" style="cursor: pointer;" onclick="abrirModalEntradas()">
+            <small>Total entradas <span class="modal-open-icon">↗</span></small>
+            <strong id="totalAdicionais">R$ 0,00</strong>
+          </div>
+          <div class="card red">
+            <small>Saldo disponível</small>
+            <strong id="saldoFinal">R$ 0,00</strong>
+          </div>
+          <div class="card blue">
+            <small>Total reservado</small>
+            <strong id="totalReservado">R$ 0,00</strong>
+          </div>
         </div>
       </div>
     </div>
 
+    <div id="tabPanelContas" class="financeiro-tab-panel" role="tabpanel" aria-labelledby="tabBtnContas">
     <section class="section">
       <h3>Contas do mês</h3>
       <div class="section-actions">
@@ -1283,7 +1388,9 @@
       </div>
       
     </section>
+    </div>
 
+    <div id="tabPanelDebito" class="financeiro-tab-panel" role="tabpanel" aria-labelledby="tabBtnDebito">
     <section class="section">
       <h3>Débito</h3>
       <div class="form-row">
@@ -1293,14 +1400,16 @@
           <option value="">Selecione uma categoria</option>
         </select>
         <button class="btn-add" onclick="adicionarDebito()">Registrar</button>
-        <button class="btn-add" onclick="visualizarComprasDebito()">Ver Compras</button>
+        <button class="btn-add btn-somente-mobile" onclick="visualizarComprasDebito()">Ver Compras</button>
       </div>
       <!-- Área para mostrar compras do débito no desktop -->
       <div id="comprasDebitoDesktop" style="display: none; margin-top: 16px;">
         <!-- Conteúdo será populado via JS -->
       </div>
     </section>
+    </div>
 
+    <div id="tabPanelCartao" class="financeiro-tab-panel" role="tabpanel" aria-labelledby="tabBtnCartao">
     <section class="section">
       <h3>Cartão de crédito</h3>
       <div class="section-actions">
@@ -1317,6 +1426,7 @@
       <div id="botoesCartaoSelecionado" class="section-actions" style="display: none; margin-top: 16px;">
         <button id="btnAdiantarParcela" class="btn-add" onclick="abrirModalAdiantar()">Adiantar Parcela</button>
         <button id="btnAdicionarCompra" class="btn-add" onclick="abrirModalCartao()">Adicionar Compra</button>
+        <button class="btn-add btn-somente-mobile" onclick="visualizarComprasCartao()">Ver Compras</button>
       </div>
       <div id="tabelaCartaoWrapper" class="table-wrapper" style="display: none;">
         <table>
@@ -1335,9 +1445,9 @@
         <!-- Conteúdo será populado via JS -->
       </div>
     </section>
+    </div>
 
-    
-
+    <div id="tabPanelReservados" class="financeiro-tab-panel" role="tabpanel" aria-labelledby="tabBtnReservados">
     <section class="section">
       <h3>Reservados (combustível, lazer, etc.)</h3>
       <div class="section-actions">
@@ -1355,6 +1465,7 @@
         </table>
       </div>
     </section>
+    </div>
 
   </main>
 
@@ -1661,6 +1772,91 @@
 
       // Adicionar navegação por swipe no mobile
       adicionarNavegacaoSwipe();
+      inicializarAbasFinanceiro();
+    }
+
+    const FINANCEIRO_TAB_PANELS = {
+      mes: 'tabPanelMes',
+      contas: 'tabPanelContas',
+      debito: 'tabPanelDebito',
+      cartao: 'tabPanelCartao',
+      reservados: 'tabPanelReservados'
+    };
+
+    function isFinanceiroDesktop() {
+      return window.matchMedia('(min-width: 769px)').matches;
+    }
+
+    function rolarParaInicioPagina() {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      const content = document.querySelector('.content');
+      if (content) content.scrollTop = 0;
+    }
+
+    function ativarAbaFinanceiro(tabId) {
+      if (!FINANCEIRO_TAB_PANELS[tabId]) tabId = 'mes';
+
+      document.querySelectorAll('.financeiro-tab-btn').forEach(btn => {
+        const ativo = btn.dataset.tab === tabId;
+        btn.classList.toggle('active', ativo);
+        btn.setAttribute('aria-selected', ativo ? 'true' : 'false');
+      });
+
+      document.querySelectorAll('.financeiro-tab-panel').forEach(panel => {
+        const ativo = panel.id === FINANCEIRO_TAB_PANELS[tabId];
+        panel.classList.toggle('active', ativo);
+        if (isFinanceiroDesktop()) {
+          panel.hidden = !ativo;
+        } else {
+          panel.hidden = false;
+        }
+      });
+
+      if (isFinanceiroDesktop()) {
+        try {
+          sessionStorage.setItem('financeiroTabDesktop', tabId);
+        } catch (e) { /* ignore */ }
+        if (tabId === 'debito') {
+          visualizarComprasDebito();
+        } else if (tabId === 'cartao') {
+          rolarParaInicioPagina();
+          visualizarComprasCartao();
+        }
+      }
+    }
+
+    function sincronizarAbasFinanceiroPorViewport() {
+      if (!isFinanceiroDesktop()) {
+        document.querySelectorAll('.financeiro-tab-panel').forEach(panel => {
+          panel.hidden = false;
+          panel.classList.add('active');
+        });
+        return;
+      }
+
+      let tabId = 'mes';
+      try {
+        tabId = sessionStorage.getItem('financeiroTabDesktop') || 'mes';
+      } catch (e) { /* ignore */ }
+      if (!FINANCEIRO_TAB_PANELS[tabId]) tabId = 'mes';
+      ativarAbaFinanceiro(tabId);
+    }
+
+    function inicializarAbasFinanceiro() {
+      document.querySelectorAll('.financeiro-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (!isFinanceiroDesktop()) return;
+          ativarAbaFinanceiro(btn.dataset.tab);
+        });
+      });
+
+      sincronizarAbasFinanceiroPorViewport();
+
+      let resizeTimer;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(sincronizarAbasFinanceiroPorViewport, 150);
+      });
     }
 
     function adicionarNavegacaoSwipe() {
@@ -2078,6 +2274,9 @@
         tabelaReservado.appendChild(tr);
       });
 
+      dadosMesAtual = data;
+      atualizarListagensComprasAbertas(data);
+
       atualizarResumo(data);
     }
 
@@ -2211,29 +2410,36 @@
       nomeInput.value = "";
       valorInput.value = "";
       categoriaInput.value = "";
+      await visualizarComprasDebito();
     }
 
     function abrirModalDebito() {
       document.getElementById('debitoNome').focus();
     }
 
-    async function visualizarComprasDebito() {
-      if (!currentUser) return;
+    let dadosMesAtual = null;
+    let listagemDebitoAberta = false;
+    let listagemCartaoAberta = false;
 
-      const ref = getMesRef();
-      if (!ref) return;
+    function atualizarListagensComprasAbertas(data) {
+      if (listagemDebitoAberta) {
+        renderizarListagemDebito(data.debito || []);
+      }
+      if (listagemCartaoAberta && cartaoSelecionado) {
+        const todasCompras = data.cartao || [];
+        window.todasComprasAtual = todasCompras;
+        const contasCartao = todasCompras.filter(c => c.cartaoId === cartaoSelecionado.id);
+        renderizarListagemCartao(cartaoSelecionado, contasCartao);
+      }
+    }
 
-      const doc = await ref.get();
-      const data = doc.exists ? doc.data() : { debito: [] };
-      const comprasDebito = data.debito || [];
-
+    function renderizarListagemDebito(comprasDebito) {
       const isMobile = window.innerWidth <= 768;
 
       if (isMobile) {
-        // Modal para mobile
         const content = document.getElementById('comprasDebitoModalContent');
         content.innerHTML = '';
-        
+
         if (comprasDebito.length === 0) {
           content.innerHTML = '<p class="info-text">Nenhuma compra registrada no débito.</p>';
         } else {
@@ -2250,7 +2456,7 @@
             </thead>
             <tbody id="comprasDebitoModalTableBody"></tbody>
           `;
-          
+
           const tbody = table.querySelector('#comprasDebitoModalTableBody');
           comprasDebito.forEach((item, index) => {
             const tr = document.createElement('tr');
@@ -2268,29 +2474,21 @@
             };
             tbody.appendChild(tr);
           });
-          
+
           content.appendChild(table);
         }
 
         document.getElementById('comprasDebitoModal').classList.add('visible');
       } else {
-        // Visualização desktop - mostra na página mesmo
         const comprasDiv = document.getElementById('comprasDebitoDesktop');
         comprasDiv.innerHTML = '';
         comprasDiv.style.display = 'block';
-        
-        // Título
+
         const titulo = document.createElement('h4');
-        titulo.style.marginBottom = '16px';
-        titulo.style.display = 'flex';
-        titulo.style.justifyContent = 'space-between';
-        titulo.style.alignItems = 'center';
-        titulo.innerHTML = `
-          <span>Compras no Débito</span>
-          <button class="btn-cancel" onclick="fecharComprasDebitoDesktop()" style="padding: 6px 12px; font-size: 14px;">Fechar</button>
-        `;
+        titulo.style.margin = '0 0 16px 0';
+        titulo.textContent = 'Compras no Débito';
         comprasDiv.appendChild(titulo);
-        
+
         if (comprasDebito.length === 0) {
           const p = document.createElement('p');
           p.className = 'info-text';
@@ -2310,7 +2508,7 @@
             </thead>
             <tbody id="comprasDebitoDesktopTableBody"></tbody>
           `;
-          
+
           const tbody = table.querySelector('#comprasDebitoDesktopTableBody');
           comprasDebito.forEach((item, index) => {
             const tr = document.createElement('tr');
@@ -2325,19 +2523,37 @@
             tr.querySelector(`#editBtnDebito${index}`).onclick = () => abrirEdicaoDiretaNoModal('debito', index, item);
             tbody.appendChild(tr);
           });
-          
+
           comprasDiv.appendChild(table);
         }
-
-        comprasDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
     }
 
+    async function visualizarComprasDebito() {
+      if (!currentUser) return;
+
+      const ref = getMesRef();
+      if (!ref) return;
+
+      const doc = await ref.get();
+      const data = doc.exists ? doc.data() : { debito: [] };
+      if (dadosMesAtual) {
+        dadosMesAtual.debito = data.debito || [];
+      } else {
+        dadosMesAtual = data;
+      }
+
+      listagemDebitoAberta = true;
+      renderizarListagemDebito(data.debito || []);
+    }
+
     function fecharModalComprasDebito() {
+      listagemDebitoAberta = false;
       document.getElementById('comprasDebitoModal').classList.remove('visible');
     }
 
     function fecharComprasDebitoDesktop() {
+      listagemDebitoAberta = false;
       document.getElementById('comprasDebitoDesktop').style.display = 'none';
       document.getElementById('comprasDebitoDesktop').innerHTML = '';
     }
@@ -2422,6 +2638,9 @@
       recorrenteInput.checked = false;
       cartaoIdInput.value = "";
       fecharModalCartao();
+      if (cartaoSelecionado) {
+        await visualizarComprasCartao();
+      }
     }
 
     async function removerItem(tipo, indice) {      
@@ -3128,6 +3347,7 @@
 
     function deselecionarCartao() {
       cartaoSelecionado = null;
+      listagemCartaoAberta = false;
       atualizarInterfaceCartaoSelecionado();
       document.getElementById('comprasCartaoDesktop').style.display = 'none';
       document.getElementById('comprasCartaoDesktop').innerHTML = '';
@@ -3184,34 +3404,28 @@
       }
     }
 
-    // Função para visualizar contas do cartão
-    async function visualizarContasCartao(cartao) {
-      if (!currentUser) return;
+    function encontrarIndiceCompraCartao(item, indexFiltrado) {
+      const indexOriginal = (window.todasComprasAtual || []).findIndex(c =>
+        c.nome === item.nome &&
+        c.valor === item.valor &&
+        c.parcelas === item.parcelas &&
+        c.cartaoId === item.cartaoId
+      );
+      return indexOriginal >= 0 ? indexOriginal : indexFiltrado;
+    }
 
-      const ref = getMesRef();
-      if (!ref) return;
-
-      const doc = await ref.get();
-      const data = doc.exists ? doc.data() : { cartao: [] };
-      // Filtra apenas as compras deste cartão específico
-      const todasCompras = data.cartao || [];
-      const contasCartao = todasCompras.filter(compra => compra.cartaoId === cartao.id);
-      
-      // Armazena todasCompras em uma variável acessível para as funções internas
-      window.todasComprasAtual = todasCompras;
-
+    function renderizarListagemCartao(cartao, contasCartao) {
       const isMobile = window.innerWidth <= 768;
+      const tituloCartao = `${cartao.bandeira.charAt(0).toUpperCase() + cartao.bandeira.slice(1)} - Final ${cartao.numero}`;
 
       if (isMobile) {
-        // Modal para mobile
-        document.getElementById('contasCartaoModalTitulo').textContent = 
-          `${cartao.bandeira.charAt(0).toUpperCase() + cartao.bandeira.slice(1)} - Final ${cartao.numero}`;
-        
+        document.getElementById('contasCartaoModalTitulo').textContent = tituloCartao;
+
         const content = document.getElementById('contasCartaoModalContent');
         content.innerHTML = '';
-        
+
         if (contasCartao.length === 0) {
-          content.innerHTML = '<p class="info-text">Nenhuma conta cadastrada para este cartão.</p>';
+          content.innerHTML = '<p class="info-text">Nenhuma compra registrada para este cartão.</p>';
         } else {
           const table = document.createElement('table');
           table.style.width = '100%';
@@ -3226,52 +3440,38 @@
             </thead>
             <tbody id="contasCartaoModalTableBody"></tbody>
           `;
-          
+
           const tbody = table.querySelector('#contasCartaoModalTableBody');
           contasCartao.forEach((item, indexFiltrado) => {
-            // Encontra o índice original no array completo
-            const indexOriginal = window.todasComprasAtual.findIndex(c => 
-              c.nome === item.nome && 
-              c.valor === item.valor && 
-              c.parcelas === item.parcelas &&
-              c.cartaoId === item.cartaoId
-            );
+            const indexFinal = encontrarIndiceCompraCartao(item, indexFiltrado);
             const tr = document.createElement('tr');
             tr.innerHTML = `
               <td>${item.nome}</td>
               <td>${formatar(item.valor)}</td>
               <td>${item.parcelas || '-'}</td>
             `;
-            tr.onclick = () => abrirModalAcoes('cartao', indexOriginal >= 0 ? indexOriginal : indexFiltrado, item);
+            tr.onclick = () => abrirModalAcoes('cartao', indexFinal, item);
             tbody.appendChild(tr);
           });
-          
+
           content.appendChild(table);
         }
 
         document.getElementById('contasCartaoModal').classList.add('visible');
       } else {
-        // Visualização desktop - mostra na página mesmo
         const comprasDiv = document.getElementById('comprasCartaoDesktop');
         comprasDiv.innerHTML = '';
         comprasDiv.style.display = 'block';
-        
-        // Título
+
         const titulo = document.createElement('h4');
-        titulo.style.marginBottom = '16px';
-        titulo.style.display = 'flex';
-        titulo.style.justifyContent = 'space-between';
-        titulo.style.alignItems = 'center';
-        titulo.innerHTML = `
-          <span>${cartao.bandeira.charAt(0).toUpperCase() + cartao.bandeira.slice(1)} - Final ${cartao.numero}</span>
-          <button class="btn-cancel" onclick="fecharComprasCartaoDesktop()" style="padding: 6px 12px; font-size: 14px;">Fechar</button>
-        `;
+        titulo.style.margin = '0 0 16px 0';
+        titulo.textContent = `Compras — ${tituloCartao}`;
         comprasDiv.appendChild(titulo);
-        
+
         if (contasCartao.length === 0) {
           const p = document.createElement('p');
           p.className = 'info-text';
-          p.textContent = 'Nenhuma conta cadastrada para este cartão.';
+          p.textContent = 'Nenhuma compra registrada para este cartão.';
           comprasDiv.appendChild(p);
         } else {
           const table = document.createElement('table');
@@ -3288,17 +3488,10 @@
             </thead>
             <tbody id="contasCartaoDesktopTableBody"></tbody>
           `;
-          
+
           const tbody = table.querySelector('#contasCartaoDesktopTableBody');
           contasCartao.forEach((item, indexFiltrado) => {
-            // Encontra o índice original no array completo
-            const indexOriginal = window.todasComprasAtual.findIndex(c => 
-              c.nome === item.nome && 
-              c.valor === item.valor && 
-              c.parcelas === item.parcelas &&
-              c.cartaoId === item.cartaoId
-            );
-            const indexFinal = indexOriginal >= 0 ? indexOriginal : indexFiltrado;
+            const indexFinal = encontrarIndiceCompraCartao(item, indexFiltrado);
             const tr = document.createElement('tr');
             tr.innerHTML = `
               <td>${item.nome}</td>
@@ -3309,23 +3502,76 @@
                 <button class="btn-inline" onclick="removerItem('cartao', ${indexFinal})">🗑️ Remover</button>
               </td>
             `;
-            // Adiciona evento de clique para editar
             tr.querySelector(`#editBtnCartao${indexFiltrado}`).onclick = () => abrirEdicaoDiretaNoModal('cartao', indexFinal, item);
             tbody.appendChild(tr);
           });
-          
+
           comprasDiv.appendChild(table);
         }
-
-        comprasDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
     }
 
+    async function visualizarComprasCartao() {
+      if (!currentUser) return;
+
+      if (!cartaoSelecionado) {
+        if (cartoesCache.length > 0) {
+          selecionarCartao(cartoesCache[0], false);
+        } else {
+          alert('Cadastre um cartão para ver as compras.');
+          return;
+        }
+      }
+
+      const ref = getMesRef();
+      if (!ref) return;
+
+      const doc = await ref.get();
+      const data = doc.exists ? doc.data() : { cartao: [] };
+      if (dadosMesAtual) {
+        dadosMesAtual.cartao = data.cartao || [];
+      } else {
+        dadosMesAtual = data;
+      }
+
+      const todasCompras = data.cartao || [];
+      window.todasComprasAtual = todasCompras;
+      const contasCartao = todasCompras.filter(compra => compra.cartaoId === cartaoSelecionado.id);
+
+      listagemCartaoAberta = true;
+      renderizarListagemCartao(cartaoSelecionado, contasCartao);
+    }
+
+    // Função para visualizar contas do cartão (ao selecionar no carrossel)
+    async function visualizarContasCartao(cartao) {
+      if (!currentUser) return;
+
+      const ref = getMesRef();
+      if (!ref) return;
+
+      const doc = await ref.get();
+      const data = doc.exists ? doc.data() : { cartao: [] };
+      if (dadosMesAtual) {
+        dadosMesAtual.cartao = data.cartao || [];
+      } else {
+        dadosMesAtual = data;
+      }
+
+      const todasCompras = data.cartao || [];
+      window.todasComprasAtual = todasCompras;
+      const contasCartao = todasCompras.filter(compra => compra.cartaoId === cartao.id);
+
+      listagemCartaoAberta = true;
+      renderizarListagemCartao(cartao, contasCartao);
+    }
+
     function fecharModalContasCartao() {
+      listagemCartaoAberta = false;
       document.getElementById('contasCartaoModal').classList.remove('visible');
     }
 
     function fecharComprasCartaoDesktop() {
+      listagemCartaoAberta = false;
       document.getElementById('comprasCartaoDesktop').style.display = 'none';
       document.getElementById('comprasCartaoDesktop').innerHTML = '';
     }
