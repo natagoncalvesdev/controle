@@ -399,32 +399,50 @@
       letter-spacing: -0.01em;
     }
 
-    /* Abas do financeiro (desktop) */
+    /* Abas do financeiro */
+    .financeiro-tabs-wrap {
+      position: relative;
+      margin-bottom: 4px;
+    }
+
     .financeiro-tabs {
-      display: none;
-      flex-wrap: wrap;
-      gap: 8px;
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 6px;
       padding: 6px;
       background: var(--bg-section);
       border-radius: 14px;
       border: 1px solid var(--border-color);
       box-shadow: var(--shadow-sm);
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      scroll-snap-type: x proximity;
+      scroll-behavior: smooth;
+      scrollbar-width: none;
+    }
+
+    .financeiro-tabs::-webkit-scrollbar {
+      display: none;
     }
 
     .financeiro-tab-btn {
-      flex: 1 1 auto;
+      flex: 0 0 auto;
       min-width: 0;
-      padding: 12px 18px;
+      padding: 10px 16px;
       border: none;
       border-radius: 10px;
       background: transparent;
       color: var(--text-secondary);
       font-family: inherit;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.25s ease;
       white-space: nowrap;
+      scroll-snap-align: center;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
 
     .financeiro-tab-btn:hover {
@@ -438,10 +456,73 @@
       box-shadow: var(--shadow-sm);
     }
 
+    .financeiro-tab-btn .tab-label-short {
+      display: none;
+    }
+
     .financeiro-tab-panel {
-      display: flex;
+      display: none;
       flex-direction: column;
       gap: 28px;
+    }
+
+    .financeiro-tab-panel.active {
+      display: flex;
+    }
+
+    @media (max-width: 768px) {
+      .financeiro-tabs-wrap {
+        margin-left: -4px;
+        margin-right: -4px;
+      }
+
+      .financeiro-tabs-wrap::before,
+      .financeiro-tabs-wrap::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 20px;
+        pointer-events: none;
+        z-index: 2;
+      }
+
+      .financeiro-tabs-wrap::before {
+        left: 0;
+        border-radius: 14px 0 0 14px;
+        background: linear-gradient(to right, rgba(245, 247, 250, 1), transparent);
+      }
+
+      .financeiro-tabs-wrap::after {
+        right: 0;
+        border-radius: 0 14px 14px 0;
+        background: linear-gradient(to left, rgba(245, 247, 250, 1), transparent);
+      }
+
+      .financeiro-tabs {
+        position: sticky;
+        top: 72px;
+        z-index: 7;
+        padding: 5px 8px;
+      }
+
+      .financeiro-tab-btn {
+        padding: 11px 14px;
+        font-size: 13px;
+        min-height: 44px;
+      }
+
+      .financeiro-tab-btn .tab-label-full {
+        display: none;
+      }
+
+      .financeiro-tab-btn .tab-label-short {
+        display: inline;
+      }
+
+      .financeiro-tab-panel .section h3 {
+        display: none;
+      }
     }
 
     @media (min-width: 769px) {
@@ -468,15 +549,15 @@
       }
 
       .financeiro-tabs {
-        display: flex;
+        flex-wrap: wrap;
+        overflow-x: visible;
+        scroll-snap-type: none;
       }
 
-      .financeiro-tab-panel {
-        display: none;
-      }
-
-      .financeiro-tab-panel.active {
-        display: flex;
+      .financeiro-tab-btn {
+        flex: 1 1 auto;
+        font-size: 14px;
+        padding: 12px 18px;
       }
 
       .financeiro-tab-panel .section h3 {
@@ -1380,13 +1461,25 @@
       </div>
     </div>
 
-    <nav class="financeiro-tabs" role="tablist" aria-label="Seções do financeiro">
-      <button type="button" class="financeiro-tab-btn active" role="tab" aria-selected="true" aria-controls="tabPanelMes" data-tab="mes" id="tabBtnMes">Mês</button>
-      <button type="button" class="financeiro-tab-btn" role="tab" aria-selected="false" aria-controls="tabPanelContas" data-tab="contas" id="tabBtnContas">Contas do mês</button>
-      <button type="button" class="financeiro-tab-btn" role="tab" aria-selected="false" aria-controls="tabPanelDebito" data-tab="debito" id="tabBtnDebito">Débito</button>
-      <button type="button" class="financeiro-tab-btn" role="tab" aria-selected="false" aria-controls="tabPanelCartao" data-tab="cartao" id="tabBtnCartao">Cartões</button>
-      <button type="button" class="financeiro-tab-btn" role="tab" aria-selected="false" aria-controls="tabPanelReservados" data-tab="reservados" id="tabBtnReservados">Reservados</button>
-    </nav>
+    <div class="financeiro-tabs-wrap">
+      <nav class="financeiro-tabs" role="tablist" aria-label="Seções do financeiro">
+        <button type="button" class="financeiro-tab-btn active" role="tab" aria-selected="true" aria-controls="tabPanelMes" data-tab="mes" id="tabBtnMes">
+          <span class="tab-label-full">Mês</span><span class="tab-label-short">Mês</span>
+        </button>
+        <button type="button" class="financeiro-tab-btn" role="tab" aria-selected="false" aria-controls="tabPanelContas" data-tab="contas" id="tabBtnContas">
+          <span class="tab-label-full">Contas do mês</span><span class="tab-label-short">Contas</span>
+        </button>
+        <button type="button" class="financeiro-tab-btn" role="tab" aria-selected="false" aria-controls="tabPanelDebito" data-tab="debito" id="tabBtnDebito">
+          <span class="tab-label-full">Débito</span><span class="tab-label-short">Débito</span>
+        </button>
+        <button type="button" class="financeiro-tab-btn" role="tab" aria-selected="false" aria-controls="tabPanelCartao" data-tab="cartao" id="tabBtnCartao">
+          <span class="tab-label-full">Cartões</span><span class="tab-label-short">Cartões</span>
+        </button>
+        <button type="button" class="financeiro-tab-btn" role="tab" aria-selected="false" aria-controls="tabPanelReservados" data-tab="reservados" id="tabBtnReservados">
+          <span class="tab-label-full">Reservados</span><span class="tab-label-short">Reserv.</span>
+        </button>
+      </nav>
+    </div>
 
     <div id="tabPanelMes" class="financeiro-tab-panel active" role="tabpanel" aria-labelledby="tabBtnMes">
       <div class="header">
@@ -1915,6 +2008,20 @@
       if (content) content.scrollTop = 0;
     }
 
+    function chaveAbaFinanceiroStorage() {
+      return isFinanceiroDesktop() ? 'financeiroTabDesktop' : 'financeiroTabMobile';
+    }
+
+    function rolarAbaAtivaParaVisao() {
+      const btn = document.querySelector('.financeiro-tab-btn.active');
+      const nav = document.querySelector('.financeiro-tabs');
+      if (!btn || !nav) return;
+      const navRect = nav.getBoundingClientRect();
+      const btnRect = btn.getBoundingClientRect();
+      const scrollLeft = nav.scrollLeft + (btnRect.left - navRect.left) - (navRect.width / 2) + (btnRect.width / 2);
+      nav.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+    }
+
     function ativarAbaFinanceiro(tabId) {
       if (!FINANCEIRO_TAB_PANELS[tabId]) tabId = 'mes';
 
@@ -1927,38 +2034,37 @@
       document.querySelectorAll('.financeiro-tab-panel').forEach(panel => {
         const ativo = panel.id === FINANCEIRO_TAB_PANELS[tabId];
         panel.classList.toggle('active', ativo);
-        if (isFinanceiroDesktop()) {
-          panel.hidden = !ativo;
-        } else {
-          panel.hidden = false;
-        }
+        panel.hidden = !ativo;
       });
 
+      try {
+        sessionStorage.setItem(chaveAbaFinanceiroStorage(), tabId);
+      } catch (e) { /* ignore */ }
+
+      requestAnimationFrame(rolarAbaAtivaParaVisao);
+
       if (isFinanceiroDesktop()) {
-        try {
-          sessionStorage.setItem('financeiroTabDesktop', tabId);
-        } catch (e) { /* ignore */ }
         if (tabId === 'debito') {
           visualizarComprasDebito();
         } else if (tabId === 'cartao') {
           rolarParaInicioPagina();
           visualizarComprasCartao();
         }
+      } else {
+        listagemDebitoAberta = false;
+        listagemCartaoAberta = false;
+        fecharModalComprasDebito();
+        fecharModalContasCartao();
+        document.getElementById('comprasDebitoDesktop').style.display = 'none';
+        document.getElementById('comprasCartaoDesktop').style.display = 'none';
+        rolarParaInicioPagina();
       }
     }
 
     function sincronizarAbasFinanceiroPorViewport() {
-      if (!isFinanceiroDesktop()) {
-        document.querySelectorAll('.financeiro-tab-panel').forEach(panel => {
-          panel.hidden = false;
-          panel.classList.add('active');
-        });
-        return;
-      }
-
       let tabId = 'mes';
       try {
-        tabId = sessionStorage.getItem('financeiroTabDesktop') || 'mes';
+        tabId = sessionStorage.getItem(chaveAbaFinanceiroStorage()) || 'mes';
       } catch (e) { /* ignore */ }
       if (!FINANCEIRO_TAB_PANELS[tabId]) tabId = 'mes';
       ativarAbaFinanceiro(tabId);
@@ -1966,10 +2072,7 @@
 
     function inicializarAbasFinanceiro() {
       document.querySelectorAll('.financeiro-tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          if (!isFinanceiroDesktop()) return;
-          ativarAbaFinanceiro(btn.dataset.tab);
-        });
+        btn.addEventListener('click', () => ativarAbaFinanceiro(btn.dataset.tab));
       });
 
       sincronizarAbasFinanceiroPorViewport();
@@ -2005,7 +2108,8 @@
             target.closest('textarea') ||
             target.closest('select') ||
             target.closest('.modal-overlay') ||
-            target.closest('.cartoes-container')) {
+            target.closest('.cartoes-container') ||
+            target.closest('.financeiro-tabs')) {
           return;
         }
 
