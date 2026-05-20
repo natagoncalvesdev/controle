@@ -721,6 +721,28 @@
       flex-direction: column;
     }
 
+    @media (max-width: 768px) {
+      .cartao-vale-resumo.visible {
+        cursor: pointer;
+      }
+
+      .cartao-vale-resumo .cartao-vale-tap-hint {
+        display: block;
+        text-align: center;
+        font-size: 12px;
+        color: var(--subtle);
+        margin-top: 4px;
+      }
+
+      .cartao-vale-definir-inline {
+        display: none !important;
+      }
+    }
+
+    .cartao-vale-tap-hint {
+      display: none;
+    }
+
     .cartao-vale-stats {
       display: flex;
       flex-wrap: wrap;
@@ -1538,7 +1560,6 @@
           <option value="">Selecione uma categoria</option>
         </select>
         <button class="btn-add" onclick="adicionarDebito()">Registrar</button>
-        <button class="btn-add btn-somente-mobile" onclick="visualizarComprasDebito()">Ver Compras</button>
       </div>
       <!-- Área para mostrar compras do débito no desktop -->
       <div id="comprasDebitoDesktop" style="display: none; margin-top: 16px;">
@@ -1556,7 +1577,7 @@
       <div id="cartaoSelecionadoInfo" style="display: none; margin-bottom: 16px; padding: 12px; background: var(--bg-main); border-radius: 8px; text-align: center;">
         <span id="cartaoSelecionadoNome"></span>
       </div>
-      <div id="cartaoValeResumo" class="cartao-vale-resumo">
+      <div id="cartaoValeResumo" class="cartao-vale-resumo" role="button" tabindex="0" onclick="clicarPainelValeMobile()" onkeydown="if(event.key==='Enter')clicarPainelValeMobile()">
         <div class="cartao-vale-stats">
           <div>
             <small>Saldo disponível</small>
@@ -1567,9 +1588,10 @@
             <strong id="valeGastoMes">R$ 0,00</strong>
           </div>
         </div>
-        <div class="form-row" style="margin-top: 8px;">
-          <input id="valeCargaInput" type="number" step="0.01" placeholder="Valor carregado no mês (R$)" />
-          <button class="btn-add" type="button" onclick="definirValeCarga()">Definir saldo do mês</button>
+        <span class="cartao-vale-tap-hint">Toque para definir o saldo do mês</span>
+        <div class="form-row cartao-vale-definir-inline" style="margin-top: 8px;">
+          <input id="valeCargaInputDesktop" type="number" step="0.01" placeholder="Valor carregado no mês (R$)" />
+          <button class="btn-add" type="button" onclick="event.stopPropagation(); definirValeCarga()">Definir saldo do mês</button>
         </div>
       </div>
       <div id="cartoesContainerWrapper">
@@ -1580,7 +1602,6 @@
       <div id="botoesCartaoSelecionado" class="section-actions" style="display: none; margin-top: 16px;">
         <button id="btnAdiantarParcela" class="btn-add" onclick="abrirModalAdiantar()">Adiantar Parcela</button>
         <button id="btnAdicionarCompra" class="btn-add" onclick="abrirModalCartao()">Adicionar Compra</button>
-        <button class="btn-add btn-somente-mobile" onclick="visualizarComprasCartao()">Ver Compras</button>
       </div>
       <div id="tabelaCartaoWrapper" class="table-wrapper" style="display: none;">
         <table>
@@ -1820,6 +1841,20 @@
     </div>
   </div>
 
+  <!-- Modal para definir saldo do cartão vale (mobile) -->
+  <div id="valeCargaModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 400px;">
+      <h3 id="valeCargaModalTitulo">Saldo do mês</h3>
+      <div class="form-row">
+        <input id="valeCargaInputModal" type="number" step="0.01" placeholder="Valor carregado no mês (R$)" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" type="button" onclick="fecharModalValeCarga()">Cancelar</button>
+        <button class="btn-confirm" type="button" onclick="confirmarValeCargaModal()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal para Visualizar Compras do Débito (Mobile) -->
   <div id="comprasDebitoModal" class="modal-overlay">
     <div class="modal-content">
@@ -1998,6 +2033,8 @@
       reservados: 'tabPanelReservados'
     };
 
+    const FINANCEIRO_TAB_ORDER = ['mes', 'contas', 'debito', 'cartao', 'reservados'];
+
     function isFinanceiroDesktop() {
       return window.matchMedia('(min-width: 769px)').matches;
     }
@@ -2043,21 +2080,49 @@
 
       requestAnimationFrame(rolarAbaAtivaParaVisao);
 
-      if (isFinanceiroDesktop()) {
-        if (tabId === 'debito') {
-          visualizarComprasDebito();
-        } else if (tabId === 'cartao') {
-          rolarParaInicioPagina();
-          visualizarComprasCartao();
-        }
+      if (tabId === 'debito') {
+        visualizarComprasDebito();
+      } else if (tabId === 'cartao') {
+        if (!isFinanceiroDesktop()) rolarParaInicioPagina();
+        visualizarComprasCartao();
       } else {
         listagemDebitoAberta = false;
         listagemCartaoAberta = false;
-        fecharModalComprasDebito();
-        fecharModalContasCartao();
-        document.getElementById('comprasDebitoDesktop').style.display = 'none';
-        document.getElementById('comprasCartaoDesktop').style.display = 'none';
-        rolarParaInicioPagina();
+        const comprasDebito = document.getElementById('comprasDebitoDesktop');
+        const comprasCartao = document.getElementById('comprasCartaoDesktop');
+        if (comprasDebito) {
+          comprasDebito.style.display = 'none';
+          comprasDebito.innerHTML = '';
+        }
+        if (comprasCartao) {
+          comprasCartao.style.display = 'none';
+          comprasCartao.innerHTML = '';
+        }
+      }
+    }
+
+    function getAbaFinanceiroAtiva() {
+      const btn = document.querySelector('.financeiro-tab-btn.active');
+      return btn && FINANCEIRO_TAB_PANELS[btn.dataset.tab] ? btn.dataset.tab : 'mes';
+    }
+
+    function obterZonaSwipeMobile(clientY) {
+      const tabsWrap = document.querySelector('.financeiro-tabs-wrap');
+      if (!tabsWrap) return 'mes';
+      return clientY < tabsWrap.getBoundingClientRect().top ? 'mes' : 'aba';
+    }
+
+    function navegarAbaAnterior() {
+      const atual = getAbaFinanceiroAtiva();
+      const idx = FINANCEIRO_TAB_ORDER.indexOf(atual);
+      if (idx > 0) ativarAbaFinanceiro(FINANCEIRO_TAB_ORDER[idx - 1]);
+    }
+
+    function navegarAbaProxima() {
+      const atual = getAbaFinanceiroAtiva();
+      const idx = FINANCEIRO_TAB_ORDER.indexOf(atual);
+      if (idx >= 0 && idx < FINANCEIRO_TAB_ORDER.length - 1) {
+        ativarAbaFinanceiro(FINANCEIRO_TAB_ORDER[idx + 1]);
       }
     }
 
@@ -2093,28 +2158,30 @@
       let touchEndX = 0;
       let touchEndY = 0;
       let isSwiping = false;
+      let swipeZone = null;
 
-      const minSwipeDistance = 50; // Distância mínima para considerar um swipe
+      const minSwipeDistance = 50;
 
-      document.body.addEventListener('touchstart', (e) => {
-        // Ignora se estiver tocando em um input, textarea, select ou botão
-        const target = e.target;
-        if (target.tagName === 'INPUT' || 
-            target.tagName === 'TEXTAREA' || 
-            target.tagName === 'SELECT' || 
+      function deveIgnorarSwipe(target) {
+        return target.tagName === 'INPUT' ||
+            target.tagName === 'TEXTAREA' ||
+            target.tagName === 'SELECT' ||
             target.tagName === 'BUTTON' ||
             target.closest('button') ||
             target.closest('input') ||
             target.closest('textarea') ||
             target.closest('select') ||
             target.closest('.modal-overlay') ||
-            target.closest('.cartoes-container') ||
-            target.closest('.financeiro-tabs')) {
-          return;
-        }
+            target.closest('.cartoes-container');
+      }
+
+      document.body.addEventListener('touchstart', (e) => {
+        const target = e.target;
+        if (deveIgnorarSwipe(target)) return;
 
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
+        swipeZone = obterZonaSwipeMobile(touchStartY);
         isSwiping = false;
       }, { passive: true });
 
@@ -2124,7 +2191,6 @@
         const deltaX = Math.abs(e.touches[0].clientX - touchStartX);
         const deltaY = Math.abs(e.touches[0].clientY - touchStartY);
 
-        // Só considera swipe se o movimento horizontal for maior que o vertical
         if (deltaX > deltaY && deltaX > 10) {
           isSwiping = true;
         }
@@ -2134,6 +2200,7 @@
         if (!isSwiping || touchStartX === 0) {
           touchStartX = 0;
           touchStartY = 0;
+          swipeZone = null;
           return;
         }
 
@@ -2143,19 +2210,19 @@
         const deltaX = touchEndX - touchStartX;
         const deltaY = Math.abs(touchEndY - touchStartY);
 
-        // Verifica se é um swipe horizontal válido
         if (Math.abs(deltaX) > minSwipeDistance && Math.abs(deltaX) > deltaY) {
-          if (deltaX > 0) {
-            // Swipe para direita - volta um mês
-            navegarMesAnterior();
-          } else {
-            // Swipe para esquerda - avança um mês
-            navegarProximoMes();
+          if (swipeZone === 'mes') {
+            if (deltaX > 0) navegarMesAnterior();
+            else navegarProximoMes();
+          } else if (swipeZone === 'aba') {
+            if (deltaX > 0) navegarAbaAnterior();
+            else navegarAbaProxima();
           }
         }
 
         touchStartX = 0;
         touchStartY = 0;
+        swipeZone = null;
         isSwiping = false;
       }, { passive: true });
     }
@@ -2685,98 +2752,52 @@
     }
 
     function renderizarListagemDebito(comprasDebito) {
-      const isMobile = window.innerWidth <= 768;
+      const comprasDiv = document.getElementById('comprasDebitoDesktop');
+      if (!comprasDiv) return;
+      comprasDiv.innerHTML = '';
+      comprasDiv.style.display = 'block';
 
-      if (isMobile) {
-        const content = document.getElementById('comprasDebitoModalContent');
-        content.innerHTML = '';
+      const titulo = document.createElement('h4');
+      titulo.style.margin = '0 0 16px 0';
+      titulo.textContent = 'Compras no Débito';
+      comprasDiv.appendChild(titulo);
 
-        if (comprasDebito.length === 0) {
-          content.innerHTML = '<p class="info-text">Nenhuma compra registrada no débito.</p>';
-        } else {
-          const table = document.createElement('table');
-          table.style.width = '100%';
-          table.style.marginTop = '16px';
-          table.innerHTML = `
-            <thead>
-              <tr>
-                <th>Descrição</th>
-                <th>Valor</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody id="comprasDebitoModalTableBody"></tbody>
-          `;
-
-          const tbody = table.querySelector('#comprasDebitoModalTableBody');
-          comprasDebito.forEach((item, index) => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td>${item.nome}</td>
-              <td>${formatar(item.valor)}</td>
-              <td>
-                <button class="btn-icon-inline edit" id="editBtnDebitoModal${index}">✏️</button>
-                <button class="btn-inline" onclick="removerItem('debito', ${index}); fecharModalComprasDebito();">🗑️ Remover</button>
-              </td>
-            `;
-            tr.querySelector(`#editBtnDebitoModal${index}`).onclick = () => {
-              fecharModalComprasDebito();
-              abrirEdicaoDiretaNoModal('debito', index, item);
-            };
-            tbody.appendChild(tr);
-          });
-
-          content.appendChild(table);
-        }
-
-        document.getElementById('comprasDebitoModal').classList.add('visible');
+      if (comprasDebito.length === 0) {
+        const p = document.createElement('p');
+        p.className = 'info-text';
+        p.textContent = 'Nenhuma compra registrada no débito.';
+        comprasDiv.appendChild(p);
       } else {
-        const comprasDiv = document.getElementById('comprasDebitoDesktop');
-        comprasDiv.innerHTML = '';
-        comprasDiv.style.display = 'block';
+        const table = document.createElement('table');
+        table.style.width = '100%';
+        table.style.marginTop = '16px';
+        table.innerHTML = `
+          <thead>
+            <tr>
+              <th>Descrição</th>
+              <th>Valor</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="comprasDebitoDesktopTableBody"></tbody>
+        `;
 
-        const titulo = document.createElement('h4');
-        titulo.style.margin = '0 0 16px 0';
-        titulo.textContent = 'Compras no Débito';
-        comprasDiv.appendChild(titulo);
-
-        if (comprasDebito.length === 0) {
-          const p = document.createElement('p');
-          p.className = 'info-text';
-          p.textContent = 'Nenhuma compra registrada no débito.';
-          comprasDiv.appendChild(p);
-        } else {
-          const table = document.createElement('table');
-          table.style.width = '100%';
-          table.style.marginTop = '16px';
-          table.innerHTML = `
-            <thead>
-              <tr>
-                <th>Descrição</th>
-                <th>Valor</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody id="comprasDebitoDesktopTableBody"></tbody>
+        const tbody = table.querySelector('#comprasDebitoDesktopTableBody');
+        comprasDebito.forEach((item, index) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${item.nome}</td>
+            <td>${formatar(item.valor)}</td>
+            <td>
+              <button class="btn-icon-inline edit" id="editBtnDebito${index}">✏️</button>
+              <button class="btn-inline" onclick="removerItem('debito', ${index})">🗑️</button>
+            </td>
           `;
+          tr.querySelector(`#editBtnDebito${index}`).onclick = () => abrirEdicaoDiretaNoModal('debito', index, item);
+          tbody.appendChild(tr);
+        });
 
-          const tbody = table.querySelector('#comprasDebitoDesktopTableBody');
-          comprasDebito.forEach((item, index) => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td>${item.nome}</td>
-              <td>${formatar(item.valor)}</td>
-              <td>
-                <button class="btn-icon-inline edit" id="editBtnDebito${index}">✏️ Editar</button>
-                <button class="btn-inline" onclick="removerItem('debito', ${index})">🗑️ Remover</button>
-              </td>
-            `;
-            tr.querySelector(`#editBtnDebito${index}`).onclick = () => abrirEdicaoDiretaNoModal('debito', index, item);
-            tbody.appendChild(tr);
-          });
-
-          comprasDiv.appendChild(table);
-        }
+        comprasDiv.appendChild(table);
       }
     }
 
@@ -3623,9 +3644,10 @@
     function selecionarCartao(cartao, abrirVisualizacao = true) {
       cartaoSelecionado = cartao;
       atualizarInterfaceCartaoSelecionado();
-      
-      // Só visualiza as contas se for uma seleção manual (clique do usuário)
-      if (abrirVisualizacao) {
+
+      const deveListarCompras = abrirVisualizacao ||
+        (!isFinanceiroDesktop() && getAbaFinanceiroAtiva() === 'cartao');
+      if (deveListarCompras) {
         visualizarContasCartao(cartao);
       }
       
@@ -3679,20 +3701,52 @@
 
       document.getElementById('valeSaldoDisponivel').textContent = formatar(saldo);
       document.getElementById('valeGastoMes').textContent = formatar(gastos);
-      const cargaInput = document.getElementById('valeCargaInput');
-      if (cargaInput && document.activeElement !== cargaInput) {
-        cargaInput.value = carga > 0 ? carga : '';
-      }
+      const valorCarga = carga > 0 ? carga : '';
+      ['valeCargaInputDesktop', 'valeCargaInputModal'].forEach(id => {
+        const input = document.getElementById(id);
+        if (input && document.activeElement !== input) {
+          input.value = valorCarga;
+        }
+      });
       painel.classList.add('visible');
     }
 
-    async function definirValeCarga() {
+    function clicarPainelValeMobile() {
+      if (isFinanceiroDesktop()) return;
+      if (!cartaoSelecionado || !isCartaoVale(cartaoSelecionado)) return;
+      abrirModalValeCarga();
+    }
+
+    function abrirModalValeCarga() {
+      if (!cartaoSelecionado || !isCartaoVale(cartaoSelecionado)) return;
+      const titulo = document.getElementById('valeCargaModalTitulo');
+      if (titulo) titulo.textContent = `Saldo do mês — ${nomeContaVale(cartaoSelecionado)}`;
+      const mesData = dadosMesAtual || { valeCarga: {} };
+      const { carga } = calcularValeMes(mesData, cartaoSelecionado.id);
+      const input = document.getElementById('valeCargaInputModal');
+      if (input) input.value = carga > 0 ? carga : '';
+      document.getElementById('valeCargaModal').classList.add('visible');
+      if (input) setTimeout(() => input.focus(), 100);
+    }
+
+    function fecharModalValeCarga() {
+      document.getElementById('valeCargaModal').classList.remove('visible');
+    }
+
+    async function confirmarValeCargaModal() {
+      await definirValeCarga('valeCargaInputModal');
+      fecharModalValeCarga();
+    }
+
+    async function definirValeCarga(inputId) {
       if (!cartaoSelecionado || !isCartaoVale(cartaoSelecionado)) {
         return alert('Selecione um cartão vale.');
       }
       const ref = getMesRef();
       if (!ref) return;
-      const valor = Number(document.getElementById('valeCargaInput').value);
+      const idInput = inputId || (isFinanceiroDesktop() ? 'valeCargaInputDesktop' : 'valeCargaInputModal');
+      const input = document.getElementById(idInput);
+      const valor = Number(input && input.value);
       if (!valor || valor <= 0) {
         return alert('Informe o valor carregado no mês.');
       }
@@ -3770,102 +3824,59 @@
     }
 
     function renderizarListagemCartao(cartao, contasCartao) {
-      const isMobile = window.innerWidth <= 768;
       const tituloCartao = rotuloCartao(cartao);
       const colParcelas = isCartaoVale(cartao) ? '' : '<th>Parcelas</th>';
+      const comprasDiv = document.getElementById('comprasCartaoDesktop');
+      if (!comprasDiv) return;
 
-      if (isMobile) {
-        document.getElementById('contasCartaoModalTitulo').textContent = tituloCartao;
+      comprasDiv.innerHTML = '';
+      comprasDiv.style.display = 'block';
 
-        const content = document.getElementById('contasCartaoModalContent');
-        content.innerHTML = '';
+      const titulo = document.createElement('h4');
+      titulo.style.margin = '0 0 16px 0';
+      titulo.textContent = `Compras — ${tituloCartao}`;
+      comprasDiv.appendChild(titulo);
 
-        if (contasCartao.length === 0) {
-          content.innerHTML = '<p class="info-text">Nenhuma compra registrada para este cartão.</p>';
-        } else {
-          const table = document.createElement('table');
-          table.style.width = '100%';
-          table.style.marginTop = '16px';
-          table.innerHTML = `
-            <thead>
-              <tr>
-                <th>Descrição</th>
-                <th>Valor</th>
-                ${colParcelas}
-              </tr>
-            </thead>
-            <tbody id="contasCartaoModalTableBody"></tbody>
-          `;
-
-          const tbody = table.querySelector('#contasCartaoModalTableBody');
-          contasCartao.forEach((item, indexFiltrado) => {
-            const indexFinal = encontrarIndiceCompraCartao(item, indexFiltrado);
-            const tr = document.createElement('tr');
-            const celulaParcelas = isCartaoVale(cartao) ? '' : `<td>${item.parcelas || '-'}</td>`;
-            tr.innerHTML = `
-              <td>${item.nome}</td>
-              <td>${formatar(item.valor)}</td>
-              ${celulaParcelas}
-            `;
-            tr.onclick = () => abrirModalAcoes('cartao', indexFinal, item);
-            tbody.appendChild(tr);
-          });
-
-          content.appendChild(table);
-        }
-
-        document.getElementById('contasCartaoModal').classList.add('visible');
+      if (contasCartao.length === 0) {
+        const p = document.createElement('p');
+        p.className = 'info-text';
+        p.textContent = 'Nenhuma compra registrada para este cartão.';
+        comprasDiv.appendChild(p);
       } else {
-        const comprasDiv = document.getElementById('comprasCartaoDesktop');
-        comprasDiv.innerHTML = '';
-        comprasDiv.style.display = 'block';
+        const table = document.createElement('table');
+        table.style.width = '100%';
+        table.style.marginTop = '16px';
+        table.innerHTML = `
+          <thead>
+            <tr>
+              <th>Descrição</th>
+              <th>Valor</th>
+              ${colParcelas}
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="contasCartaoDesktopTableBody"></tbody>
+        `;
 
-        const titulo = document.createElement('h4');
-        titulo.style.margin = '0 0 16px 0';
-        titulo.textContent = `Compras — ${tituloCartao}`;
-        comprasDiv.appendChild(titulo);
-
-        if (contasCartao.length === 0) {
-          const p = document.createElement('p');
-          p.className = 'info-text';
-          p.textContent = 'Nenhuma compra registrada para este cartão.';
-          comprasDiv.appendChild(p);
-        } else {
-          const table = document.createElement('table');
-          table.style.width = '100%';
-          table.style.marginTop = '16px';
-          table.innerHTML = `
-            <thead>
-              <tr>
-                <th>Descrição</th>
-                <th>Valor</th>
-                ${colParcelas}
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody id="contasCartaoDesktopTableBody"></tbody>
+        const tbody = table.querySelector('#contasCartaoDesktopTableBody');
+        contasCartao.forEach((item, indexFiltrado) => {
+          const indexFinal = encontrarIndiceCompraCartao(item, indexFiltrado);
+          const tr = document.createElement('tr');
+          const celulaParcelas = isCartaoVale(cartao) ? '' : `<td>${item.parcelas || '-'}</td>`;
+          tr.innerHTML = `
+            <td>${item.nome}</td>
+            <td>${formatar(item.valor)}</td>
+            ${celulaParcelas}
+            <td>
+              <button class="btn-icon-inline edit" id="editBtnCartao${indexFiltrado}">✏️</button>
+              <button class="btn-inline" onclick="removerItem('cartao', ${indexFinal})">🗑️</button>
+            </td>
           `;
+          tr.querySelector(`#editBtnCartao${indexFiltrado}`).onclick = () => abrirEdicaoDiretaNoModal('cartao', indexFinal, item);
+          tbody.appendChild(tr);
+        });
 
-          const tbody = table.querySelector('#contasCartaoDesktopTableBody');
-          contasCartao.forEach((item, indexFiltrado) => {
-            const indexFinal = encontrarIndiceCompraCartao(item, indexFiltrado);
-            const tr = document.createElement('tr');
-            const celulaParcelas = isCartaoVale(cartao) ? '' : `<td>${item.parcelas || '-'}</td>`;
-            tr.innerHTML = `
-              <td>${item.nome}</td>
-              <td>${formatar(item.valor)}</td>
-              ${celulaParcelas}
-              <td>
-                <button class="btn-icon-inline edit" id="editBtnCartao${indexFiltrado}">✏️ Editar</button>
-                <button class="btn-inline" onclick="removerItem('cartao', ${indexFinal})">🗑️ Remover</button>
-              </td>
-            `;
-            tr.querySelector(`#editBtnCartao${indexFiltrado}`).onclick = () => abrirEdicaoDiretaNoModal('cartao', indexFinal, item);
-            tbody.appendChild(tr);
-          });
-
-          comprasDiv.appendChild(table);
-        }
+        comprasDiv.appendChild(table);
       }
     }
 
